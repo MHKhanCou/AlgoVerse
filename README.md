@@ -53,9 +53,9 @@
 
 AlgoVerse/ ├── algoverse.db # SQLite database file (auto-generated) ├── database.py # Sets up SQLAlchemy engine & session ├── models.py # Database models (User, Algorithm, etc.) ├── crud.py # CRUD operations for each model ├── schemas.py # Pydantic schemas for request/response validation ├── main.py # FastAPI entry point with endpoints ├── requirements.txt # Project dependencies ├── .gitignore # Excludes venv, cache, etc. └── venv/ # (Excluded from git) Virtual environment folder
 
-yaml
-Copy
-Edit
+yaml<br>
+Copy<br>
+Edit<br>
 
 ---
 
@@ -67,36 +67,36 @@ Edit
    cd AlgoVerse
 Create & Activate a Virtual Environment (recommended):
 
-bash
-Copy
-Edit
-python -m venv venv
+bash<br>
+Copy<br>
+Edit<br>
+python -m venv venv<br>
 # Windows:
-venv\Scripts\activate
+venv\Scripts\activate<br>
 # macOS / Linux:
-source venv/bin/activate
-Install Dependencies:
+source venv/bin/activate<br>
+Install Dependencies:<br>
 
-bash
-Copy
-Edit
-pip install -r requirements.txt
-Usage
-Initialize / Update the Database:
+bash<br>
+Copy<br>
+Edit<br>
+pip install -r requirements.txt<br>
+Usage<br>
+Initialize / Update the Database:<br>
 
-By default, running the FastAPI app will create algoverse.db if it doesn’t exist.
-If you make changes to models, consider using a migration tool like Alembic.
-Run the FastAPI Server:
+By default, running the FastAPI app will create algoverse.db if it doesn’t exist.<br>
+If you make changes to models, consider using a migration tool like Alembic.<br>
+Run the FastAPI Server:<br>
 
-bash
-Copy
-Edit
-uvicorn main:app --reload
-The app will be available at http://127.0.0.1:8000.
-Test Endpoints:
+bash<br>
+Copy<br>
+Edit<br>
+uvicorn main:app --reload<br>
+The app will be available at http://127.0.0.1:8000.<br>
+Test Endpoints:<br>
 
-Swagger UI: http://127.0.0.1:8000/docs
-Redoc: http://127.0.0.1:8000/redoc
+Swagger UI: http://127.0.0.1:8000/docs<br>
+Redoc: http://127.0.0.1:8000/redoc<br>
 
 API Endpoints<br>
 Users<br>
