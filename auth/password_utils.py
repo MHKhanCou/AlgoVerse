@@ -21,17 +21,3 @@ def hash_password(password):
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
-
-def check_username(username, db):
-    user = db.query(models.User).filter(models.User.name == username).first()
-    if user:
-        return True
-    else:
-        return False
-    
-def check_email(email, db):
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if user:
-        return True
-    else:
-        return False
