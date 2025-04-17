@@ -48,3 +48,23 @@ logs/
 # Local development
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite
+dist/
+.vite/
+
+# Coverage
+coverage/
+*.lcov
+*.lcov.info
+
+# Miscellaneous
+*.bak
+*.tmp
+*.temp

@@ -1,94 +1,149 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-import models, schemas
+from sqlalchemy.exc import SQLAlchemyError
+from models import User, AlgoDifficulty, AlgoComplexity, AlgoStatus
+from schemas import ShowUser, UpdatePassword, UpdateEmail, Token, ShowBlog, ShowUserProgress
 from db import get_db
 from auth.oauth2 import get_current_user
-from repositories.user_progress_repo import get_last_accessed_algorithm, get_entry, get_user_completion_stats
-from repositories.user_repo import (
-    get_by_email,
-    update_password,
-    update_email,
-    update
-)
+from repositories import user_repo, user_progress_repo, blog_repo
+from auth.jwt_token import create_access_token
 from typing import List
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
-@router.get("/", response_model=schemas.UserProfile)
-def get_profile(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+@router.get("/me", response_model=ShowUser)
+def get_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
-        last_accessed_data = get_last_accessed_algorithm(db, current_user.id)
-        user_progress = get_entry(db, current_user.id)
-        stats = get_user_completion_stats(db, current_user.id)
+        return user_repo.get_user_by_id(db, current_user.id)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching profile for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+    except Exception as e:
+        logger.error(f"Unexpected error fetching profile for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.put("/update-password", response_model=ShowUser)
+def change_password(
+    password_data: UpdatePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        return user_repo.update_password(db, current_user.id, password_data)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating password for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update password")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error updating password for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.put("/update-email", response_model=Token)
+def change_email(
+    email_data: UpdateEmail,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        updated_user = user_repo.update_email(db, current_user.id, email_data)
+        access_token = create_access_token(data={"sub": updated_user.email})
         return {
-            "id": current_user.id,
-            "name": current_user.name,
-            "email": current_user.email,
-            "last_accessed_algorithm": last_accessed_data["algorithm"].name if last_accessed_data else None,
-            "progress": [{"algorithm": p.algorithm.name, "status": p.status.value} for p in user_progress],
-            "completion_stats": stats,
+            "access_token": access_token,
+            "token_type": "bearer"
         }
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating email for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update email")
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        db.rollback()
+        logger.error(f"Unexpected error updating email for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/update", response_model=schemas.UserProfile)
-def update_profile(
-    updated_data: schemas.UpdateUser,
+@router.delete("/delete", status_code=status.HTTP_204_NO_CONTENT)
+def delete_profile(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    return update(db, current_user.id, updated_data.name, updated_data.email)
-
-# 🔹 Change Password
-@router.put("/update-password", response_model=dict)
-def update_password(
-    updated_data: schemas.UpdatePassword,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     try:
-        return update_password(db, current_user.id, updated_data.old_password, updated_data.new_password)
+        # Delete all UserProgress records
+        user_progress_repo.delete_by_user(db, current_user.id)
+        # Delete all Blog records (assuming blog_repo has delete_by_user)
+        blog_repo.delete_by_user(db, current_user.id)
+        # Delete the user
+        user_repo.delete_user(db, current_user.id)
+        return None
+    except HTTPException as e:
+        db.rollback()
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error deleting profile for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete profile")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        db.rollback()
+        logger.error(f"Unexpected error deleting profile for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-# 🔹 Change Email
-@router.put("/update-email", response_model=dict)
-def update_email(
-    updated_data: schemas.UpdateEmail,
+@router.get("/my-blogs", response_model=List[ShowBlog])
+def get_my_blogs(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0, description="Number of blogs to skip"),
+    limit: int = Query(5, ge=1, le=100, description="Number of blogs to return")
 ):
     try:
-        return update_email(db, current_user.id, updated_data.email)
+        return blog_repo.get_user_blogs(db, current_user.id, skip=skip, limit=limit)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching blogs for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch blogs")
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        logger.error(f"Unexpected error fetching blogs for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-# delete user
-@router.delete("/delete", response_model=dict)
-def delete_user(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+@router.get("/my-progress", response_model=List[ShowUserProgress])
+def get_my_progress(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
-        db.query(models.User).filter(models.User.id == current_user.id).delete()
-        db.commit()
-        return {"message": "User deleted successfully"}
+        return user_progress_repo.get_progress_by_userid(db, current_user.id)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching progress for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch progress")
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        logger.error(f"Unexpected error fetching progress for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-# my blogs
-@router.get("/my-blogs", response_model=List[schemas.ShowBlog])
-def get_my_blogs(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return blog_repo.get_my_blogs(db, current_user.id)
-
-
-@router.get("/my-progress", response_model=List[schemas.ShowUserProgress])
-def get_my_progress(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return user_progress_repo.get_my_progress(db, current_user.id)
+@router.get("/stats", response_model=dict)
+def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        return user_progress_repo.get_detailed_user_stats(db, current_user.id)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching stats for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch stats")
+    except Exception as e:
+        logger.error(f"Unexpected error fetching stats for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

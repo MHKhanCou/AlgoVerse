@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import models
@@ -8,12 +9,25 @@ from routes import admin, authentication, profile, user, algo_types, algorithm, 
 
 app = FastAPI()
 
-models.Base.metadata.create_all(bind=engine)
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
-# Root endpoint and DB test
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,  # Ensure credentials are allowed
+    allow_methods=["*"],     # Allow all HTTP methods
+    allow_headers=["*"],     # Allow all headers
+)
+
+# Remove duplicate root endpoint
 @app.get("/")
-def read_root():
-    return {"message": "🚀 FastAPI is running with SQLite!"}
+async def root():
+    return {"message": "API is running"}
+
+models.Base.metadata.create_all(bind=engine)
 
 @app.get("/test-db")
 def test_db_connection(db: Session = Depends(get_db)):

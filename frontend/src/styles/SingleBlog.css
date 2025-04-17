@@ -1,0 +1,86 @@
+@import url('./app.css');
+
+.single-blog-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.single-blog-container h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.blog-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.blog-body {
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.blog-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-blog-form {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.form-textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.form-group small {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+}

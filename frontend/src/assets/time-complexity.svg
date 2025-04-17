@@ -1,0 +1,36 @@
+<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="200" fill="#f5f5f5" />
+  
+  <!-- Coordinate System -->
+  <line x1="50" y1="150" x2="350" y2="150" stroke="#333" stroke-width="2" />
+  <line x1="50" y1="150" x2="50" y2="30" stroke="#333" stroke-width="2" />
+  
+  <!-- Axis Labels -->
+  <text x="200" y="180" text-anchor="middle" fill="#333" font-family="Arial" font-size="14">Input Size (n)</text>
+  <text x="20" y="90" text-anchor="middle" fill="#333" font-family="Arial" font-size="14" transform="rotate(-90, 20, 90)">Time</text>
+  
+  <!-- Time Complexity Curves -->
+  <!-- O(1) - Constant -->
+  <line x1="50" y1="130" x2="350" y2="130" stroke="#2196F3" stroke-width="2" />
+  <text x="360" y="130" fill="#2196F3" font-family="Arial" font-size="12">O(1)</text>
+  
+  <!-- O(log n) - Logarithmic -->
+  <path d="M50,130 Q100,110 350,70" fill="none" stroke="#4CAF50" stroke-width="2" />
+  <text x="360" y="70" fill="#4CAF50" font-family="Arial" font-size="12">O(log n)</text>
+  
+  <!-- O(n) - Linear -->
+  <line x1="50" y1="130" x2="350" y2="50" stroke="#FFC107" stroke-width="2" />
+  <text x="360" y="50" fill="#FFC107" font-family="Arial" font-size="12">O(n)</text>
+  
+  <!-- O(n log n) -->
+  <path d="M50,130 Q200,80 350,30" fill="none" stroke="#FF9800" stroke-width="2" />
+  <text x="360" y="30" fill="#FF9800" font-family="Arial" font-size="12">O(n log n)</text>
+  
+  <!-- O(n²) - Quadratic -->
+  <path d="M50,130 Q150,100 350,10" fill="none" stroke="#F44336" stroke-width="2" />
+  <text x="360" y="10" fill="#F44336" font-family="Arial" font-size="12">O(n²)</text>
+  
+  <!-- Title -->
+  <text x="200" y="20" text-anchor="middle" fill="#333" font-family="Arial" font-size="16" font-weight="bold">Time Complexity Comparison</text>
+</svg>

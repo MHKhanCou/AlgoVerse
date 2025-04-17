@@ -12,20 +12,21 @@ router = APIRouter(
 
 # 🔹 Get all users
 @router.get("/", response_model=List[schemas.ShowUser])
-def all(db: Session = Depends(get_db)):
-    return user_repo.get_all(db)
+def get_all_users(db: Session = Depends(get_db)):
+    return user_repo.get_all_users(db)
 
 # 🔹 Get user by ID
-@router.get("/{id}", response_model=schemas.ShowUser)
-def show(id: int, db: Session = Depends(get_db)):
-    return user_repo.if_exists(db, id)
+@router.get("/{user_id}", response_model=schemas.ShowUser)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    return user_repo.get_user_by_id(db, user_id)
 
 # 🔹 Register a new user
-@router.post("/", response_model=schemas.ShowUser)
-def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
-    return user_repo.create(request, db)
+@router.post("/", response_model=schemas.ShowUser, status_code=status.HTTP_201_CREATED)
+def create_user(request: schemas.RegisterUser, db: Session = Depends(get_db)):
+    return user_repo.create_user(db, request)
 
 # 🔹 Get user profile (includes progress)
-@router.get("/{id}/profile", response_model=schemas.UserProfile)
-def profile(id: int, db: Session = Depends(get_db)):
-    return user_repo.get_profile(db, id)
+@router.get("/{user_id}/profile", response_model=schemas.UserProfile)
+def get_user_profile(user_id: int, db: Session = Depends(get_db)):
+    return user_repo.get_user_profile(db, user_id)
+

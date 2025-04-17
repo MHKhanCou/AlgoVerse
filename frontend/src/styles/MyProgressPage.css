@@ -1,0 +1,217 @@
+.progress-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1rem;
+    color: var(--text-primary, #1a1a2e);
+  }
+  
+  .progress-container h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary, #1a1a2e);
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-container p {
+    font-size: 1.1rem;
+    color: var(--text-secondary, #666);
+    margin-bottom: 2rem;
+  }
+  
+  .progress-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+  }
+  
+  .tab-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-secondary, #666);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .tab-button:hover {
+    color: var(--primary-color, #3b82f6);
+  }
+  
+  .tab-button.active {
+    color: var(--primary-color, #3b82f6);
+    border-bottom: 3px solid var(--primary-color, #3b82f6);
+  }
+  
+  .progress-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .progress-card {
+    background: linear-gradient(135deg, var(--bg-primary, #ffffff), var(--bg-secondary, #f9f9f9));
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .progress-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .card-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a2e);
+    margin: 0;
+  }
+  
+  .status-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  
+  .status-badge.not\ started {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+  
+  .status-badge.enrolled {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .status-badge.completed {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #666);
+  }
+  
+  .difficulty {
+    padding: 0.3rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .difficulty.easy {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .difficulty.medium {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .difficulty.hard {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .last-updated {
+    font-style: italic;
+  }
+  
+  .no-progress {
+    text-align: center;
+    color: var(--text-secondary, #666);
+    font-style: italic;
+    padding: 2rem;
+  }
+  
+  .progress-loading,
+  .error-message {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary, #666);
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .progress-container {
+      padding: 1rem;
+    }
+  
+    .progress-grid {
+      grid-template-columns: 1fr;
+    }
+  
+    .card-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+  
+  /* Theme Support */
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f9f9f9;
+    --text-primary: #1a1a2e;
+    --text-secondary: #666;
+    --border-color: #e5e7eb;
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --hover-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  [data-theme="dark"] {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #2a2a3e;
+    --text-primary: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --border-color: #4b5563;
+    --primary-color: #60a5fa;
+    --primary-hover: #93c5fd;
+    --hover-color: rgba(255, 255, 255, 0.1);
+  }
+
+.progress-container {
+  max-width: 800px; /* Adjusted max-width */
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.progress-header-actions {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.progress-header-actions .cta-button {
+  padding: 0.5rem 1rem;
+}

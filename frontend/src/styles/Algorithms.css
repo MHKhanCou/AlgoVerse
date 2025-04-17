@@ -1,0 +1,133 @@
+@import url('./app.css');
+
+.algorithms-container {
+  max-width: 800px; /* Adjusted to match Blogs.css */
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.algorithms-container h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.algorithm-types-list {
+  margin-bottom: 2rem;
+}
+
+.algorithm-types-list h3 {
+  margin-bottom: 0.5rem;
+}
+
+.type-link {
+  display: inline-block;
+  margin: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.type-link:hover {
+  background-color: var(--hover-color);
+}
+
+.algorithms-list {
+  display: flex;
+  flex-direction: column; /* Changed to column for top-to-bottom layout */
+  gap: 1rem;
+}
+
+.algo-card {
+  background-color: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s;
+}
+
+.algo-card:hover {
+  transform: translateY(-2px);
+}
+
+.algo-card h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+.algo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.difficulty.easy {
+  background-color: #10b981;
+  color: var(--bg-primary);
+}
+
+.difficulty.medium {
+  background-color: #f59e0b;
+  color: var(--bg-primary);
+}
+
+.difficulty.hard {
+  background-color: #ef4444;
+  color: var(--bg-primary);
+}
+
+.complexity {
+  background-color: var(--accent-color); /* Updated to use --accent-color */
+  color: var(--bg-primary);
+}
+
+.type {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.read-more {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent-color); /* Updated to use --accent-color */
+  text-decoration: none;
+}
+
+.read-more:hover {
+  text-decoration: underline;
+}
+
+.loading,
+.error-message,
+.no-results {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination .cta-button {
+  padding: 0.5rem 1rem;
+}
+
+.pagination .cta-button:disabled {
+  background-color: var(--border-color);
+  cursor: not-allowed;
+}

@@ -1,0 +1,226 @@
+/* SingleAlgorithm.css */
+
+.algorithm-page {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 1rem;
+  color: var(--text-primary);
+}
+
+.breadcrumb {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--accent-color);
+}
+
+.algorithm-page h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tag {
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.difficulty.easy {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.difficulty.medium {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  opacity: 0.85;
+}
+
+.difficulty.hard {
+  background: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.complexity {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.type.clickable {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.type.clickable:hover {
+  background: var(--hover-color);
+  color: var(--accent-color);
+}
+
+.description,
+.explanation,
+.code-snippet,
+.visualizer {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--card-shadow);
+}
+
+.description p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.explanation h2,
+.code-snippet h2,
+.visualizer h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.copy-btn {
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-color);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.copy-btn:hover {
+  background: var(--hover-color);
+  color: var(--accent-color);
+}
+
+.visualizer-placeholder {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.visualizer-placeholder p {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.visualizer-placeholder small {
+  font-size: 0.9rem;
+}
+
+.progress-actions {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.progress-actions:hover {
+  box-shadow: var(--hover-shadow);
+}
+
+.progress-actions p {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 500;
+}
+
+.progress-actions button {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-color);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.progress-actions button.completed-btn {
+  background: var(--accent-color);
+  opacity: 0.9;
+}
+
+.progress-actions button:hover:not(:disabled) {
+  background: var(--hover-color);
+  color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+.progress-actions button:disabled {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.back-link:hover {
+  color: var(--text-primary);
+}
+
+.loading,
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .algorithm-page {
+    padding: 1rem;
+  }
+
+  .progress-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

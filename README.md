@@ -1,67 +1,68 @@
 # AlgoVerse
 
-**AlgoVerse** is an educational platform designed to help users learn algorithms through interactive lessons and visualizations. It provides a robust FastAPI backend with CRUD operations for users, algorithms, algorithm types, and user progress tracking, as well as a database schema (SQLite by default) to store and manage data.
-
----
+**AlgoVerse** is an educational platform designed to help users learn algorithms through interactive lessons and progress tracking. Built with FastAPI, it provides a comprehensive backend for algorithm management, user authentication, progress tracking, and a blog system.
 
 ## Table of Contents
 
-- [Features](#features)  
-- [Tech Stack](#tech-stack)  
-- [Project Structure](#project-structure)  
-- [Installation](#installation)  
-- [Usage](#usage)  
-- [API Endpoints](#api-endpoints)  
-- [Contributing](#contributing)  
-- [License](#license)
-
----
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Endpoints](#api-endpoints)
+- [Contributing](#contributing)
 
 ## Features
 
-- **User Management:**  
-  Create, read, update, and delete users, each with a unique username, email, and hashed password.  
+- **User Authentication & Authorization**
+  - JWT-based authentication
+  - Role-based access control (admin/regular users)
+  - Secure password hashing
 
-- **Algorithm Types:**  
-  Categorize algorithms (e.g., Searching, Sorting, Graph) for easy organization and retrieval.  
+- **Algorithm Management**
+  - Categorize algorithms by types
+  - Track algorithm difficulty and complexity
+  - Detailed algorithm descriptions
 
-- **Algorithms:**  
-  Store algorithm details like name, description, complexity, and associate them with an algorithm type.  
+- **Progress Tracking**
+  - Monitor user progress on algorithms
+  - Track completion status
+  - Generate user statistics
 
-- **User Progress:**  
-  Track user progress on various algorithms (e.g., completed steps, last accessed time).  
+- **Blog System**
+  - Create and share algorithm-related content
+  - Search functionality
+  - User-specific blog management
 
-- **FastAPI Endpoints:**  
-  Automatically generated Swagger UI at `/docs` and Redoc at `/redoc` for testing and documentation.  
-
-- **SQLite Integration:**  
-  Default local database (`algoverse.db`) for quick setup and testing.
-
----
+- **Admin Dashboard**
+  - User management
+  - Algorithm type and content management
+  - Progress monitoring
 
 ## Tech Stack
 
-- **Backend:** FastAPI  
-- **Database:** SQLite (local by default)  
-- **ORM:** SQLAlchemy  
-- **Password Hashing:** passlib (bcrypt)  
-- **Python Version:** 3.11 (recommended)
-
----
+- **Backend:** FastAPI
+- **Database:** SQLite (with SQLAlchemy ORM)
+- **Authentication:** JWT tokens
+- **Documentation:** Swagger UI and ReDoc
 
 ## Project Structure
 
 ```plaintext
 AlgoVerse/
-├── algoverse.db         # SQLite database file (auto-generated)
-├── database.py          # Sets up SQLAlchemy engine & session
-├── models.py            # Database models (User, Algorithm, etc.)
-├── crud.py              # CRUD operations for each model
-├── schemas.py           # Pydantic schemas for request/response validation
-├── main.py              # FastAPI entry point with endpoints
-├── requirements.txt     # Project dependencies
-├── .gitignore           # Excludes venv, cache, etc.
-└── venv/                # (Excluded from git) Virtual environment folder
+├── auth/                  # Authentication related code
+├── db/                    # Database configuration
+│   ├── database.py        # SQLAlchemy setup
+│   └── algoverse.db       # SQLite database
+├── middleware/            # Custom middleware
+├── models/                # Database models
+├── repositories/          # Data access layer
+├── routes/                # API endpoints
+├── schemas/               # Pydantic schemas
+├── .env                   # Environment variables
+├── .gitignore             # Git ignore file
+├── main.py                # Application entry point
+└── requirements.txt       # Project dependencies
 ```
 
 ---

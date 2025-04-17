@@ -17,16 +17,15 @@ class AlgoDifficulty(enum.Enum):
 
 class AlgoComplexity(enum.Enum):
     O1 = "O(1)"
-    Ologn = "O(log n)"
+    Ologn = "O(logn)"
     On = "O(n)"
-    Onlogn = "O(n log n)"
+    Onlogn = "O(nlogn)"
     On2 = "O(n^2)"
     On3 = "O(n^3)"
     O2n = "O(2^n)"
     Onfact = "O(n!)"
 
 # User Model
-
 class User(Base):
     __tablename__ = "users"
     
@@ -61,9 +60,13 @@ class Algorithm(Base):
     complexity = Column(Enum(AlgoComplexity), nullable=False)
     type_id = Column(Integer, ForeignKey("algorithm_types.id"), nullable=False)
 
-    # Relationships
+    # 🆕 Add these two:
+    explanation = Column(Text, nullable=True)
+    code = Column(Text, nullable=True)
+
     type = relationship("AlgorithmType", back_populates="algorithms")
     user_progress = relationship("UserProgress", back_populates="algorithm")
+
     @property
     def type_name(self):
         return self.type.name if self.type else None

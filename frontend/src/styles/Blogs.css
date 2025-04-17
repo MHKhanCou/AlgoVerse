@@ -1,0 +1,149 @@
+@import url('./app.css');
+
+.blogs-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.blogs-container h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.blogs-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.user-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.create-blog-form {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+  box-shadow: var(--card-shadow);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.form-textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.form-group small {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.blogs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blog-card {
+  background-color: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s;
+}
+
+.blog-card:hover {
+  transform: translateY(-2px);
+}
+
+.blog-title {
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.blog-title h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.blog-author,
+.blog-meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination .cta-button {
+  padding: 0.5rem 1rem;
+}
+
+.pagination .cta-button:disabled {
+  background-color: var(--border-color);
+  cursor: not-allowed;
+}

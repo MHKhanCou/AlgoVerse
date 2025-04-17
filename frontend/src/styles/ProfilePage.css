@@ -1,0 +1,453 @@
+/* Add these styles to the existing ProfilePage.css */
+
+/* Stats Section Header */
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem; /* Increased margin for better spacing */
+  gap: 1.5rem; /* Add gap between heading and button */
+}
+
+.view-progress-button {
+  padding: 0.75rem 1.5rem; /* Slightly larger padding for better visibility */
+  font-size: 1.1rem; /* Slightly larger font size */
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-progress-button:hover {
+  background: var(--hover-color);
+  color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: var(--hover-shadow);
+}
+
+/* Ensure the existing styles remain unchanged */
+.profile-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 1rem;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.profile-header {
+  background: linear-gradient(135deg, var(--bg-secondary, #f9f9f9), var(--bg-primary, #ffffff));
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color, #e5e7eb);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-info h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+  margin-bottom: 0.5rem;
+}
+
+.profile-info .email {
+  font-size: 1.1rem;
+  color: var(--text-secondary, #666);
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: var(--primary-color, #3b82f6);
+}
+
+.tab-button.active {
+  color: var(--primary-color, #3b82f6);
+  border-bottom: 3px solid var(--primary-color, #3b82f6);
+}
+
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stats-section,
+.recent-activity,
+.settings-section {
+  background: var(--bg-secondary, #f9f9f9);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.stats-section h2,
+.recent-activity h2,
+.settings-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+  margin-bottom: 1.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, var(--bg-primary, #ffffff), var(--bg-secondary, #f9f9f9));
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.progress-bar {
+  margin-top: 0.5rem;
+  height: 8px;
+  background: var(--border-color, #e5e7eb);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-color);
+  transition: width 0.5s ease;
+}
+
+.recent-activity .activity-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  transition: background 0.3s ease;
+}
+
+.activity-item:hover {
+  background: var(--bg-primary, #ffffff);
+}
+
+.activity-name {
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.difficulty {
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.difficulty.easy {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.difficulty.medium {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  opacity: 0.85;
+}
+
+.difficulty.hard {
+  background: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.activity-date {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #666);
+}
+
+.no-activity {
+  color: var(--text-secondary, #666);
+  font-style: italic;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-group {
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.form-group h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+  margin-bottom: 1rem;
+}
+
+.form-field {
+  margin-bottom: 1.5rem;
+}
+
+.form-field label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  margin-bottom: 0.5rem;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  color: var(--text-primary, #1a1a2e);
+  background: var(--bg-secondary, #f9f9f9);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  transition: border-color 0.3s ease;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.form-group button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-color);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-group button:hover {
+  background: var(--hover-color);
+  color: var(--accent-color);
+}
+
+.form-group button:disabled {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.danger-zone {
+  border-color: var(--error-color, #f87171);
+}
+
+.danger-zone p {
+  color: var(--error-color, #dc2626);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.delete-button {
+  background: var(--error-color, #dc2626) !important;
+  color: var(--text-primary) !important;
+}
+
+.delete-button:hover {
+  background: var(--error-hover-color, #b91c1c) !important;
+}
+
+.profile-loading,
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #666);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 1rem;
+  }
+
+  .profile-header {
+    padding: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .form-group {
+    padding: 1rem;
+  }
+
+  .stats-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .view-progress-button {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem; /* Consistent padding on mobile */
+  }
+}
+
+/* Theme Support */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9f9f9;
+  --text-primary: #1a1a2e;
+  --text-secondary: #666;
+  --border-color: #e5e7eb;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --hover-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #2a2a3e;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --border-color: #4b5563;
+  --primary-color: #60a5fa;
+  --primary-hover: #93c5fd;
+  --hover-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Adjust button text color for dark mode */
+[data-theme="dark"] .view-progress-button {
+  color: var(--text-primary, #1a1a2e); /* Ensure readable text in dark mode */
+}
+
+/* Remove redundant theme variables as they're defined in the main theme */
+:root {
+  --error-color: #dc2626;
+  --error-hover-color: #b91c1c;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] {
+  --error-color: #ef4444;
+  --error-hover-color: #dc2626;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.my-blogs-section {
+  background: var(--bg-secondary, #f9f9f9);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.my-blogs-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+  margin-bottom: 1.5rem;
+}
+
+.blogs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blog-card {
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-3px);
+}
+
+.blog-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #1a1a2e;
+  text-decoration: none;
+}
+
+.blog-author {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
