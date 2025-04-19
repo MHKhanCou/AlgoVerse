@@ -68,3 +68,7 @@ coverage/
 *.bak
 *.tmp
 *.temp
+
+# Archives
+*__pycache__/
+*.zip
