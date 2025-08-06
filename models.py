@@ -34,7 +34,11 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     joined_at = Column(DateTime, default=datetime.utcnow)
-    is_admin = Column(Boolean, default=False) 
+    is_admin = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     # Relationship to track user's progress on algorithms
     user_progress = relationship("UserProgress", back_populates="user")
     blog = relationship("Blog", back_populates="user")
@@ -93,6 +97,12 @@ class UserProgress(Base):
         return self.algorithm.name if self.algorithm else None
 # BLOG
 
+# Blog Status Enum
+class BlogStatus(enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
 class Blog(Base):
     __tablename__ = "blog"
     id = Column(Integer, unique=True, primary_key=True, index=True, autoincrement=True)
@@ -101,8 +111,13 @@ class Blog(Base):
     user_id = Column(Integer, ForeignKey(User.id), nullable=False)  
     created_at = Column(TIMESTAMP, server_default=func.now())  
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    status = Column(Enum(BlogStatus), default=BlogStatus.pending, nullable=False)
+    admin_feedback = Column(Text, nullable=True)
+    approved_by = Column(Integer, ForeignKey(User.id), nullable=True)
+    approved_at = Column(TIMESTAMP, nullable=True)
 
-    user = relationship("User", back_populates="blog")
+    user = relationship("User", back_populates="blog", foreign_keys=[user_id])
+    admin = relationship("User", foreign_keys=[approved_by])
 
     @property
     def author(self):

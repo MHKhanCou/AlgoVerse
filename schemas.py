@@ -2,7 +2,7 @@ import datetime
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Any
 from datetime import datetime
-from models import AlgoDifficulty, AlgoComplexity, AlgoStatus
+from models import AlgoDifficulty, AlgoComplexity, AlgoStatus, BlogStatus
 
 class APIResponse(BaseModel):
     success: bool
@@ -27,6 +27,9 @@ class ShowBlog(BaseModel):
     author: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    status: BlogStatus
+    admin_feedback: Optional[str] = None
+    approved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -211,3 +214,25 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+# Email verification and password reset schemas
+class EmailVerification(BaseModel):
+    token: str
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
+
+class ResendVerification(BaseModel):
+    email: EmailStr
+
+# Blog moderation schemas
+class BlogModerationAction(BaseModel):
+    status: BlogStatus
+    admin_feedback: Optional[str] = None
+
+    class Config:
+        from_attributes = True

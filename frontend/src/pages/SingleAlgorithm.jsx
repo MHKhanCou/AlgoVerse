@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { algorithmService } from '../services/algorithmService';
 import { userProgressService } from '../services/userProgressService';
@@ -7,6 +7,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import DOMPurify from 'dompurify';
+import AlgorithmVisualizer from '../components/visualizer/AlgorithmVisualizer';
 import '../styles/SingleAlgorithm.css';
 
 const SingleAlgorithm = () => {
@@ -157,10 +158,7 @@ const SingleAlgorithm = () => {
       <section className="visualizer">
         <div className="details-section">
           <h2>🎲 Visualizer</h2>
-          <div className="visualizer-placeholder">
-            <p>🚀 Visualizer under construction.</p>
-            <small>This feature will arrive in future updates!</small>
-          </div>
+          <AlgorithmVisualizer algorithm={algorithm} />
         </div>
       </section>
 
