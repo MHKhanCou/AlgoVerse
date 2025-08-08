@@ -3,6 +3,7 @@ import { ExternalLink, CheckCircle, Clock, AlertCircle, Star, Calendar, Target }
 import { algorithmService } from '../services/algorithmService';
 import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
+import '../styles/RelatedProblems.css';
 
 const ProblemCard = ({
   problem,
@@ -178,29 +179,41 @@ const RelatedProblems = ({ algorithm, user }) => {
         setLoading(true);
         setError('');
         
-        // In a real app, you would fetch related problems based on the current algorithm
-        // For now, we'll use a placeholder or fetch some related problems
-        const response = await algorithmService.getByType(algorithm.type_id, 1, 3);
-        const related = response.items || [];
+        // Fetch related problems for this algorithm
+        const response = await algorithmService.getRelatedProblems(algorithm.id);
+        const related = response || [];
         
-        // Filter out the current algorithm
-        const filtered = related.filter(p => p.id !== algorithm.id);
-        setRelatedProblems(filtered);
+        console.log('Fetched related problems for algorithm:', algorithm.id);
         
-        // Fetch progress for each related problem if user is logged in
-        if (user) {
-          const progressPromises = filtered.map(problem => 
-            userProgressService.getEntry(problem.id).catch(() => null)
-          );
-          const progresses = await Promise.all(progressPromises);
-          
-          const progressObj = {};
-          progresses.forEach((progress, index) => {
-            if (progress) {
-              progressObj[filtered[index].id] = progress;
-            }
-          });
-          setProgressMap(progressObj);
+        // Use the related problems directly (no need to filter current algorithm)
+        const filtered = Array.isArray(related) ? related : [];
+        const limitedProblems = filtered.slice(0, 6); // Limit to 6 related problems for display
+        
+        setRelatedProblems(limitedProblems);
+        
+        // Batch fetch progress for all problems if user is logged in
+        if (user && limitedProblems.length > 0) {
+          try {
+            const algorithmIds = limitedProblems.map(p => p.id);
+            const progressMap = await userProgressService.getBatchProgress(algorithmIds);
+            
+            // Convert the progress map to the expected format
+            const formattedProgressMap = {};
+            Object.entries(progressMap).forEach(([algoId, progress]) => {
+              if (progress) {
+                formattedProgressMap[algoId] = {
+                  status: progress.status,
+                  attempts: progress.attempts || 0,
+                  solved_at: progress.finished_at,
+                  solution_url: progress.solution_url
+                };
+              }
+            });
+            
+            setProgressMap(formattedProgressMap);
+          } catch (progressError) {
+            console.error('Error fetching batch progress:', progressError);
+          }
         }
       } catch (err) {
         console.error('Error fetching related problems:', err);
@@ -214,48 +227,106 @@ const RelatedProblems = ({ algorithm, user }) => {
     fetchRelatedProblems();
   }, [algorithm?.id, algorithm?.type_id, user]);
 
-  const handleUpdateProgress = async (problemId, status) => {
+  const handleUpdateProgress = async (algoId, newStatus) => {
     if (!user) return;
     
     try {
-      const updatedProgress = await userProgressService.updateOrCreateProgress(problemId, status);
+      const existingProgress = progressMap[algoId];
+      const isNew = !existingProgress;
+      
+      // Update local state optimistically
       setProgressMap(prev => ({
         ...prev,
-        [problemId]: updatedProgress
+        [algoId]: {
+          ...(prev[algoId] || {}),
+          status: newStatus,
+          solved_at: newStatus === 'solved' ? new Date().toISOString() : (prev[algoId]?.solved_at || null),
+          attempts: (prev[algoId]?.attempts || 0) + (newStatus === 'solved' ? 1 : 0)
+        }
       }));
-      toast.success(`Marked as ${status}`);
-    } catch (err) {
-      console.error('Error updating progress:', err);
-      toast.error('Failed to update progress');
+      
+      // Update in the backend
+      if (isNew) {
+        // Create new progress entry
+        await userProgressService.createProgress(algoId, newStatus);
+      } else {
+        // Update existing progress
+        const progressId = existingProgress.id;
+        if (progressId) {
+          await userProgressService.updateProgress(progressId, newStatus);
+        } else {
+          // If for some reason we don't have an ID, create a new entry
+          const newProgress = await userProgressService.createProgress(algoId, newStatus);
+          setProgressMap(prev => ({
+            ...prev,
+            [algoId]: {
+              ...prev[algoId],
+              id: newProgress.id
+            }
+          }));
+        }
+      }
+      
+      toast.success(`Marked as ${newStatus} successfully`);
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      toast.error(error.message || 'Failed to update progress');
+      
+      // Revert optimistic update on error
+      setProgressMap(prev => ({
+        ...prev,
+        [algoId]: {
+          ...(prev[algoId] || {}),
+          status: existingProgress?.status || 'not_started',
+          solved_at: existingProgress?.solved_at || null
+        }
+      }));
     }
   };
 
-  if (loading) return <div className="loading-related">Loading related problems...</div>;
-  if (error) return <div className="error-message">{error}</div>;
-  if (relatedProblems.length === 0) return null;
+  if (loading) return (
+    <div className="related-problems-container">
+      <h2>Related Problems</h2>
+      <div className="loading-related">Loading related problems...</div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="related-problems-container">
+      <h2>Related Problems</h2>
+      <div className="error-message">{error}</div>
+    </div>
+  );
 
   return (
     <div className="related-problems-container">
       <h2>Related Problems</h2>
-      <div className="related-problems-grid">
-        {relatedProblems.map(problem => (
-          <ProblemCard
-            key={problem.id}
-            problem={{
-              ...problem,
-              title: problem.name || 'Untitled Problem',
-              description: problem.description || '',
-              difficulty: problem.difficulty || 'medium',
-              platform: 'AlgoVerse',
-              url: `/algorithms/${problem.id}`,
-              tags: problem.tags || ''
-            }}
-            progress={progressMap[problem.id]}
-            user={user}
-            onUpdateProgress={handleUpdateProgress}
-          />
-        ))}
-      </div>
+      {relatedProblems.length === 0 ? (
+        <div className="no-related-problems">
+          <p>No related problems found for this algorithm type.</p>
+          <p>Check back later for more problems!</p>
+        </div>
+      ) : (
+        <div className="related-problems-grid">
+          {relatedProblems.map(problem => (
+            <ProblemCard
+              key={problem.id}
+              problem={{
+                ...problem,
+                title: problem.name || 'Untitled Problem',
+                description: problem.description || '',
+                difficulty: problem.difficulty || 'medium',
+                platform: 'AlgoVerse',
+                url: `/algorithms/${problem.id}`,
+                tags: problem.tags || ''
+              }}
+              progress={progressMap[problem.id]}
+              user={user}
+              onUpdateProgress={handleUpdateProgress}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

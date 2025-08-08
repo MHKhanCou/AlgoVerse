@@ -280,6 +280,42 @@
   color: var(--success);
 }
 
+.cf-comparison-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.cf-rating-badge {
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+}
+
+.cf-rank-badge {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.cf-comparison-stat {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cf-success-rate {
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.cf-max-rating {
+  font-weight: 600;
+}
+
 /* Loading State */
 .cf-loading {
   display: flex;

@@ -810,6 +810,43 @@
   margin: 0 auto;
 }
 
+/* No Related Problems */
+.no-related-problems {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--background-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.no-related-problems p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.no-related-problems p:first-child {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+}
+
+.no-related-problems p:last-child {
+  margin-bottom: 0;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Loading Related */
+.loading-related {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
 /* Loading State */
 .loading-state {
   display: flex;

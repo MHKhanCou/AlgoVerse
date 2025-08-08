@@ -116,4 +116,19 @@ export const algorithmService = {
       throw new Error(error.response?.data?.detail || 'Failed to delete algorithm');
     }
   },
+
+  async getRelatedProblems(algorithmId) {
+    try {
+      const response = await axios.get(`${ALGORITHMS_URL}/${algorithmId}/related-problems`);
+      return response.data;
+    } catch (error) {
+      if (!error.response) {
+        throw new Error('Network error: Unable to reach the server.');
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Algorithm not found');
+      }
+      throw new Error(error.response?.data?.detail || 'Failed to fetch related problems');
+    }
+  },
 };

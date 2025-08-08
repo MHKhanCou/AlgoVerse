@@ -53,6 +53,30 @@ def get_all_algorithms(
 def get_algorithm(id: int, db: Session = Depends(get_db)):
     return algo_repo.get_algorithm_by_id(db, id)
 
+@router.get("/{id}/related-problems")
+def get_algorithm_related_problems(id: int, db: Session = Depends(get_db)):
+    """Get related problems for a specific algorithm"""
+    try:
+        # Check if algorithm exists
+        algorithm = db.query(models.Algorithm).filter(models.Algorithm.id == id).first()
+        if not algorithm:
+            raise HTTPException(status_code=404, detail="Algorithm not found")
+        
+        # Get approved related problems for this algorithm
+        problems = db.query(models.RelatedProblem).filter(
+            models.RelatedProblem.algorithm_id == id,
+            models.RelatedProblem.status == models.ProblemStatus.APPROVED
+        ).all()
+        
+        return problems
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching related problems: {str(e)}"
+        )
+
 @router.get("/type/{type_id}", response_model=List[schemas.ShowAlgorithm])
 def get_algorithms_by_type(
     type_id: int,

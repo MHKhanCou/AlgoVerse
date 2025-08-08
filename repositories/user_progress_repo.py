@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
+from typing import List
 from models import UserProgress, User, Algorithm, AlgoStatus, AlgoDifficulty, AlgoComplexity
 from schemas import ShowUserProgress, AddUserProgress, UpdateUserProgress, ShowAlgorithm
 import logging
@@ -241,21 +242,47 @@ def delete(db: Session, progress_id: int):
 
 def delete_by_user(db: Session, user_id: int):
     try:
-        progress_entries = db.query(UserProgress).filter(UserProgress.user_id == user_id).all()
-        if not progress_entries:
-            raise HTTPException(status_code=404, detail="No progress found for this user")
-        for entry in progress_entries:
-            db.delete(entry)
+        # Delete all progress entries for the user
+        db.query(UserProgress).filter(UserProgress.user_id == user_id).delete()
         db.commit()
-        return None
+        return {"message": f"All progress for user {user_id} deleted successfully"}
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error deleting progress for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete user progress")
-    except HTTPException:
-        db.rollback()
-        raise
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete progress for user {user_id}"
+        )
     except Exception as e:
         db.rollback()
         logger.error(f"Unexpected error deleting progress for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+def get_batch_progress(db: Session, user_id: int, algorithm_ids: List[int]):
+    """
+    Get progress for multiple algorithms for a single user in a single query.
+    Returns a dictionary mapping algorithm_id to progress entry.
+    """
+    try:
+        if not algorithm_ids:
+            return {}
+            
+        # Query all progress entries for the user and the specified algorithm IDs
+        progress_entries = db.query(UserProgress).filter(
+            UserProgress.user_id == user_id,
+            UserProgress.algo_id.in_(algorithm_ids)
+        ).all()
+        
+        # Create a mapping of algo_id to progress entry
+        return {entry.algo_id: entry for entry in progress_entries}
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching batch progress for user {user_id}: {str(e)}")
+        # Don't fail the entire request if batch progress fails
+        return {}
+    except Exception as e:
+        logger.error(f"Unexpected error in get_batch_progress: {str(e)}")
+        return {}

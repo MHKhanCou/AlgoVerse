@@ -177,13 +177,31 @@ export const userProgressService = {
       if (!error.response) {
         throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
       }
-      if (error.response?.status === 403) {
-        throw new Error('Not authorized to delete this progress');
-      }
       if (error.response?.status === 404) {
         throw new Error('Progress not found');
       }
+      if (error.response?.status === 403) {
+        throw new Error('Not authorized to delete this progress');
+      }
       throw new Error(error.response?.data?.detail || 'Failed to delete progress');
+    }
+  },
+
+  async getBatchProgress(algorithmIds) {
+    if (!algorithmIds || algorithmIds.length === 0) return [];
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${PROGRESS_URL}/batch`,
+        { algorithm_ids: algorithmIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching batch progress:', error);
+      // Return empty array instead of throwing to prevent breaking the UI
+      return [];
     }
   },
 };
