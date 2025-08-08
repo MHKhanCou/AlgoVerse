@@ -48,20 +48,102 @@
   color: #333;
 }
 
+/* Dots visualization style */
+.array-container.dots {
+  align-items: flex-start;
+}
+
+.array-dot-container {
+  flex: 1;
+  margin: 0 1px;
+  position: relative;
+  height: 100%;
+  min-width: 8px;
+}
+
+.array-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: bottom 0.1s ease-in-out;
+}
+
+.dot-value {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Lines visualization style */
+.array-container.lines {
+  align-items: flex-end;
+}
+
+.array-line-container {
+  flex: 1;
+  margin: 0 1px;
+  position: relative;
+  height: 100%;
+  min-width: 2px;
+}
+
+.array-line {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  transition: height 0.1s ease-in-out;
+  border-radius: 2px 2px 0 0;
+}
+
+.line-value {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #333;
+  white-space: nowrap;
+}
+
 .visualizer-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 15px;
   margin-bottom: 20px;
   width: 100%;
-  justify-content: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .control-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 120px;
+}
+
+.control-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .control-group label {
@@ -70,31 +152,104 @@
 }
 
 .visualizer-controls button {
-  padding: 8px 16px;
-  background-color: #4a6ee0;
-  color: white;
+  padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.visualizer-controls button:hover:not(:disabled) {
-  background-color: #3a5bbf;
+.generate-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.generate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.sort-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.sort-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
 .visualizer-controls button:disabled {
-  background-color: #b0b0b0;
+  background-color: #6c757d;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .visualizer-controls select,
-.visualizer-controls input[type="range"] {
-  padding: 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+.visualizer-controls input[type="range"],
+.visualizer-controls input[type="text"] {
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
   font-size: 14px;
+  transition: border-color 0.2s ease;
+  background-color: white;
+}
+
+.visualizer-controls select:focus,
+.visualizer-controls input[type="range"]:focus,
+.visualizer-controls input[type="text"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.visualizer-controls input[type="text"] {
+  min-width: 200px;
+}
+
+.visualizer-controls input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  outline: none;
+}
+
+.visualizer-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.visualizer-controls input[type="range"]::-webkit-slider-thumb:hover {
+  background: #0056b3;
+}
+
+.visualizer-controls input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
 }
 
 .visualizer-controls input[type="checkbox"] {

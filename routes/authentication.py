@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from db import get_db  
 from auth.password_utils import hash_password, verify_password
 from auth.jwt_token import create_access_token  
-from auth.email_utils import generate_token, send_verification_email, send_password_reset_email, get_token_expiry_time, is_token_expired
+from auth.email_utils import generate_token, generate_otp, send_verification_email, send_verification_otp_email, send_password_reset_email, send_password_reset_otp_email, get_token_expiry_time, is_token_expired
+from auth.cleanup_users import cleanup_expired_unverified_users, cleanup_expired_otps, get_unverified_user_stats
 from repositories import user_repo
 from repositories.user_repo import get_user_by_email
 import schemas, models
@@ -94,21 +95,48 @@ def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
     # Check if user already exists
     existing_user = get_user_by_email(db, request.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email already exists"
-        )
+        # If the user exists and is not verified, we can resend the OTP
+        if not existing_user.is_verified:
+            # Generate a new OTP and update expiry
+            new_otp = generate_otp(6)
+            existing_user.verification_token = new_otp
+            existing_user.reset_token_expires = get_token_expiry_time(10) # 10-minute expiry
+            db.commit()
+
+            # Resend OTP email
+            if send_verification_otp_email(existing_user.email, existing_user.name, new_otp):
+                return {
+                    "success": True,
+                    "message": f"This email is already registered but not verified. A new verification code has been sent to {existing_user.email}.",
+                    "data": {
+                        "user_id": existing_user.id,
+                        "email": existing_user.email,
+                        "otp_expires_in": 10
+                    }
+                }
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to resend verification email. Please try again later."
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email already exists and is verified."
+            )
+
+    # Generate verification OTP code (6 digits)
+    verification_otp = generate_otp(6)
+    otp_expires = get_token_expiry_time(10)  # 10 minutes expiry for OTP
     
-    # Generate verification token
-    verification_token = generate_token()
-    
-    # Create user with verification token
+    # Create user with verification OTP
     hashed_password = hash_password(request.password)
     user = models.User(
         name=request.name,
         email=request.email,
         password=hashed_password,
-        verification_token=verification_token,
+        verification_token=verification_otp,  # Store OTP in the same field
+        reset_token_expires=otp_expires,  # Use this field for OTP expiry
         is_verified=False
     )
     
@@ -116,37 +144,36 @@ def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     
-    # Send verification email
-    if send_verification_email(user.email, user.name, verification_token):
+    # Send verification email with OTP
+    if send_verification_otp_email(user.email, user.name, verification_otp):
         return {
             "success": True,
-            "message": "Registration successful! Please check your email to verify your account.",
+            "message": f"Registration successful! A 6-digit verification code has been sent to {user.email}. The code will expire in 10 minutes.",
             "data": {
                 "user_id": user.id,
-                "email": user.email
+                "email": user.email,
+                "otp_expires_in": 10  # minutes
             }
         }
     else:
-        # If email sending fails, still return success but with different message
-        return {
-            "success": True,
-            "message": "Registration successful! However, we couldn't send the verification email. Please contact support.",
-            "data": {
-                "user_id": user.id,
-                "email": user.email
-            }
-        }
+        # If email sending fails, we should ideally roll back the user creation or handle it
+        # For now, we'll raise an error to indicate the failure.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration successful, but failed to send verification email. Please try again later."
+        )
 
-# Email verification endpoint
+
+# Email verification endpoint (now handles OTP)
 @router.post("/verify-email", response_model=schemas.APIResponse)
 def verify_email(request: schemas.EmailVerification, db: Session = Depends(get_db)):
-    # Find user with the verification token
+    # Find user with the verification token (now OTP)
     user = db.query(models.User).filter(models.User.verification_token == request.token).first()
     
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token"
+            detail="Invalid verification code. Please check the code and try again."
         )
     
     if user.is_verified:
@@ -156,9 +183,22 @@ def verify_email(request: schemas.EmailVerification, db: Session = Depends(get_d
             "data": None
         }
     
-    # Mark user as verified and clear the token
+    # Check if OTP has expired (using reset_token_expires field)
+    if user.reset_token_expires and is_token_expired(user.reset_token_expires):
+        # Clear expired OTP
+        user.verification_token = None
+        user.reset_token_expires = None
+        db.commit()
+        
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code has expired. Please request a new code."
+        )
+    
+    # Mark user as verified and clear the OTP
     user.is_verified = True
     user.verification_token = None
+    user.reset_token_expires = None
     db.commit()
     
     return {
@@ -170,7 +210,7 @@ def verify_email(request: schemas.EmailVerification, db: Session = Depends(get_d
         }
     }
 
-# Resend verification email
+# Resend verification OTP
 @router.post("/resend-verification", response_model=schemas.APIResponse)
 def resend_verification(request: schemas.ResendVerification, db: Session = Depends(get_db)):
     user = get_user_by_email(db, request.email)
@@ -188,17 +228,22 @@ def resend_verification(request: schemas.ResendVerification, db: Session = Depen
             "data": None
         }
     
-    # Generate new verification token
-    verification_token = generate_token()
-    user.verification_token = verification_token
+    # Generate new verification OTP
+    verification_otp = generate_otp(6)
+    otp_expires = get_token_expiry_time(10)  # 10 minutes expiry
+    
+    user.verification_token = verification_otp
+    user.reset_token_expires = otp_expires
     db.commit()
     
-    # Send verification email
-    if send_verification_email(user.email, user.name, verification_token):
+    # Send verification email with new OTP
+    if send_verification_otp_email(user.email, user.name, verification_otp):
         return {
             "success": True,
-            "message": "Verification email sent successfully! Please check your email.",
-            "data": None
+            "message": f"New verification code sent to {user.email}! The code will expire in 10 minutes.",
+            "data": {
+                "otp_expires_in": 10
+            }
         }
     else:
         raise HTTPException(
@@ -206,7 +251,7 @@ def resend_verification(request: schemas.ResendVerification, db: Session = Depen
             detail="Failed to send verification email. Please try again later."
         )
 
-# Forgot password endpoint
+# Forgot password endpoint (now uses OTP)
 @router.post("/forgot-password", response_model=schemas.APIResponse)
 def forgot_password(request: schemas.ForgotPassword, db: Session = Depends(get_db)):
     user = get_user_by_email(db, request.email)
@@ -215,29 +260,31 @@ def forgot_password(request: schemas.ForgotPassword, db: Session = Depends(get_d
         # Don't reveal that the user doesn't exist for security reasons
         return {
             "success": True,
-            "message": "If an account with this email exists, a password reset link has been sent.",
+            "message": "If an account with this email exists, a 6-digit reset code has been sent.",
             "data": None
         }
     
-    # Generate password reset token
-    reset_token = generate_token()
-    reset_expires = get_token_expiry_time(30)  # 30 minutes expiry
+    # Generate password reset OTP (6 digits)
+    reset_otp = generate_otp(6)
+    reset_expires = get_token_expiry_time(10)  # 10 minutes expiry for OTP
     
-    user.reset_token = reset_token
+    user.reset_token = reset_otp
     user.reset_token_expires = reset_expires
     db.commit()
     
-    # Send password reset email
-    if send_password_reset_email(user.email, user.name, reset_token):
+    # Send password reset email with OTP
+    if send_password_reset_otp_email(user.email, user.name, reset_otp):
         return {
             "success": True,
-            "message": "If an account with this email exists, a password reset link has been sent.",
-            "data": None
+            "message": "If an account with this email exists, a 6-digit reset code has been sent. The code will expire in 10 minutes.",
+            "data": {
+                "otp_expires_in": 10
+            }
         }
     else:
         return {
             "success": True,
-            "message": "If an account with this email exists, a password reset link has been sent.",
+            "message": "If an account with this email exists, a 6-digit reset code has been sent.",
             "data": None
         }
 
@@ -285,3 +332,77 @@ def reset_password(request: schemas.ResetPassword, db: Session = Depends(get_db)
             "email": user.email
         }
     }
+
+# Admin endpoint - Get user statistics
+@router.get("/admin/user-stats", response_model=schemas.APIResponse)
+def get_user_statistics(db: Session = Depends(get_db)):
+    """Get statistics about verified and unverified users (Admin only)"""
+    try:
+        stats = get_unverified_user_stats(db)
+        
+        # Add total verified users count
+        verified_users = db.query(models.User).filter(
+            models.User.is_verified == True
+        ).count()
+        
+        stats["total_verified"] = verified_users
+        stats["total_users"] = verified_users + stats.get("total_unverified", 0)
+        
+        return {
+            "success": True,
+            "message": "User statistics retrieved successfully",
+            "data": stats
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get user statistics: {str(e)}"
+        )
+
+# Admin endpoint - Clean expired OTPs
+@router.post("/admin/cleanup-otps", response_model=schemas.APIResponse)
+def cleanup_otps(db: Session = Depends(get_db)):
+    """Clean up expired OTP codes without deleting users (Admin only)"""
+    try:
+        result = cleanup_expired_otps(db)
+        
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Successfully cleaned {result['cleaned_count']} expired OTP codes",
+                "data": result
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Unknown error occurred")
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cleanup OTPs: {str(e)}"
+        )
+
+# Admin endpoint - Clean unverified users
+@router.post("/admin/cleanup-users", response_model=schemas.APIResponse)
+def cleanup_users(max_age_hours: int = 24, db: Session = Depends(get_db)):
+    """Clean up unverified users older than specified hours (Admin only)"""
+    try:
+        result = cleanup_expired_unverified_users(db, max_age_hours)
+        
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Successfully deleted {result['deleted_count']} unverified users older than {max_age_hours} hours",
+                "data": result
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Unknown error occurred")
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cleanup users: {str(e)}"
+        )

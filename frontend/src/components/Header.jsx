@@ -86,6 +86,9 @@ const Header = ({ darkMode, toggleDarkMode }) => {
             </div>
           )}
 
+          <Link to="/topics" className="nav-link" onClick={closeMenu}>
+            Topics
+          </Link>
           <Link to="/algorithms" className="nav-link" onClick={closeMenu}>
             Algorithms
           </Link>

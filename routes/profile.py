@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from models import User, AlgoDifficulty, AlgoComplexity, AlgoStatus
-from schemas import ShowUser, UpdatePassword, UpdateEmail, Token, ShowBlog, ShowUserProgress
+from schemas import ShowUser, UpdatePassword, UpdateEmail, UpdateUser, Token, ShowBlog, ShowUserProgress
 from db import get_db
 from auth.oauth2 import get_current_user
 from repositories import user_repo, user_progress_repo, blog_repo
@@ -71,6 +71,25 @@ def change_email(
     except Exception as e:
         db.rollback()
         logger.error(f"Unexpected error updating email for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.put("/update", response_model=ShowUser)
+def update_profile(
+    user_data: UpdateUser,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        return user_repo.update_user(db, current_user.id, user_data)
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating profile for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error updating profile for user {current_user.id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete", status_code=status.HTTP_204_NO_CONTENT)

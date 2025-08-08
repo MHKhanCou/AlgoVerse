@@ -109,9 +109,19 @@ const SignInPage = () => {
           </button>
         </form>
 
+        <div className="login-divider">
+          <div className="divider-line"></div>
+          <span>or</span>
+          <div className="divider-line"></div>
+        </div>
+
         <p className="signup-link">
           Don't have an account? <Link to="/signup">Sign Up</Link>
         </p>
+        
+        <div className="admin-link">
+          <Link to="/admin/login">Admin Login</Link>
+        </div>
       </div>
     </div>
   );

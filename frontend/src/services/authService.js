@@ -32,6 +32,37 @@ export const authService = {
     }
   },
 
+  async adminLogin(email, password) {
+    try {
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await fetch(`${BASE_URL}/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Admin login failed');
+      }
+
+      localStorage.setItem('token', data.access_token);
+      return data;
+    } catch (err) {
+      if (err.message === 'Failed to fetch') {
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+      }
+      console.error('Admin login error:', err);
+      throw err;
+    }
+  },
+
   logout() {
     console.log("Logging out: Removing token");
     localStorage.removeItem('token');
@@ -119,7 +150,7 @@ export const authService = {
         throw new Error("No token found");
       }
 
-      const response = await fetch(`${BASE_URL}/admin/dashboard`, {
+      const response = await fetch(`${BASE_URL}/admin/dashboard/admin-info`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

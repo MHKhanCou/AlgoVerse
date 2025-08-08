@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from models import Blog, User
+from models import Blog, User, BlogStatus
 from schemas import AddBlog, UpdateBlog
 from repositories.user_repo import if_exists
 import logging
@@ -21,12 +21,18 @@ def get_blog_by_id(db: Session, blog_id: int):
         "body": blog.body,
         "author": blog.user.name if blog.user else "Unknown",
         "created_at": blog.created_at,
-        "updated_at": blog.updated_at
+        "updated_at": blog.updated_at,
+        "status": blog.status,
+        "admin_feedback": blog.admin_feedback,
+        "approved_at": blog.approved_at
     }
 
 def get_all_blogs(db: Session, skip: int = 0, limit: int = 5):
     try:
-        blogs = db.query(Blog).options(joinedload(Blog.user)).offset(skip).limit(limit).all()
+        # Only return approved blogs for public viewing
+        blogs = db.query(Blog).options(joinedload(Blog.user)).filter(
+            Blog.status == BlogStatus.approved
+        ).offset(skip).limit(limit).all()
         return [
             {
                 "id": blog.id,
@@ -34,7 +40,10 @@ def get_all_blogs(db: Session, skip: int = 0, limit: int = 5):
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
                 "created_at": blog.created_at,
-                "updated_at": blog.updated_at
+                "updated_at": blog.updated_at,
+                "status": blog.status,
+                "admin_feedback": blog.admin_feedback,
+                "approved_at": blog.approved_at
             }
             for blog in blogs
         ]
@@ -59,7 +68,10 @@ def create_blog(db: Session, request: AddBlog, user_id: int):
             "body": blog.body,
             "author": user.name if user else "Unknown",
             "created_at": blog.created_at,
-            "updated_at": blog.updated_at
+            "updated_at": blog.updated_at,
+            "status": blog.status,
+            "admin_feedback": blog.admin_feedback,
+            "approved_at": blog.approved_at
         }
     except SQLAlchemyError as e:
         db.rollback()
@@ -90,7 +102,10 @@ def update_blog(db: Session, request: UpdateBlog, blog_id: int, user_id: int):
             "body": blog_obj.body,
             "author": blog["author"],
             "created_at": blog_obj.created_at,
-            "updated_at": blog_obj.updated_at
+            "updated_at": blog_obj.updated_at,
+            "status": blog_obj.status,
+            "admin_feedback": blog_obj.admin_feedback,
+            "approved_at": blog_obj.approved_at
         }
     except SQLAlchemyError as e:
         db.rollback()
@@ -151,7 +166,10 @@ def search_blogs(db: Session, query: str):
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
                 "created_at": blog.created_at,
-                "updated_at": blog.updated_at
+                "updated_at": blog.updated_at,
+                "status": blog.status,
+                "admin_feedback": blog.admin_feedback,
+                "approved_at": blog.approved_at
             }
             for blog in blogs
         ]
@@ -169,7 +187,10 @@ def get_user_blogs(db: Session, user_id: int, skip: int = 0, limit: int = 5):
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
                 "created_at": blog.created_at,
-                "updated_at": blog.updated_at
+                "updated_at": blog.updated_at,
+                "status": blog.status,
+                "admin_feedback": blog.admin_feedback,
+                "approved_at": blog.approved_at
             }
             for blog in blogs
         ]
@@ -186,3 +207,101 @@ def if_user_owns_blog(db: Session, blog_id: int, user_id: int):
     except SQLAlchemyError as e:
         logger.error(f"Database error checking blog ownership: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to check blog ownership")
+
+# Blog moderation functions
+def get_pending_blogs(db: Session, skip: int = 0, limit: int = 10):
+    """Get all pending blogs for admin review"""
+    try:
+        blogs = db.query(Blog).options(joinedload(Blog.user)).filter(
+            Blog.status == BlogStatus.pending
+        ).offset(skip).limit(limit).all()
+        return [
+            {
+                "id": blog.id,
+                "title": blog.title,
+                "body": blog.body,
+                "author": blog.user.name if blog.user else "Unknown",
+                "created_at": blog.created_at,
+                "updated_at": blog.updated_at,
+                "status": blog.status,
+                "admin_feedback": blog.admin_feedback,
+                "approved_at": blog.approved_at
+            }
+            for blog in blogs
+        ]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching pending blogs: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch pending blogs")
+
+def get_all_blogs_for_admin(db: Session, status_filter: str = None, skip: int = 0, limit: int = 10):
+    """Get all blogs with optional status filter for admin"""
+    try:
+        query = db.query(Blog).options(joinedload(Blog.user))
+        
+        if status_filter:
+            if status_filter == "pending":
+                query = query.filter(Blog.status == BlogStatus.pending)
+            elif status_filter == "approved":
+                query = query.filter(Blog.status == BlogStatus.approved)
+            elif status_filter == "rejected":
+                query = query.filter(Blog.status == BlogStatus.rejected)
+        
+        blogs = query.offset(skip).limit(limit).all()
+        return [
+            {
+                "id": blog.id,
+                "title": blog.title,
+                "body": blog.body,
+                "author": blog.user.name if blog.user else "Unknown",
+                "created_at": blog.created_at,
+                "updated_at": blog.updated_at,
+                "status": blog.status,
+                "admin_feedback": blog.admin_feedback,
+                "approved_at": blog.approved_at
+            }
+            for blog in blogs
+        ]
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching blogs for admin: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch blogs")
+
+def moderate_blog(db: Session, blog_id: int, action: BlogStatus, admin_id: int, feedback: str = None):
+    """Approve, reject, or modify blog status"""
+    try:
+        blog = db.query(Blog).filter(Blog.id == blog_id).first()
+        if not blog:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Blog with ID {blog_id} not found"
+            )
+        
+        blog.status = action
+        blog.admin_feedback = feedback
+        blog.approved_by = admin_id
+        
+        if action == BlogStatus.approved:
+            from datetime import datetime
+            blog.approved_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(blog)
+        
+        return {
+            "id": blog.id,
+            "title": blog.title,
+            "body": blog.body,
+            "author": blog.user.name if blog.user else "Unknown",
+            "created_at": blog.created_at,
+            "updated_at": blog.updated_at,
+            "status": blog.status,
+            "admin_feedback": blog.admin_feedback,
+            "approved_at": blog.approved_at
+        }
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error moderating blog: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to moderate blog")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error moderating blog: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

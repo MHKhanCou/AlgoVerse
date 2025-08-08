@@ -2,8 +2,11 @@ uvicorn
 fastapi
 sqlalchemy
 pydantic[email]
-passlib
+passlib[bcrypt]
 bcrypt
 python-jose[cryptography]
 python-dotenv
 python-multipart
+beautifulsoup4==4.12.2
+requests==2.31.0
+lxml==4.9.3

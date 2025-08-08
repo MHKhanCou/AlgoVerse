@@ -19,7 +19,7 @@ export const adminService = {
   async fetchAdminDetails() {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/dashboard/admin/dashboard`, {
+      const response = await axios.get(`${API_URL}/dashboard/admin-info`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return response.data;

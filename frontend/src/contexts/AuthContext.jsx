@@ -29,17 +29,10 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.detail || 'Registration failed');
       }
 
-      localStorage.setItem('token', data.access_token);
-      setIsAuthenticated(true);
-      setUser(data.user);
-
-      try {
-        await authService.getCurrentAdmin();
-        setIsAdmin(true);
-      } catch (error) {
-        console.log('Not an admin after registration:', error.message);
-        setIsAdmin(false);
-      }
+      // Don't auto-login after registration - user needs to verify email first
+      // localStorage.setItem('token', data.access_token);
+      // setIsAuthenticated(true);
+      // setUser(data.user);
 
       return data;
     } catch (error) {
@@ -138,6 +131,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const adminLogin = async (email, password) => {
+    try {
+      const res = await authService.adminLogin(email, password);
+      localStorage.setItem('token', res.access_token);
+      setIsAuthenticated(true);
+      setUser(res.user || null);
+      setIsAdmin(true); // Admin login automatically sets admin status
+      return res;
+    } catch (error) {
+      if (error.message.includes('Network error')) {
+        toast.error(error.message, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "dark",
+        });
+      }
+      console.error('Admin login error:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     authService.logout();
     localStorage.removeItem('token'); // Explicitly clear token
@@ -214,6 +232,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         isAdmin,
         login,
+        adminLogin,
         logout,
         register,
       }}

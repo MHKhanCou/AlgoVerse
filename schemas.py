@@ -125,6 +125,7 @@ class UserProfile(BaseModel):
     id: int
     name: str
     email: EmailStr
+    codeforces_handle: Optional[str] = None
     progress: List[AlgorithmProgress]
 
     class Config:
@@ -162,6 +163,7 @@ class ShowUser(BaseModel):
     name: str
     email: str
     is_admin: bool
+    codeforces_handle: Optional[str] = None
     joined_at: Optional[datetime] = None  # Fixed: renamed from created_at
 
     class Config:
@@ -170,6 +172,13 @@ class ShowUser(BaseModel):
 class UpdateUser(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+    codeforces_handle: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class UpdateCodeforcesHandle(BaseModel):
+    codeforces_handle: Optional[str] = None
 
     class Config:
         from_attributes = True

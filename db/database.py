@@ -9,7 +9,7 @@ load_dotenv()
 
 SQLALCHEMY_DATABASE_URL = getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./algoverse.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,

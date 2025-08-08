@@ -1,19 +1,48 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RecursionVisualizer.css';
 
-const RecursionVisualizer = ({ algorithm, container }) => {
+const RecursionVisualizer = ({ algorithm, container, step, inputData, onPerformanceUpdate, onComplexityUpdate }) => {
   const [input, setInput] = useState(5); // Default input value
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [speed, setSpeed] = useState(50); // Animation speed (ms)
+  const [operations, setOperations] = useState(0);
+  const [comparisons, setComparisons] = useState(0);
+  const [startTime, setStartTime] = useState(null);
   const [callStack, setCallStack] = useState([]);
   const [callTree, setCallTree] = useState(null);
   const [currentCall, setCurrentCall] = useState(null);
   const [result, setResult] = useState(null);
   const [callHistory, setCallHistory] = useState([]);
+  const [recursionType, setRecursionType] = useState('fibonacci');
+  const [showCallStack, setShowCallStack] = useState(true);
+  const [showTree, setShowTree] = useState(true);
+  const [inputMode, setInputMode] = useState('default');
   const animationTimeoutsRef = useRef([]);
   const svgRef = useRef(null);
   
+  // Update performance metrics
+  useEffect(() => {
+    if (onPerformanceUpdate) {
+      onPerformanceUpdate({
+        operations,
+        comparisons,
+        swaps: 0, // Recursion algorithms don't have swaps
+        timeTaken: startTime ? (Date.now() - startTime) : 0
+      });
+    }
+  }, [operations, comparisons, startTime]);
+
+  // Update complexity metrics
+  useEffect(() => {
+    if (onComplexityUpdate) {
+      onComplexityUpdate({
+        time: algorithm.complexity?.time || 'O(2^n)',
+        space: algorithm.complexity?.space || 'O(n)'
+      });
+    }
+  }, [algorithm.complexity]);
+
   // Reset visualization state
   const resetVisualization = () => {
     setRunning(false);
@@ -23,6 +52,9 @@ const RecursionVisualizer = ({ algorithm, container }) => {
     setCurrentCall(null);
     setResult(null);
     setCallHistory([]);
+    setOperations(0);
+    setComparisons(0);
+    setStartTime(null);
     
     // Clear any ongoing animation timeouts
     animationTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -513,19 +545,33 @@ const RecursionVisualizer = ({ algorithm, container }) => {
     };
   }, []);
   
-  // Determine which algorithm to run based on the algorithm name
+  // Get problem templates
+  const getProblemTemplate = (type) => {
+    switch (type) {
+      case 'fibonacci':
+        return { small: 5, medium: 7, large: 9 };
+      case 'factorial':
+        return { small: 4, medium: 6, large: 8 };
+      default:
+        return { small: 5, medium: 7, large: 9 };
+    }
+  };
+
+  // Determine which algorithm to run based on the recursion type
   const startVisualization = () => {
     if (running) return;
     
-    // Extract algorithm name from the algorithm object
-    const algoName = algorithm?.name?.toLowerCase() || '';
+    // Initialize performance tracking
+    setOperations(0);
+    setComparisons(0);
+    setStartTime(Date.now());
     
-    if (algoName.includes('fibonacci')) {
+    if (recursionType === 'fibonacci') {
       animateFibonacci();
-    } else if (algoName.includes('factorial')) {
+    } else if (recursionType === 'factorial') {
       animateFactorial();
     } else {
-      // Default to Fibonacci if algorithm name doesn't match
+      // Default to Fibonacci
       animateFibonacci();
     }
   };
@@ -533,64 +579,160 @@ const RecursionVisualizer = ({ algorithm, container }) => {
   return (
     <div className="recursion-visualizer-container">
       <div className="visualizer-controls">
-        <div className="control-group">
-          <label>Input (n):</label>
-          <input
-            type="number"
-            min="0"
-            max="10"
-            value={input}
-            onChange={(e) => setInput(Math.min(10, Math.max(0, parseInt(e.target.value) || 0)))}
-            disabled={running}
-          />
+        <div className="control-row">
+          <div className="control-group">
+            <label>Recursion Type:</label>
+            <select
+              value={recursionType}
+              onChange={(e) => setRecursionType(e.target.value)}
+              disabled={running}
+            >
+              <option value="fibonacci">Fibonacci</option>
+              <option value="factorial">Factorial</option>
+            </select>
+          </div>
+          
+          <div className="control-group">
+            <label>Input Mode:</label>
+            <select
+              value={inputMode}
+              onChange={(e) => setInputMode(e.target.value)}
+              disabled={running}
+            >
+              <option value="default">Default</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          
+          <div className="control-group">
+            <label>Input (n): {input}</label>
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={input}
+              onChange={(e) => setInput(Math.min(10, Math.max(0, parseInt(e.target.value) || 0)))}
+              disabled={running}
+            />
+          </div>
         </div>
-        <button onClick={startVisualization} disabled={running}>
-          {running ? 'Visualizing...' : 'Start Visualization'}
-        </button>
-        <button onClick={resetVisualization} disabled={running}>
-          Reset
-        </button>
-        <div className="control-group">
-          <label>Speed:</label>
-          <input
-            type="range"
-            min="5"
-            max="200"
-            value={speed}
-            onChange={(e) => setSpeed(200 - parseInt(e.target.value))}
-            disabled={running}
-          />
+
+        {inputMode === 'custom' && (
+          <div className="control-row">
+            <div className="template-buttons">
+              <button 
+                onClick={() => setInput(getProblemTemplate(recursionType).small)}
+                disabled={running}
+                className="template-btn"
+              >
+                Small ({getProblemTemplate(recursionType).small})
+              </button>
+              <button 
+                onClick={() => setInput(getProblemTemplate(recursionType).medium)}
+                disabled={running}
+                className="template-btn"
+              >
+                Medium ({getProblemTemplate(recursionType).medium})
+              </button>
+              <button 
+                onClick={() => setInput(getProblemTemplate(recursionType).large)}
+                disabled={running}
+                className="template-btn"
+              >
+                Large ({getProblemTemplate(recursionType).large})
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <div className="control-row">
+          <button onClick={startVisualization} disabled={running} className="start-btn">
+            {running ? 'Visualizing...' : 'Start Visualization'}
+          </button>
+          
+          {running && (
+            <button onClick={() => setRunning(false)} className="stop-btn">
+              Stop
+            </button>
+          )}
+          
+          <button onClick={resetVisualization} disabled={running} className="reset-btn">
+            Reset
+          </button>
+        </div>
+        
+        <div className="control-row">
+          <div className="control-group">
+            <label>Speed: {201 - speed}ms</label>
+            <input
+              type="range"
+              min="5"
+              max="200"
+              value={201 - speed}
+              onChange={(e) => setSpeed(201 - parseInt(e.target.value))}
+              disabled={running}
+            />
+          </div>
+          
+          <div className="control-group">
+            <label htmlFor="showCallStack">
+              <input 
+                id="showCallStack"
+                type="checkbox" 
+                checked={showCallStack} 
+                onChange={() => setShowCallStack(!showCallStack)}
+              />
+              Show Call Stack
+            </label>
+          </div>
+          
+          <div className="control-group">
+            <label htmlFor="showTree">
+              <input 
+                id="showTree"
+                type="checkbox" 
+                checked={showTree} 
+                onChange={() => setShowTree(!showTree)}
+              />
+              Show Tree
+            </label>
+          </div>
         </div>
       </div>
       
       <div className="visualization-container">
-        <div className="call-stack-container">
-          <h3>Call Stack</h3>
-          <div className="call-stack">
-            {callStack.length === 0 ? (
-              <div className="empty-stack">Stack is empty</div>
-            ) : (
-              [...callStack].reverse().map((call, index) => (
-                <div 
-                  key={index} 
-                  className={`stack-frame ${currentCall && currentCall.id === call.id ? 'current' : ''}`}
-                >
-                  <span className="function-name">
-                    {algorithm?.name?.includes('Fibonacci') ? 'fib' : 'fact'}
-                  </span>
-                  <span className="function-args">({call.value})</span>
-                  {call.result !== null && (
-                    <span className="function-result">→ {call.result}</span>
-                  )}
-                </div>
-              ))
-            )}
+        {showCallStack && (
+          <div className="call-stack-container">
+            <h3>Call Stack</h3>
+            <div className="call-stack">
+              {callStack.length === 0 ? (
+                <div className="empty-stack">Stack is empty</div>
+              ) : (
+                [...callStack].reverse().map((call, index) => (
+                  <div 
+                    key={index} 
+                    className={`stack-frame ${currentCall && currentCall.id === call.id ? 'current' : ''}`}
+                  >
+                    <span className="function-name">
+                      {recursionType === 'fibonacci' ? 'fib' : 'fact'}
+                    </span>
+                    <span className="function-args">({call.value})</span>
+                    {call.result !== null && (
+                      <span className="function-result">→ {call.result}</span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
-        <div className="tree-container">
-          <svg ref={svgRef} className="call-tree"></svg>
-        </div>
+        {showTree && (
+          <div className="tree-container">
+            <h3>Recursion Tree</h3>
+            <svg ref={svgRef} className="call-tree"></svg>
+          </div>
+        )}
       </div>
       
       <div className="result-container">

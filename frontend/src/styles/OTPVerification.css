@@ -1,0 +1,358 @@
+.otp-verification-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--header-gradient);
+  padding: var(--spacing-lg);
+  font-family: inherit;
+}
+
+.otp-verification-card {
+  background: var(--bg-secondary);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.brand-header {
+  margin-bottom: 30px;
+}
+
+.brand-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+  background: var(--header-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.verification-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-sm);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.verification-content h2 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+  font-weight: 700;
+}
+
+.instruction-text {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+.instruction-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.otp-input-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 30px 0;
+}
+
+.otp-input {
+  width: 50px;
+  height: 60px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.otp-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--hover-color);
+  transform: translateY(-2px);
+}
+
+.otp-input:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.timer-section {
+  margin: var(--spacing-lg) 0;
+}
+
+.timer-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.timer {
+  color: var(--success-color);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.expired-text {
+  color: var(--error-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.verify-btn, .resend-btn {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  position: relative;
+}
+
+.verify-btn {
+  background: var(--accent-color);
+  color: var(--button-text);
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--hover-color);
+}
+
+.verify-btn:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.resend-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.resend-btn:hover:not(:disabled) {
+  background: var(--hover-color);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.resend-btn:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.help-section {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.help-text, .back-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  transition: color var(--transition-base);
+}
+
+.link-btn:hover:not(:disabled) {
+  color: var(--accent-hover);
+}
+
+.link-btn:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .otp-verification-card {
+  background: rgba(31, 41, 55, 0.95);
+  border-color: rgba(75, 85, 99, 0.3);
+}
+
+[data-theme="dark"] .brand-header h1 {
+  color: #f9fafb;
+  background: linear-gradient(135deg, #a78bfa, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="dark"] .verification-content h2 {
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .instruction-text {
+  color: #d1d5db;
+}
+
+[data-theme="dark"] .instruction-text strong {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .otp-input {
+  background: rgba(55, 65, 81, 0.8);
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .otp-input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+}
+
+[data-theme="dark"] .timer-text,
+[data-theme="dark"] .help-text,
+[data-theme="dark"] .back-text {
+  color: #d1d5db;
+}
+
+[data-theme="dark"] .resend-btn {
+  background: rgba(75, 85, 99, 0.3);
+  color: #f3f4f6;
+  border-color: #6b7280;
+}
+
+[data-theme="dark"] .help-section {
+  border-top-color: #4b5563;
+}
+
+[data-theme="dark"] .link-btn {
+  color: #a78bfa;
+}
+
+[data-theme="dark"] .link-btn:hover:not(:disabled) {
+  color: #c4b5fd;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .otp-verification-container {
+    padding: 15px;
+  }
+  
+  .otp-verification-card {
+    padding: 30px 25px;
+  }
+  
+  .brand-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .verification-icon {
+    font-size: 2.5rem;
+  }
+  
+  .verification-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .otp-input-container {
+    gap: 8px;
+  }
+  
+  .otp-input {
+    width: 45px;
+    height: 55px;
+    font-size: 1.3rem;
+  }
+  
+  .action-buttons {
+    gap: 12px;
+  }
+  
+  .verify-btn, .resend-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .otp-input-container {
+    gap: 6px;
+  }
+  
+  .otp-input {
+    width: 40px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+}

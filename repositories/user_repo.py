@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from models import User, Blog, UserProgress
+from models import User, Blog, UserProgress, RelatedProblem, AlgoStatus
 from schemas import RegisterUser, UpdateUser, UpdatePassword, UpdateName, UpdateEmail, ShowUser, UserProfile
 from auth.password_utils import hash_password, verify_password, validate_password
 from datetime import datetime
@@ -67,6 +67,7 @@ def get_user_profile(db: Session, user_id: int):
             "id": user.id,
             "name": user.name,
             "email": user.email,  # Pydantic coerces to EmailStr
+            "codeforces_handle": user.codeforces_handle,
             "progress": [
                 {
                     "algorithm_name": p.algorithm_name or "Unknown",
@@ -127,6 +128,8 @@ def update_user(db: Session, user_id: int, user_data: UpdateUser):
             if is_email_taken(db, user_data.email, exclude_id=user_id):
                 raise HTTPException(status_code=400, detail="Email already in use")
             user.email = user_data.email
+        if user_data.codeforces_handle is not None:
+            user.codeforces_handle = user_data.codeforces_handle
         db.commit()
         db.refresh(user)
         return user
@@ -190,6 +193,35 @@ def update_password(db: Session, user_id: int, password_data: UpdatePassword):
         logger.error(f"Unexpected error updating password for user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+def delete_user(db: Session, user_id: int):
+    try:
+        user = get_user_by_id(db, user_id)
+
+        # Delete associated user progress
+        db.query(UserProgress).filter(UserProgress.user_id == user_id).delete()
+
+        # Delete associated blogs
+        db.query(Blog).filter(Blog.user_id == user_id).delete()
+
+        # Nullify creator and approver fields in related problems
+        db.query(RelatedProblem).filter(RelatedProblem.created_by == user_id).update({"created_by": None})
+        db.query(RelatedProblem).filter(RelatedProblem.approved_by == user_id).update({"approved_by": None})
+
+        db.delete(user)
+        db.commit()
+        return {"detail": f"User {user_id} and all associated data deleted successfully"}
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error deleting user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete user")
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error deleting user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 def update_email(db: Session, user_id: int, email_data: UpdateEmail):
     try:
         user = get_user_by_id(db, user_id)
@@ -209,35 +241,4 @@ def update_email(db: Session, user_id: int, email_data: UpdateEmail):
     except Exception as e:
         db.rollback()
         logger.error(f"Unexpected error updating email for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-def delete_user(db: Session, user_id: int):
-    try:
-        user = get_user_by_id(db, user_id)
-        
-        # Check for associated blogs
-        blog_count = db.query(Blog).filter(Blog.user_id == user_id).count()
-        if blog_count > 0:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot delete user: User has {blog_count} associated blog(s)"
-            )
-        
-        # Delete all associated progress records first
-        db.query(UserProgress).filter(UserProgress.user_id == user_id).delete()
-        
-        # Delete the user
-        db.delete(user)
-        db.commit()
-        return None
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Database error deleting user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete user")
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Unexpected error deleting user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

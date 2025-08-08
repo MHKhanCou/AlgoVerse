@@ -7,6 +7,7 @@ import ManageAlgoTypes from '../components/admin/ManageAlgoTypes';
 import ManageAlgorithms from '../components/admin/ManageAlgorithms';
 import ManageUserProgress from '../components/admin/ManageUserProgress';
 import ManageBlogs from '../components/admin/ManageBlogs';
+import RelatedProblemsManager from '../components/admin/RelatedProblemsManager';
 import HelpSection from '../components/admin/HelpSection';
 import Sidebar from '../components/admin/Sidebar';
 import '../styles/AdminDashboard.css';
@@ -189,6 +190,7 @@ const AdminDashboard = () => {
               adminService={adminService}
             />
           )}
+          {activeSection === 'problems' && <RelatedProblemsManager />}
           {activeSection === 'help' && <HelpSection />}
         </main>
       </div>

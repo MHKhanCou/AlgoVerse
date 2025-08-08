@@ -1,255 +1,593 @@
-# AlgoVerse
+# 🚀 AlgoVerse - Interactive Algorithm Learning Platform
 
-**AlgoVerse** is an educational platform to learn algorithms and competitive programming. It features interactive lessons, progress tracking, and a blog system with a responsive UI and an admin dashboard.
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
+[![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg)](https://reactjs.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-009688.svg)](https://fastapi.tiangolo.com)
+[![SQLite](https://img.shields.io/badge/SQLite-3.36+-003B57.svg)](https://sqlite.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
----
+> **A comprehensive platform for learning algorithms through interactive visualizations, practice problems, and community engagement.**
 
-## Table of Contents
+## 📋 Table of Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-- [Usage](#usage)
-  - [Running the Backend](#running-the-backend)
-  - [Running the Frontend](#running-the-frontend)
-- [Database](#database)
-- [API Endpoints](#api-endpoints)
-  - [Authentication](#authentication)
-  - [Algorithm Types](#algorithm-types)
-  - [Algorithms](#algorithms)
-  - [Progress](#progress)
-  - [Blogs](#blogs)
-- [Contributing](#contributing)
-- [License](#license)
+- [🌟 Features](#-features)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🚀 Quick Start](#-quick-start)
+- [📦 Installation](#-installation)
+- [⚙️ Configuration](#️-configuration)
+- [🔧 Development Setup](#-development-setup)
+- [📚 API Documentation](#-api-documentation)
+- [🎨 Frontend Features](#-frontend-features)
+- [🔐 Authentication](#-authentication)
+- [📊 Database Schema](#-database-schema)
+- [🧪 Testing](#-testing)
+- [🚀 Deployment](#-deployment)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
----
+## 🌟 Features
 
-## Features
+### 🎯 **Core Learning Features**
+- **Interactive Algorithm Visualizations** - Step-by-step visual explanations
+- **Comprehensive Algorithm Library** - Sorting, searching, graph algorithms, and more
+- **Practice Problems** - Curated problems with multiple difficulty levels
+- **Progress Tracking** - Monitor your learning journey and achievements
+- **Code Examples** - Multiple programming language implementations
 
-### User Authentication
-- JWT-based login/registration  
-- Role-based access (student, admin)  
-- Profile settings management  
+### 🌐 **Community & Social**
+- **Blog System** - Share insights and tutorials with the community
+- **User Profiles** - Track progress and showcase achievements
+- **Codeforces Integration** - Analyze competitive programming performance
+- **Discussion Forums** - Engage with other learners
 
-### Algorithm Management
-- Filter and search by category/difficulty  
-- Detailed algorithm pages  
-- Paginated listings
+### 🎨 **User Experience**
+- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- **Dark/Light Mode** - Choose your preferred theme
+- **Advanced Search** - Find algorithms, problems, and content quickly
+- **Real-time Updates** - Live data synchronization
 
-### Progress Tracking
-- Statuses: Not Started, Enrolled, Completed  
-- A dedicated "My Progress" page with tabs  
-- Personalized user statistics  
+### 🔧 **Technical Features**
+- **RESTful API** - Clean, documented backend architecture
+- **JWT Authentication** - Secure user authentication and authorization
+- **Database Migrations** - Version-controlled database schema changes
+- **Error Handling** - Comprehensive error management and user feedback
 
-### Blog System
-- Create, edit, and delete blogs  
-- Search functionality  
-- User-specific blog management  
+## 🏗️ System Architecture
 
-### Admin Dashboard
-- Manage users, algorithms, and blogs  
-- Monitor overall progress  
-- Perform bulk actions and notifications  
-
-### Frontend
-- Responsive UI with light/dark mode  
-- Card-based design  
-- Pages include: Home, Algorithms, Progress, Blogs, Profile
-
----
-
-## Tech Stack
-
-- **Frontend:** ReactJS, Custom CSS, Vite  
-- **Backend:** FastAPI  
-- **Database:** SQLite, SQLAlchemy  
-- **Authentication:** JWT  
-- **Documentation:** Swagger UI, ReDoc
-
----
-
-## Project Structure
-
-```plaintext
-AlgoVerse/
-├── backend/                   # FastAPI backend
-│   ├── api/                   # API routes
-│   │   ├── auth.py            # Authentication endpoints
-│   │   ├── algorithms.py      # Algorithm endpoints
-│   │   ├── blogs.py           # Blog endpoints
-│   │   ├── progress.py        # Progress endpoints
-│   │   └── admin.py           # Admin endpoints
-│   ├── core/                  # Configuration and settings
-│   │   └── config.py          # App configuration
-│   ├── db/                    # Database files
-│   │   ├── database.py        # SQLAlchemy setup
-│   │   └── algoverse.db       # SQLite database
-│   ├── models/                # Database models
-│   ├── schemas/               # Pydantic schemas
-│   ├── repositories/          # Data access layer
-│   ├── .env                   # Environment variables
-│   ├── main.py                # FastAPI application entry
-│   └── requirements.txt       # Python dependencies
-├── frontend/                  # React frontend
-│   ├── src/                   # React source code
-│   │   ├── assets/            # Images and icons
-│   │   ├── components/        # Reusable components
-│   │   ├── pages/             # Page components
-│   │   ├── services/          # API calls
-│   │   ├── styles/            # Custom CSS files
-│   │   └── App.jsx            # Main React app
-│   ├── public/                # Static assets
-│   ├── package.json           # Node dependencies
-│   └── vite.config.js         # Vite configuration
-├── .gitignore                 # Git ignore file
-└── README.md                  # Project documentation
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │   Database      │
+│   (React)       │◄──►│   (FastAPI)     │◄──►│   (SQLite)      │
+│                 │    │                 │    │                 │
+│ • Components    │    │ • REST API      │    │ • User Data     │
+│ • State Mgmt    │    │ • Authentication│    │ • Algorithms    │
+│ • Routing       │    │ • Business Logic│    │ • Progress      │
+│ • Styling       │    │ • Data Models   │    │ • Blogs         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
----
+### **Technology Stack**
 
-## Installation
+#### **Backend**
+- **FastAPI** - Modern, fast web framework for building APIs
+- **SQLAlchemy** - SQL toolkit and Object-Relational Mapping
+- **SQLite** - Lightweight, serverless database
+- **Pydantic** - Data validation using Python type annotations
+- **JWT** - JSON Web Tokens for authentication
+- **Uvicorn** - ASGI server implementation
 
-### Clone the Repository
+#### **Frontend**
+- **React 18** - Modern JavaScript library for building user interfaces
+- **React Router** - Declarative routing for React applications
+- **Context API** - State management for authentication and themes
+- **Lucide React** - Beautiful, customizable icons
+- **CSS3** - Modern styling with flexbox, grid, and animations
+- **Responsive Design** - Mobile-first approach
+
+## 🚀 Quick Start
+
+### **Prerequisites**
+- Python 3.8 or higher
+- Node.js 16 or higher
+- npm or yarn package manager
+- Git
+
+### **1. Clone the Repository**
 ```bash
-git clone https://github.com/MHKhanCou/AlgoVerse.git
-cd AlgoVerse
+git clone https://github.com/yourusername/algoverse.git
+cd algoverse
 ```
 
----
+### **2. Backend Setup**
+```bash
+# Create virtual environment
+python -m venv myenv
 
-### Backend Setup
+# Activate virtual environment
+# Windows:
+myenv\Scripts\activate
+# macOS/Linux:
+source myenv/bin/activate
 
-1. **Create & Activate a Virtual Environment**
-  
-   **Windows:**
+# Install dependencies
+pip install -r requirements.txt
+
+# Run database migrations
+python run_migrations.py
+
+# Start the backend server
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### **3. Frontend Setup**
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm start
+```
+
+### **4. Access the Application**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+## 📦 Installation
+
+### **Detailed Backend Setup**
+
+1. **Create and activate virtual environment:**
    ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   ```
+   python -m venv myenv
    
-   **macOS / Linux:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
+   # Windows
+   myenv\Scripts\activate
+   
+   # macOS/Linux
+   source myenv/bin/activate
    ```
 
-2. **Install Dependencies**
+2. **Install Python dependencies:**
    ```bash
-   cd backend
    pip install -r requirements.txt
    ```
 
----
-
-### Frontend Setup
-
-1. **Install Node Dependencies**
+3. **Set up environment variables:**
    ```bash
-   cd ../frontend
+   # Create .env file
+   cp .env.example .env
+   
+   # Edit .env with your configuration
+   SECRET_KEY=your-secret-key-here
+   ALGORITHM_TIMEOUT=30
+   DATABASE_URL=sqlite:///./algoverse.db
+   ```
+
+4. **Initialize the database:**
+   ```bash
+   # Run migrations
+   python run_migrations.py
+   
+   # Optional: Seed with sample data
+   python seed_database.py
+   ```
+
+5. **Start the backend server:**
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### **Detailed Frontend Setup**
+
+1. **Navigate to frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install Node.js dependencies:**
+   ```bash
    npm install
+   # or
+   yarn install
    ```
 
----
-
-## Usage
-
-### Running the Backend
-
-1. **Start the FastAPI Server:**
+3. **Configure environment variables:**
    ```bash
-   cd backend
-   uvicorn main:app --reload
+   # Create .env file in frontend directory
+   REACT_APP_API_URL=http://localhost:8000
+   REACT_APP_CODEFORCES_API=https://codeforces.com/api
    ```
 
-2. **Access the API:**
-   - **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-   - **ReDoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
----
-
-### Running the Frontend
-
-1. **Start the Development Server:**
+4. **Start the development server:**
    ```bash
-   cd ../frontend
-   npm run dev
+   npm start
+   # or
+   yarn start
    ```
 
-2. **Access the Frontend App:**  
-   Typically available at [http://localhost:5173](http://localhost:5173)
+## ⚙️ Configuration
 
----
+### **Backend Configuration (.env)**
+```env
+# Security
+SECRET_KEY=your-super-secret-key-here
+ALGORITHM_TIMEOUT=30
 
-## Database
+# Database
+DATABASE_URL=sqlite:///./algoverse.db
 
-- **SQLite Database:** The `algoverse.db` file is created automatically on backend startup.
-- **Migrations:** Use tools like Alembic when updating models.
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
----
+# JWT
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
 
-## API Endpoints
+### **Frontend Configuration**
+```env
+# API Configuration
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_CODEFORCES_API=https://codeforces.com/api
 
-### Authentication & Users
-- **POST** `/auth/login`  
-- **POST** `/auth/register`
+# Feature Flags
+REACT_APP_ENABLE_ANALYTICS=true
+REACT_APP_ENABLE_DARK_MODE=true
+```
 
-### Algorithm Types
-- **POST** `/algorithm-types/` – Create a new type *(admin only)*
-- **GET** `/algorithm-types/{type_id}` – Retrieve a type by ID
-- **GET** `/algorithm-types/` – List all types
-- **PUT** `/algorithm-types/{type_id}` – Update a type *(admin only)*
-- **DELETE** `/algorithm-types/{type_id}` – Delete a type *(admin only)*
+## 🔧 Development Setup
 
-### Algorithms
-- **POST** `/algorithms/` – Create an algorithm *(admin only)*
-- **GET** `/algorithms/{algorithm_id}` – Retrieve an algorithm by ID
-- **GET** `/algorithms/` – List all algorithms (paginated)
-- **PUT** `/algorithms/{algorithm_id}` – Update an algorithm *(admin only)*
-- **DELETE** `/algorithms/{algorithm_id}` – Delete an algorithm *(admin only)*
+### **Project Structure**
+```
+algoverse/
+├── backend/
+│   ├── main.py                 # FastAPI application entry point
+│   ├── models.py              # Database models
+│   ├── schemas.py             # Pydantic schemas
+│   ├── routes/                # API route handlers
+│   │   ├── auth.py
+│   │   ├── algorithms.py
+│   │   ├── blogs.py
+│   │   └── profile.py
+│   ├── repositories/          # Data access layer
+│   ├── auth/                  # Authentication logic
+│   └── migrations/            # Database migrations
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ���── components/        # Reusable React components
+│   │   ├── pages/            # Page components
+│   │   ├── contexts/         # React Context providers
+│   │   ├── services/         # API service functions
+│   │   ├── styles/           # CSS stylesheets
+│   │   └── utils/            # Utility functions
+│   └── package.json
+├── requirements.txt           # Python dependencies
+├── run_migrations.py         # Database migration runner
+└── README.md
+```
 
-### Progress
-- **POST** `/user-progress/` – Create a progress record
-- **GET** `/user-progress/{progress_id}` – Retrieve a progress record
-- **GET** `/user-progress/by-user/{user_id}` – List progress records for a user
-- **PUT** `/user-progress/{progress_id}` – Update a progress record
-- **DELETE** `/user-progress/{progress_id}` – Delete a progress record
+### **Development Workflow**
 
-### Blogs
-- **POST** `/blogs/` – Create a blog post
-- **GET** `/blogs/{blog_id}` – Retrieve a blog post
-- **GET** `/blogs/` – List all blogs (with search and pagination)
-- **PUT** `/blogs/{blog_id}` – Update a blog post
-- **DELETE** `/blogs/{blog_id}` – Delete a blog post
-
----
-
-## Contributing
-
-1. **Fork the repository** on GitHub.
-2. **Create a feature branch:**
+1. **Create a new feature branch:**
    ```bash
-   git checkout -b feature/my-feature
+   git checkout -b feature/your-feature-name
    ```
-3. **Commit your changes:**
+
+2. **Make your changes and test:**
    ```bash
-   git commit -m "Add feature"
+   # Backend tests
+   python -m pytest tests/
+   
+   # Frontend tests
+   cd frontend && npm test
    ```
-4. **Push to the branch:**
+
+3. **Commit and push:**
    ```bash
-   git push origin feature/my-feature
+   git add .
+   git commit -m "feat: add your feature description"
+   git push origin feature/your-feature-name
    ```
-5. **Open a Pull Request** on GitHub.
+
+4. **Create a pull request**
+
+### **Code Style Guidelines**
+
+#### **Backend (Python)**
+- Follow PEP 8 style guidelines
+- Use type hints for function parameters and return values
+- Write docstrings for all functions and classes
+- Use meaningful variable and function names
+
+#### **Frontend (JavaScript/React)**
+- Use functional components with hooks
+- Follow React best practices
+- Use meaningful component and variable names
+- Keep components small and focused
+
+## 📚 API Documentation
+
+### **Authentication Endpoints**
+```
+POST   /auth/register          # Register new user
+POST   /auth/login             # User login
+POST   /auth/refresh           # Refresh access token
+```
+
+### **Algorithm Endpoints**
+```
+GET    /algorithms             # Get all algorithms
+GET    /algorithms/{id}        # Get specific algorithm
+GET    /algo-type              # Get algorithm types
+```
+
+### **User Profile Endpoints**
+```
+GET    /profile/me             # Get current user profile
+PUT    /profile/update         # Update user profile
+GET    /profile/stats          # Get user statistics
+PUT    /profile/update-password # Update password
+```
+
+### **Blog Endpoints**
+```
+GET    /blogs                  # Get all blogs
+POST   /blogs                  # Create new blog
+GET    /blogs/{id}             # Get specific blog
+PUT    /blogs/{id}             # Update blog
+DELETE /blogs/{id}             # Delete blog
+```
+
+### **Progress Tracking**
+```
+GET    /progress               # Get user progress
+POST   /progress               # Update progress
+GET    /progress/stats         # Get detailed statistics
+```
+
+## 🎨 Frontend Features
+
+### **Component Architecture**
+- **Reusable Components** - Button, Modal, Card, etc.
+- **Page Components** - Home, Algorithms, Profile, etc.
+- **Layout Components** - Header, Footer, Sidebar
+- **Context Providers** - Authentication, Theme, Search
+
+### **State Management**
+- **React Context** for global state (auth, theme)
+- **Local State** with useState for component-specific data
+- **Custom Hooks** for reusable stateful logic
+
+### **Styling Approach**
+- **CSS Modules** for component-specific styles
+- **Global Styles** for consistent theming
+- **Responsive Design** with mobile-first approach
+- **Dark/Light Mode** support throughout the application
+
+### **Key Features**
+- **Algorithm Visualizer** - Interactive step-by-step visualizations
+- **Code Editor** - Syntax-highlighted code examples
+- **Progress Dashboard** - Visual progress tracking
+- **Search & Filter** - Advanced search with multiple filters
+- **Responsive Navigation** - Mobile-friendly navigation
+
+## 🔐 Authentication
+
+### **JWT Token System**
+- **Access Tokens** - Short-lived tokens for API access
+- **Refresh Tokens** - Long-lived tokens for token renewal
+- **Secure Storage** - Tokens stored in httpOnly cookies (production)
+
+### **User Roles**
+- **Regular User** - Access to learning content and progress tracking
+- **Admin** - Additional access to content management
+
+### **Security Features**
+- **Password Hashing** - bcrypt for secure password storage
+- **CORS Protection** - Configured for frontend domain
+- **Input Validation** - Pydantic schemas for request validation
+- **Rate Limiting** - Protection against abuse
+
+## 📊 Database Schema
+
+### **Core Tables**
+```sql
+-- Users table
+users (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    password VARCHAR NOT NULL,
+    codeforces_handle VARCHAR,
+    is_admin BOOLEAN DEFAULT FALSE,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+
+-- Algorithms table
+algorithms (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    description TEXT,
+    difficulty VARCHAR,
+    complexity VARCHAR,
+    type_id INTEGER REFERENCES algo_types(id)
+)
+
+-- User Progress table
+user_progress (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    algorithm_id INTEGER REFERENCES algorithms(id),
+    status VARCHAR,
+    completed_at DATETIME
+)
+
+-- Blogs table
+blogs (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR NOT NULL,
+    body TEXT NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    status VARCHAR DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+### **Relationships**
+- **One-to-Many**: User → Blogs, User → Progress
+- **Many-to-One**: Algorithm → AlgorithmType
+- **Many-to-Many**: User ↔ Algorithms (through UserProgress)
+
+## 🧪 Testing
+
+### **Backend Testing**
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio httpx
+
+# Run all tests
+python -m pytest
+
+# Run with coverage
+python -m pytest --cov=.
+
+# Run specific test file
+python -m pytest tests/test_auth.py
+```
+
+### **Frontend Testing**
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+```
+
+### **Test Structure**
+```
+tests/
+├── backend/
+│   ├── test_auth.py
+│   ├── test_algorithms.py
+│   ├── test_blogs.py
+│   └── test_models.py
+└── frontend/
+    ├── components/
+    ├── pages/
+    └── utils/
+```
+
+## 🚀 Deployment
+
+### **Production Setup**
+
+#### **Backend Deployment**
+```bash
+# Install production dependencies
+pip install gunicorn
+
+# Run with Gunicorn
+gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+
+# Or with Docker
+docker build -t algoverse-backend .
+docker run -p 8000:8000 algoverse-backend
+```
+
+#### **Frontend Deployment**
+```bash
+# Build for production
+npm run build
+
+# Serve with a static server
+npm install -g serve
+serve -s build -l 3000
+```
+
+### **Environment Variables (Production)**
+```env
+# Backend
+SECRET_KEY=your-production-secret-key
+DATABASE_URL=postgresql://user:pass@localhost/algoverse
+ALLOWED_ORIGINS=https://yourdomain.com
+
+# Frontend
+REACT_APP_API_URL=https://api.yourdomain.com
+```
+
+### **Docker Deployment**
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./algoverse.db
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Make your changes**
+4. **Add tests** for new functionality
+5. **Ensure all tests pass**
+6. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+7. **Push to the branch** (`git push origin feature/amazing-feature`)
+8. **Open a Pull Request**
+
+### **Development Guidelines**
+- Write clear, concise commit messages
+- Add tests for new features
+- Update documentation as needed
+- Follow the existing code style
+- Ensure all tests pass before submitting
+
+### **Bug Reports**
+When reporting bugs, please include:
+- Steps to reproduce the issue
+- Expected vs actual behavior
+- Screenshots (if applicable)
+- Environment details (OS, browser, etc.)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **FastAPI** - For the excellent web framework
+- **React** - For the powerful frontend library
+- **Lucide** - For the beautiful icons
+- **Contributors** - Thank you to all contributors who help improve AlgoVerse
+
+## 📞 Support
+
+- **Documentation**: [Wiki](https://github.com/yourusername/algoverse/wiki)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/algoverse/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/algoverse/discussions)
+- **Email**: support@algoverse.com
 
 ---
 
-## License
-
-This project is currently unlicensed.
-
----
-
-Thank you for using AlgoVerse!  
-For any questions, suggestions, or issues, please [open an issue](https://github.com/MHKhanCou/AlgoVerse/issues) or submit a pull request.
+**Made with ❤️ by the AlgoVerse Team**

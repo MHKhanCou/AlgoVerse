@@ -18,13 +18,27 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME", "your-email@gmail.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "your-app-password")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "AlgoVerse <your-email@gmail.com>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+DISABLE_EMAIL = os.getenv("DISABLE_EMAIL", "False").lower() == "true"
 
 def generate_token(length: int = 32) -> str:
-    """Generate a secure random token"""
+    """Generate a secure random token (legacy for internal use)"""
     return secrets.token_urlsafe(length)
+
+def generate_otp(length: int = 6) -> str:
+    """Generate a secure random OTP code"""
+    # Generate a random number with specified length
+    min_value = 10**(length-1)  # For 6 digits: 100000
+    max_value = 10**length - 1   # For 6 digits: 999999
+    
+    return str(secrets.randbelow(max_value - min_value + 1) + min_value)
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[str] = None) -> bool:
     """Send an email using SMTP"""
+    # Check if email is disabled for development
+    if DISABLE_EMAIL:
+        logger.info(f"Email disabled - would have sent '{subject}' to {to_email}")
+        return True  # Return True to simulate successful sending
+    
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -56,8 +70,141 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
         logger.error(f"Failed to send email to {to_email}: {str(e)}")
         return False
 
+def send_verification_otp_email(email: str, name: str, otp: str) -> bool:
+    """Send email verification with OTP code"""
+    subject = "Verify Your AlgoVerse Account - OTP Code"
+    
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }}
+            .container {{
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            }}
+            .header {{
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+                padding: 40px 30px;
+                text-align: center;
+            }}
+            .content {{
+                padding: 40px 30px;
+                text-align: center;
+            }}
+            .otp-container {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 12px;
+                margin: 30px 0;
+                text-align: center;
+            }}
+            .otp-code {{
+                font-size: 2.5rem;
+                font-weight: 800;
+                letter-spacing: 0.5rem;
+                margin: 10px 0;
+                font-family: 'Courier New', monospace;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }}
+            .otp-label {{
+                font-size: 0.9rem;
+                opacity: 0.9;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }}
+            .expiry-warning {{
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                color: #856404;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                font-size: 0.9rem;
+            }}
+            .footer {{
+                text-align: center;
+                padding: 30px;
+                color: #6c757d;
+                font-size: 14px;
+                border-top: 1px solid #e9ecef;
+                background: #f8f9fa;
+            }}
+            .logo {{
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 10px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">🚀 AlgoVerse</div>
+                <h1>Email Verification</h1>
+            </div>
+            <div class="content">
+                <h2>Hello {name}!</h2>
+                <p>Welcome to AlgoVerse! Please use the verification code below to confirm your email address and complete your registration.</p>
+                
+                <div class="otp-container">
+                    <div class="otp-label">Your Verification Code</div>
+                    <div class="otp-code">{otp}</div>
+                </div>
+                
+                <div class="expiry-warning">
+                    <strong>⏰ Important:</strong> This verification code will expire in <strong>10 minutes</strong> for your security.
+                </div>
+                
+                <p>Enter this code on the verification page to activate your account and start your algorithm learning journey!</p>
+                
+                <p style="color: #6b7280; font-size: 0.9rem; margin-top: 30px;">If you didn't create an account with AlgoVerse, please ignore this email.</p>
+            </div>
+            <div class="footer">
+                <p>© 2024 AlgoVerse. All rights reserved.</p>
+                <p>Happy Learning! 🎓</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text_body = f"""
+    AlgoVerse - Email Verification
+    
+    Hello {name}!
+    
+    Welcome to AlgoVerse! Please use the verification code below to confirm your email address:
+    
+    Verification Code: {otp}
+    
+    ⏰ Important: This code will expire in 10 minutes.
+    
+    Enter this code on the verification page to activate your account.
+    
+    If you didn't create an account with AlgoVerse, please ignore this email.
+    
+    © 2024 AlgoVerse. All rights reserved.
+    """
+    
+    return send_email(email, subject, html_body, text_body)
+
 def send_verification_email(email: str, name: str, token: str) -> bool:
-    """Send email verification"""
+    """Send email verification (legacy - keeping for compatibility)"""
     verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
     
     subject = "Verify Your AlgoVerse Account"
@@ -150,8 +297,141 @@ def send_verification_email(email: str, name: str, token: str) -> bool:
     
     return send_email(email, subject, html_body, text_body)
 
+def send_password_reset_otp_email(email: str, name: str, otp: str) -> bool:
+    """Send password reset email with OTP code"""
+    subject = "Reset Your AlgoVerse Password - OTP Code"
+    
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }}
+            .container {{
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            }}
+            .header {{
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                color: white;
+                padding: 40px 30px;
+                text-align: center;
+            }}
+            .content {{
+                padding: 40px 30px;
+                text-align: center;
+            }}
+            .otp-container {{
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 12px;
+                margin: 30px 0;
+                text-align: center;
+            }}
+            .otp-code {{
+                font-size: 2.5rem;
+                font-weight: 800;
+                letter-spacing: 0.5rem;
+                margin: 10px 0;
+                font-family: 'Courier New', monospace;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }}
+            .otp-label {{
+                font-size: 0.9rem;
+                opacity: 0.9;
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }}
+            .expiry-warning {{
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                color: #b91c1c;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                font-size: 0.9rem;
+            }}
+            .footer {{
+                text-align: center;
+                padding: 30px;
+                color: #6c757d;
+                font-size: 14px;
+                border-top: 1px solid #e9ecef;
+                background: #f8f9fa;
+            }}
+            .logo {{
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 10px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">🔐 AlgoVerse</div>
+                <h1>Password Reset</h1>
+            </div>
+            <div class="content">
+                <h2>Hello {name}!</h2>
+                <p>We received a request to reset your AlgoVerse account password. Please use the verification code below to proceed with resetting your password.</p>
+                
+                <div class="otp-container">
+                    <div class="otp-label">Your Reset Code</div>
+                    <div class="otp-code">{otp}</div>
+                </div>
+                
+                <div class="expiry-warning">
+                    <strong>⚠️ Security Notice:</strong> This password reset code will expire in <strong>10 minutes</strong> for your security.
+                </div>
+                
+                <p>Enter this code on the password reset page to continue with setting your new password.</p>
+                
+                <p style="color: #b91c1c; font-weight: 500; margin-top: 30px;">If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
+            </div>
+            <div class="footer">
+                <p>© 2024 AlgoVerse. All rights reserved.</p>
+                <p>Stay Secure! 🔒</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text_body = f"""
+    AlgoVerse - Password Reset
+    
+    Hello {name}!
+    
+    We received a request to reset your AlgoVerse account password. Please use the code below:
+    
+    Reset Code: {otp}
+    
+    ⚠️ Security Notice: This code will expire in 10 minutes.
+    
+    Enter this code on the password reset page to continue.
+    
+    If you didn't request a password reset, please ignore this email.
+    
+    © 2024 AlgoVerse. All rights reserved.
+    """
+    
+    return send_email(email, subject, html_body, text_body)
+
 def send_password_reset_email(email: str, name: str, token: str) -> bool:
-    """Send password reset email"""
+    """Send password reset email (legacy - keeping for compatibility)"""
     reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
     
     subject = "Reset Your AlgoVerse Password"

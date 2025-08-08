@@ -62,8 +62,18 @@ const SignUpPage = () => {
       // Make sure you're calling register with the correct parameters
       const res = await register(formData.name, formData.email, formData.password);
       console.log('Registration successful:', res);
-      toast.success('🎉 Account created successfully!');
-      navigate('/');
+      
+      if (res.success) {
+        toast.success('🎉 Registration successful!');
+        // Show detailed instructions about email verification
+        toast.info('📧 Please check your email for a 6-digit verification code.', {
+          autoClose: 6000
+        });
+        // Store email for OTP verification page
+        sessionStorage.setItem('registeredEmail', formData.email);
+        // Navigate to OTP verification page
+        navigate('/verify-otp');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       toast.error(err.message || 'Failed to create account');
@@ -169,7 +179,7 @@ const SignUpPage = () => {
         </form>
 
         <p className="signin-link">
-          Already have an account? <Link to="/signin">Sign In</Link>
+          Already have an account? <Link to="/login">Sign In</Link>
         </p>
       </div>
     </div>

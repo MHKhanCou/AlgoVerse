@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DPVisualizer.css';
 
-const DPVisualizer = ({ algorithm, container }) => {
+const DPVisualizer = ({ algorithm, container, step, inputData, onPerformanceUpdate, onComplexityUpdate }) => {
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [speed, setSpeed] = useState(50); // Animation speed (ms)
+  const [operations, setOperations] = useState(0);
+  const [comparisons, setComparisons] = useState(0);
+  const [startTime, setStartTime] = useState(null);
   const [dpTable, setDpTable] = useState([]);
   const [currentCell, setCurrentCell] = useState(null);
   const [visitedCells, setVisitedCells] = useState([]);
@@ -20,20 +23,71 @@ const DPVisualizer = ({ algorithm, container }) => {
   const [inputStr1, setInputStr1] = useState('ABCBDAB'); // For LCS
   const [inputStr2, setInputStr2] = useState('BDCABA'); // For LCS
   const [result, setResult] = useState(null);
+  const [inputMode, setInputMode] = useState('default');
+  const [customItems, setCustomItems] = useState('');
+  const [showSteps, setShowSteps] = useState(true);
+  const [showValues, setShowValues] = useState(true);
   const animationTimeoutsRef = useRef([]);
   
+  // Clear timeouts helper
+  const clearTimeouts = () => {
+    animationTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    animationTimeoutsRef.current = [];
+  };
+
   // Reset visualization state
   const resetVisualization = () => {
+    clearTimeouts();
     setRunning(false);
     setCompleted(false);
     setDpTable([]);
     setCurrentCell(null);
     setVisitedCells([]);
     setResult(null);
+    setOperations(0);
+    setComparisons(0);
+    setStartTime(null);
+  };
+
+  // Parse custom items for knapsack
+  const parseCustomItems = () => {
+    if (!customItems.trim()) return inputItems;
     
-    // Clear any ongoing animation timeouts
-    animationTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    animationTimeoutsRef.current = [];
+    try {
+      // Format: "w1:v1,w2:v2,w3:v3" (weight:value pairs)
+      const itemStrings = customItems.split(',').map(s => s.trim());
+      const parsedItems = itemStrings.map(itemStr => {
+        const [weight, value] = itemStr.split(':').map(s => parseInt(s.trim()));
+        return { weight: weight || 1, value: value || 1 };
+      }).filter(item => item.weight > 0 && item.value > 0);
+      
+      return parsedItems.length > 0 ? parsedItems : inputItems;
+    } catch (error) {
+      console.error('Error parsing custom items:', error);
+      return inputItems;
+    }
+  };
+
+  // Get problem templates
+  const getProblemTemplate = (problem, template) => {
+    switch (problem) {
+      case 'knapsack':
+        switch (template) {
+          case 'small': return '1:1,2:3,3:4,4:5';
+          case 'medium': return '2:6,3:10,4:12,5:15,6:18';
+          case 'large': return '1:2,2:4,3:7,4:9,5:12,6:15,7:18';
+          default: return '';
+        }
+      case 'lcs':
+        switch (template) {
+          case 'short': return { str1: 'ABC', str2: 'ACB' };
+          case 'medium': return { str1: 'ABCDGH', str2: 'AEDFHR' };
+          case 'long': return { str1: 'ABCBDAB', str2: 'BDCABA' };
+          default: return { str1: '', str2: '' };
+        }
+      default:
+        return '';
+    }
   };
   
   // Initialize DP table for Fibonacci
@@ -147,6 +201,7 @@ const DPVisualizer = ({ algorithm, container }) => {
     resetVisualization();
     setRunning(true);
     
+    const items = inputMode === 'custom' ? parseCustomItems() : inputItems;
     const capacity = parseInt(inputW);
     if (isNaN(capacity) || capacity < 1 || capacity > 20) {
       alert('Please enter a capacity between 1 and 20');
@@ -299,6 +354,13 @@ const DPVisualizer = ({ algorithm, container }) => {
     
     // Play the animations
     await playAnimations(animations, table);
+  };
+  
+  // Handle DP table update
+  const updateDpTable = (table) => {
+    setDpTable(table);
+    setStep(prev => prev + 1);
+    setOperations(prev => prev + 1);
   };
   
   // Play the algorithm animations
@@ -513,7 +575,7 @@ const DPVisualizer = ({ algorithm, container }) => {
     if (dpProblem === 'fibonacci') {
       return (
         <div className="control-group">
-          <label>n:</label>
+          <label>n (Fibonacci number):</label>
           <input
             type="number"
             min="1"
@@ -527,24 +589,78 @@ const DPVisualizer = ({ algorithm, container }) => {
     } else if (dpProblem === 'knapsack') {
       return (
         <>
-          <div className="control-group">
-            <label>Capacity (W):</label>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={inputW}
-              onChange={(e) => setInputW(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
-              disabled={running}
-            />
+          <div className="control-row">
+            <div className="control-group">
+              <label>Input Mode:</label>
+              <select
+                value={inputMode}
+                onChange={(e) => setInputMode(e.target.value)}
+                disabled={running}
+              >
+                <option value="default">Default Items</option>
+                <option value="custom">Custom Items</option>
+              </select>
+            </div>
+            
+            <div className="control-group">
+              <label>Capacity (W):</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={inputW}
+                onChange={(e) => setInputW(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                disabled={running}
+              />
+            </div>
           </div>
+
+          {inputMode === 'custom' && (
+            <div className="control-row">
+              <div className="control-group custom-input-group">
+                <label>Custom Items (Format: weight:value,weight:value):</label>
+                <input
+                  type="text"
+                  value={customItems}
+                  onChange={(e) => setCustomItems(e.target.value)}
+                  placeholder="2:6,3:10,4:12,5:15"
+                  disabled={running}
+                />
+              </div>
+              
+              <div className="template-buttons">
+                <button 
+                  onClick={() => setCustomItems(getProblemTemplate('knapsack', 'small'))}
+                  disabled={running}
+                  className="template-btn"
+                >
+                  Small
+                </button>
+                <button 
+                  onClick={() => setCustomItems(getProblemTemplate('knapsack', 'medium'))}
+                  disabled={running}
+                  className="template-btn"
+                >
+                  Medium
+                </button>
+                <button 
+                  onClick={() => setCustomItems(getProblemTemplate('knapsack', 'large'))}
+                  disabled={running}
+                  className="template-btn"
+                >
+                  Large
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div className="items-table">
             <div className="items-header">
               <div>Item</div>
               <div>Weight</div>
               <div>Value</div>
             </div>
-            {inputItems.map((item, index) => (
+            {(inputMode === 'custom' ? parseCustomItems() : inputItems).map((item, index) => (
               <div key={index} className="item-row">
                 <div>{index + 1}</div>
                 <div>{item.weight}</div>
@@ -557,25 +673,79 @@ const DPVisualizer = ({ algorithm, container }) => {
     } else if (dpProblem === 'lcs') {
       return (
         <>
-          <div className="control-group">
-            <label>String 1:</label>
-            <input
-              type="text"
-              value={inputStr1}
-              onChange={(e) => setInputStr1(e.target.value.toUpperCase())}
-              disabled={running}
-              maxLength={10}
-            />
+          <div className="control-row">
+            <div className="control-group">
+              <label>Input Mode:</label>
+              <select
+                value={inputMode}
+                onChange={(e) => setInputMode(e.target.value)}
+                disabled={running}
+              >
+                <option value="default">Default Strings</option>
+                <option value="custom">Custom Strings</option>
+              </select>
+            </div>
           </div>
-          <div className="control-group">
-            <label>String 2:</label>
-            <input
-              type="text"
-              value={inputStr2}
-              onChange={(e) => setInputStr2(e.target.value.toUpperCase())}
-              disabled={running}
-              maxLength={10}
-            />
+
+          {inputMode === 'custom' && (
+            <div className="template-buttons">
+              <button 
+                onClick={() => {
+                  const template = getProblemTemplate('lcs', 'short');
+                  setInputStr1(template.str1);
+                  setInputStr2(template.str2);
+                }}
+                disabled={running}
+                className="template-btn"
+              >
+                Short
+              </button>
+              <button 
+                onClick={() => {
+                  const template = getProblemTemplate('lcs', 'medium');
+                  setInputStr1(template.str1);
+                  setInputStr2(template.str2);
+                }}
+                disabled={running}
+                className="template-btn"
+              >
+                Medium
+              </button>
+              <button 
+                onClick={() => {
+                  const template = getProblemTemplate('lcs', 'long');
+                  setInputStr1(template.str1);
+                  setInputStr2(template.str2);
+                }}
+                disabled={running}
+                className="template-btn"
+              >
+                Long
+              </button>
+            </div>
+          )}
+
+          <div className="control-row">
+            <div className="control-group">
+              <label>String 1:</label>
+              <input
+                type="text"
+                value={inputStr1}
+                onChange={(e) => setInputStr1(e.target.value.toUpperCase())}
+                disabled={running}
+                maxLength={10}
+              />
+            </div>
+            <div className="control-group">
+              <label>String 2:</label>
+              <input
+                type="text"
+                value={inputStr2}
+                onChange={(e) => setInputStr2(e.target.value.toUpperCase())}
+                disabled={running}
+                maxLength={10}
+              />
+            </div>
           </div>
         </>
       );
@@ -587,35 +757,75 @@ const DPVisualizer = ({ algorithm, container }) => {
   return (
     <div className="dp-visualizer-container">
       <div className="visualizer-controls">
-        <div className="control-group">
-          <label>Problem:</label>
-          <select
-            value={dpProblem}
-            onChange={(e) => setDpProblem(e.target.value)}
-            disabled={running}
-          >
-            <option value="fibonacci">Fibonacci</option>
-            <option value="knapsack">0/1 Knapsack</option>
-            <option value="lcs">Longest Common Subsequence</option>
-          </select>
+        <div className="control-row">
+          <div className="control-group">
+            <label>Problem Type:</label>
+            <select
+              value={dpProblem}
+              onChange={(e) => setDpProblem(e.target.value)}
+              disabled={running}
+            >
+              <option value="fibonacci">Fibonacci</option>
+              <option value="knapsack">0/1 Knapsack</option>
+              <option value="lcs">Longest Common Subsequence</option>
+            </select>
+          </div>
         </div>
+
         {renderProblemInputs()}
-        <button onClick={startVisualization} disabled={running}>
-          {running ? 'Visualizing...' : 'Start Visualization'}
-        </button>
-        <button onClick={resetVisualization} disabled={running}>
-          Reset
-        </button>
-        <div className="control-group">
-          <label>Speed:</label>
-          <input
-            type="range"
-            min="5"
-            max="200"
-            value={speed}
-            onChange={(e) => setSpeed(200 - parseInt(e.target.value))}
-            disabled={running}
-          />
+        
+        <div className="control-row">
+          <button onClick={startVisualization} disabled={running} className="start-btn">
+            {running ? 'Visualizing...' : 'Start Visualization'}
+          </button>
+          
+          {running && (
+            <button onClick={() => setRunning(false)} className="stop-btn">
+              Stop
+            </button>
+          )}
+          
+          <button onClick={resetVisualization} disabled={running} className="reset-btn">
+            Reset
+          </button>
+        </div>
+        
+        <div className="control-row">
+          <div className="control-group">
+            <label>Speed: {201 - speed}ms</label>
+            <input
+              type="range"
+              min="5"
+              max="200"
+              value={201 - speed}
+              onChange={(e) => setSpeed(201 - parseInt(e.target.value))}
+              disabled={running}
+            />
+          </div>
+          
+          <div className="control-group">
+            <label htmlFor="showSteps">
+              <input 
+                id="showSteps"
+                type="checkbox" 
+                checked={showSteps} 
+                onChange={() => setShowSteps(!showSteps)}
+              />
+              Show Steps
+            </label>
+          </div>
+          
+          <div className="control-group">
+            <label htmlFor="showValues">
+              <input 
+                id="showValues"
+                type="checkbox" 
+                checked={showValues} 
+                onChange={() => setShowValues(!showValues)}
+              />
+              Show Values
+            </label>
+          </div>
         </div>
       </div>
       

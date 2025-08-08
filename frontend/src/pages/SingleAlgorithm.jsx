@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import DOMPurify from 'dompurify';
 import AlgorithmVisualizer from '../components/visualizer/AlgorithmVisualizer';
+import RelatedProblems from '../components/RelatedProblems';
 import '../styles/SingleAlgorithm.css';
 
 const SingleAlgorithm = () => {
@@ -25,40 +26,56 @@ const SingleAlgorithm = () => {
     const fetchAlgorithmData = async () => {
       try {
         setLoading(true);
+        setError('');
+        console.log('Fetching algorithm with ID:', id);
+        
         // Parse id to integer
         const algoId = parseInt(id, 10);
         if (isNaN(algoId)) {
-          throw new Error('Invalid algorithm ID');
+          const errorMsg = `Invalid algorithm ID: ${id}`;
+          console.error(errorMsg);
+          throw new Error(errorMsg);
         }
 
-        // Fetch algorithm details
-        const data = await algorithmService.getById(algoId);
-        setAlgorithm(data);
+        try {
+          // Fetch algorithm details
+          console.log(`Fetching algorithm details for ID: ${algoId}`);
+          const data = await algorithmService.getById(algoId);
+          console.log('Algorithm data received:', data);
+          setAlgorithm(data);
+        } catch (algoError) {
+          console.error('Error fetching algorithm details:', algoError);
+          throw new Error(`Failed to load algorithm: ${algoError.message}`);
+        }
 
         // Handle progress for logged-in users
         if (user) {
           try {
+            console.log('Fetching user progress for algorithm:', algoId);
             const entry = await userProgressService.getEntry(algoId);
             if (!entry) {
+              console.log('No progress found, creating new progress entry');
               // Create new progress with status 'enrolled'
               const newProgress = await userProgressService.createProgress(algoId, 'enrolled');
+              console.log('Created new progress:', newProgress);
               setProgress(newProgress);
             } else {
+              console.log('Found existing progress:', entry);
               setProgress(entry);
               // Update last_accessed if progress exists
+              console.log('Updating last accessed time');
               await userProgressService.updateLastAccessed(algoId);
             }
           } catch (progressError) {
-            // Log the error and show it to the user, but don't set a fallback progress
-            console.error('Progress error:', progressError);
-            toast.error(progressError.message || 'Failed to initialize progress tracking');
-            // Optionally, prevent rendering progress-related UI
-            setProgress(null);
+            console.error('Error handling progress (non-fatal):', progressError);
+            // Don't fail the whole page load for progress errors
           }
         }
       } catch (err) {
-        setError(err.message || 'Failed to load algorithm details');
-        toast.error(err.message || 'Failed to load algorithm details');
+        const errorMsg = `Error loading algorithm: ${err.message}`;
+        console.error(errorMsg, err);
+        setError(errorMsg);
+        toast.error(errorMsg, { position: 'top-center' });
       } finally {
         setLoading(false);
       }
@@ -159,6 +176,12 @@ const SingleAlgorithm = () => {
         <div className="details-section">
           <h2>🎲 Visualizer</h2>
           <AlgorithmVisualizer algorithm={algorithm} />
+        </div>
+      </section>
+
+      <section className="related-problems">
+        <div className="details-section">
+          <RelatedProblems algorithm={algorithm} user={user} />
         </div>
       </section>
 

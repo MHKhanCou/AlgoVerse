@@ -5,7 +5,7 @@ from sqlalchemy import text
 import models
 from db import engine, get_db
 
-from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog
+from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems
 
 app = FastAPI()
 
@@ -37,7 +37,6 @@ def test_db_connection(db: Session = Depends(get_db)):
     except Exception as e:
         return {"error": str(e)}
 
-app.include_router(admin.router)
 app.include_router(authentication.router)
 app.include_router(profile.router)
 app.include_router(user.router)
@@ -45,4 +44,6 @@ app.include_router(algo_types.router)
 app.include_router(algorithm.router)
 app.include_router(user_progress.router)
 app.include_router(blog.router)
+app.include_router(admin.router)
+app.include_router(related_problems.router)
 

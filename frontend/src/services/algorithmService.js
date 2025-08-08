@@ -7,7 +7,7 @@ export const algorithmService = {
   async getAll(page = 1, limit = 5) {
     try {
       const skip = (page - 1) * limit;
-      const response = await axios.get(ALGORITHMS_URL, {
+      const response = await axios.get(`${ALGORITHMS_URL}/`, {
         params: { skip, limit },
       });
       return response.data;
@@ -55,7 +55,7 @@ export const algorithmService = {
   async create(data) {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(ALGORITHMS_URL, data, {
+      const response = await axios.post(`${ALGORITHMS_URL}/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
