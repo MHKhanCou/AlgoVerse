@@ -5,7 +5,7 @@ from sqlalchemy import text
 import models
 from db import engine, get_db
 
-from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems
+from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments
 
 app = FastAPI()
 
@@ -43,7 +43,7 @@ app.include_router(user.router)
 app.include_router(algo_types.router)
 app.include_router(algorithm.router)
 app.include_router(user_progress.router)
-app.include_router(blog.router)
 app.include_router(admin.router)
+app.include_router(blog.router)
 app.include_router(related_problems.router)
-
+app.include_router(comments.router)

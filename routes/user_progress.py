@@ -19,7 +19,7 @@ from repositories.user_progress_repo import (
     get_user_completion_stats,
     get_detailed_user_stats,
     delete,
-    get_batch_progress
+    get_batch_progress as get_batch_progress_repo
 )
 import logging
 
@@ -201,9 +201,11 @@ def update_last_accessed(
         logger.error(f"Error updating last accessed for user {current_user.id}, algo {algo_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+from schemas import BatchProgressRequest
+
 @router.post("/batch", response_model=dict)
 def get_batch_progress(
-    algorithm_ids: List[int],
+    request: BatchProgressRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -212,17 +214,12 @@ def get_batch_progress(
     Returns a dictionary mapping algorithm IDs to their progress entries.
     """
     try:
+        algorithm_ids = request.algorithm_ids
         if not algorithm_ids:
             return {}
             
-        # Ensure algorithm_ids is a list of integers
-        try:
-            algorithm_ids = [int(id) for id in algorithm_ids if id is not None]
-        except (ValueError, TypeError) as e:
-            raise HTTPException(status_code=400, detail="Invalid algorithm IDs provided")
-            
         # Get batch progress
-        progress_map = get_batch_progress(db, current_user.id, algorithm_ids)
+        progress_map = get_batch_progress_repo(db, current_user.id, algorithm_ids)
         
         # Convert SQLAlchemy models to dicts for JSON serialization
         return {

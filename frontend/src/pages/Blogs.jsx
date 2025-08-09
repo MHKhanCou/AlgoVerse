@@ -8,10 +8,8 @@ import {
   Search, 
   BookOpen, 
   Plus, 
-  Filter,
   Grid,
   List,
-  TrendingUp,
   Calendar,
   User,
   ChevronRight,
@@ -340,12 +338,14 @@ const Blogs = () => {
 
             {/* Filters */}
             <div className="filters-group">
-              <div className="filter-group">
-                <Filter className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Clock />
+                </span>
                 <select
                   value={selectedStatus}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="all">All Status</option>
                   <option value="approved">Published</option>
@@ -354,12 +354,14 @@ const Blogs = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
-                <TrendingUp className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Calendar />
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="newest">Sort by Newest</option>
                   <option value="oldest">Sort by Oldest</option>

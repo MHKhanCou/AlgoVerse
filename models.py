@@ -158,10 +158,35 @@ class Blog(Base):
 
     user = relationship("User", back_populates="blog", foreign_keys=[user_id])
     admin = relationship("User", foreign_keys=[approved_by])
+    comments = relationship("BlogComment", back_populates="blog", cascade="all, delete-orphan")
 
     @property
     def author(self):
         return self.user.name if self.user else None
+
+# Blog Comment Model
+class BlogComment(Base):
+    __tablename__ = "blog_comments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    blog_id = Column(Integer, ForeignKey("blog.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    parent_id = Column(Integer, ForeignKey("blog_comments.id"), nullable=True)  # For nested comments
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_edited = Column(Boolean, default=False)
+    
+    # Relationships
+    blog = relationship("Blog", back_populates="comments")
+    user = relationship("User")
+    parent = relationship("BlogComment", remote_side=[id])
+    replies = relationship("BlogComment", back_populates="parent")
+    
+    @property
+    def author_name(self):
+        return self.user.name if self.user else "Unknown"
 
 # Related Problems Models
 class RelatedProblem(Base):

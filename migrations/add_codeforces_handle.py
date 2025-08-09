@@ -12,7 +12,7 @@ def run_migration():
     """Add codeforces_handle column to users table"""
     
     # Get the database path
-    db_path = Path(__file__).parent.parent / 'algoverse.db'
+    db_path = Path(__file__).parent.parent / 'db' / 'algoverse.db'
     
     if not db_path.exists():
         print(f"Database not found at {db_path}")

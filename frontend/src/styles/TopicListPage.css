@@ -135,8 +135,11 @@
   margin-bottom: var(--space-md);
   line-height: 1.5;
   display: -webkit-box;
+  display: box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  box-orient: vertical;
   overflow: hidden;
 }
 
@@ -289,6 +292,34 @@
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+/* Select with inline leading icon */
+.select-with-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select-leading-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.select-leading-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.filter-select.has-icon {
+  padding-left: 2.25rem; /* space for leading icon */
+}
+
 .view-toggle {
   display: flex;
   border: 1px solid var(--border-primary);
@@ -317,6 +348,7 @@
 .view-toggle-btn svg {
   width: 1rem;
   height: 1rem;
+  color: inherit; /* ensure icon follows button color */
 }
 
 /* Results Section */
@@ -398,7 +430,7 @@
   flex-wrap: wrap;
 }
 
-.difficulty-badge {
+.topics-page .difficulty-badge {
   padding: 0.25rem var(--space-sm);
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -406,35 +438,92 @@
   border: 1px solid;
 }
 
-.difficulty-easy {
+.topics-page .difficulty-easy {
   background: var(--success-light);
   color: var(--success);
   border-color: var(--success);
 }
 
-.difficulty-medium {
+.topics-page .difficulty-medium {
   background: var(--warning-light);
   color: var(--warning);
   border-color: var(--warning);
 }
 
-.difficulty-hard {
+.topics-page .difficulty-hard {
   background: var(--error-light);
   color: var(--error);
   border-color: var(--error);
 }
 
-.category-badge {
-  padding: 0.25rem var(--space-sm);
+/* Dark mode: improve difficulty badge visibility and contrast */
+[data-theme="dark"] .difficulty-badge {
+  font-weight: 600;
+  border-width: 1px;
+  letter-spacing: 0.02em;
+}
+[data-theme="dark"] .difficulty-easy {
+  background: rgba(16, 185, 129, 0.18) !important; /* emerald-400 */
+  color: #34d399 !important;
+  border-color: #34d399 !important;
+}
+[data-theme="dark"] .difficulty-medium {
+  background: rgba(245, 158, 11, 0.20) !important; /* amber-500 */
+  color: #f59e0b !important;
+  border-color: #f59e0b !important;
+}
+[data-theme="dark"] .difficulty-hard {
+  background: rgba(244, 63, 94, 0.20) !important; /* rose-500 */
+  color: #f43f5e !important;
+  border-color: #f43f5e !important;
+}
+
+/* Boost baseline contrast for badges across themes */
+.topics-page .difficulty-badge {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.topics-page .category-badge {
+  padding: 0.3rem 0.55rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  font-weight: 600; /* match difficulty look */
+  background: rgba(59, 130, 246, 0.10); /* subtle blue tint */
+  color: var(--primary);
   border: 1px solid var(--primary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  box-shadow: inset 0 0 0 1px currentColor; /* outline like difficulty */
+}
+
+/* Dark mode category badge to match difficulty style */
+[data-theme="dark"] .topics-page .category-badge {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;     /* blue-400 */
+  border-color: #60a5fa !important;
+}
+
+/* Ensure category badge style applies in both GRID (algorithm-badges) and LIST (algorithm-list-stats) */
+.topics-page .algorithm-badges .category-badge,
+.topics-page .algorithm-list-stats .category-badge {
+  padding: 0.3rem 0.55rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  background: rgba(59, 130, 246, 0.10) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  box-shadow: inset 0 0 0 1px currentColor !important;
+}
+[data-theme="dark"] .topics-page .algorithm-badges .category-badge,
+[data-theme="dark"] .topics-page .algorithm-list-stats .category-badge {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: #60a5fa !important;
 }
 
 .cf-icon-sm {
@@ -447,8 +536,11 @@
   font-size: 0.875rem;
   line-height: 1.5;
   display: -webkit-box;
+  display: box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+  box-orient: vertical;
   overflow: hidden;
 }
 
@@ -514,6 +606,7 @@
   font-size: 0.875rem;
   line-height: 1.5;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -734,4 +827,277 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ==============================
+   Consistency Overrides (Bluish Dark)
+   Makes Topics cards/buttons match CommentSection & SingleBlog
+   ============================== */
+.topics-page .category-card,
+.topics-page .algorithm-card,
+.topics-page .search-filters,
+.topics-page .empty-state {
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-md);
+}
+
+.topics-page .algorithm-card:hover,
+.topics-page .category-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dark mode: keep card background stable to avoid flicker/unstable look */
+[data-theme="dark"] .topics-page .algorithm-card,
+[data-theme="dark"] .topics-page .category-card,
+[data-theme="dark"] .topics-page .search-filters,
+[data-theme="dark"] .topics-page .empty-state {
+  background: var(--bg-secondary);
+}
+[data-theme="dark"] .topics-page .algorithm-card:hover,
+[data-theme="dark"] .topics-page .category-card:hover {
+  background: var(--bg-secondary); /* no background jump on hover */
+  transform: none; /* avoid motion + color perception flicker */
+}
+
+/* Dark mode: eliminate any nested light panels inside cards */
+[data-theme="dark"] .topics-page .algorithm-card .algorithm-header,
+[data-theme="dark"] .topics-page .algorithm-card .algorithm-info,
+[data-theme="dark"] .topics-page .algorithm-card .algorithm-badges,
+[data-theme="dark"] .topics-page .algorithm-card .algorithm-title,
+[data-theme="dark"] .topics-page .algorithm-card .category-badge {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+[data-theme="dark"] .topics-page .algorithm-card * {
+  box-shadow: none !important; /* remove unintended inner shadows */
+}
+
+/* All themes: ensure no off-white inner box appears inside algorithm cards */
+.topics-page .algorithm-card .algorithm-header,
+.topics-page .algorithm-card .algorithm-info,
+.topics-page .algorithm-card .algorithm-badges,
+.topics-page .algorithm-card .algorithm-title {
+  background: transparent !important;
+}
+
+/* Dark mode: ensure inner elements don't introduce light backgrounds */
+[data-theme="dark"] .topics-page .algorithm-header,
+[data-theme="dark"] .topics-page .algorithm-info,
+[data-theme="dark"] .topics-page .algorithm-title,
+[data-theme="dark"] .topics-page .algorithm-badges {
+  background: transparent !important;
+}
+
+/* Controls & Buttons */
+.topics-page .cf-btn,
+.topics-page .pagination-btn,
+.topics-page .category-simple-btn,
+.topics-page .view-toggle-btn {
+  border-radius: 8px;
+}
+
+.topics-page .cf-btn,
+.topics-page .pagination-btn,
+.topics-page .category-simple-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.topics-page .cf-btn:hover,
+.topics-page .pagination-btn:hover:not(:disabled),
+.topics-page .category-simple-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary);
+}
+
+.topics-page .view-toggle-btn {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+.topics-page .view-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Dark mode: stabilize view toggle button colors */
+[data-theme="dark"] .topics-page .view-toggle-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+[data-theme="dark"] .topics-page .view-toggle-btn.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+[data-theme="dark"] .topics-page .view-toggle-btn:hover:not(.active) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .topics-page .view-toggle-btn svg {
+  color: inherit;
+}
+
+/* Ensure active/inactive states are clearly distinct in both themes */
+.topics-page .view-toggle-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.topics-page .view-toggle-btn:not(.active) {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+/* Dark mode: unify surface for inputs/selects to match cards */
+[data-theme="dark"] .topics-page .search-filters,
+[data-theme="dark"] .topics-page .search-input,
+[data-theme="dark"] .topics-page .filter-select,
+[data-theme="dark"] .topics-page .view-toggle-btn:not(.active) {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .topics-page .search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Badge legibility tweaks */
+.topics-page .difficulty-badge {
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+}
+
+/* Focus rings */
+.topics-page .cf-btn:focus-visible,
+.topics-page .pagination-btn:focus-visible,
+.topics-page .category-simple-btn:focus-visible,
+.topics-page .view-toggle-btn:focus-visible,
+.topics-page .filter-select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Search input alignment with theme */
+.topics-page .search-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.topics-page .search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Filters bar control consistency */
+.topics-page .search-filters {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+.topics-page .search-filters-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.topics-page .search-input,
+.topics-page .filter-select,
+.topics-page .view-toggle-btn {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.topics-page .search-input {
+  padding-left: 2.25rem; /* space for search icon */
+}
+.topics-page .search-icon {
+  color: var(--text-muted);
+}
+
+.topics-page .filter-select:focus,
+.topics-page .search-input:focus,
+.topics-page .view-toggle-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Ensure filter icons are vertically centered */
+.topics-page .filter-group {
+  align-items: center; /* reinforce centering */
+}
+.topics-page .filter-group .filter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;        /* remove extra inline height */
+  position: static;      /* avoid offsetting */
+  margin-top: 0;         /* prevent visual lift */
+  width: 40px;             /* same block height as controls */
+  height: 40px;
+  transform: translateY(1px); /* slight nudge to counter font metrics */
+}
+.topics-page .filter-group .filter-icon svg {
+  display: block;        /* fixes baseline alignment gaps */
+  width: 16px;           /* smaller, subtler */
+  height: 16px;
+}
+
+.topics-page .filters-group > .filter-icon,
+.topics-page .filters-group > svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  line-height: 0;
+}
+.topics-page .filters-group > svg {
+  /* If raw SVG without class, constrain size */
+  width: 16px;
+  height: 16px;
+}
+
+/* Final safeguard: center any SVG inside filters-group */
+.topics-page .filters-group svg {
+  align-self: center;           /* flex item alignment */
+  vertical-align: middle;       /* inline alignment fallback */
+}
+
+/* If an icon still renders inside a fixed-height box, absolutely center it */
+.topics-page .filters-group .filter-icon-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+.topics-page .filters-group .filter-icon-wrapper > svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* --- Additional fine-tune for perfect vertical centering --- */
+.topics-page .filter-select {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 40px;       /* center text inside selects */
+}
+
+.topics-page .search-input {
+  line-height: 40px;       /* center text placeholder and value */
+}
+
+.topics-page .view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 var(--space-sm);
 }

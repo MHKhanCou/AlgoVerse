@@ -287,42 +287,62 @@ const RelatedProblems = ({ algorithm, user }) => {
   if (loading) return (
     <div className="related-problems-container">
       <h2>Related Problems</h2>
-      <div className="loading-related">Loading related problems...</div>
+      <div className="loading-related">
+        <div className="animate-pulse space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-gray-100 dark:bg-gray-700 rounded-lg"></div>
+          ))}
+        </div>
+      </div>
     </div>
   );
   
   if (error) return (
     <div className="related-problems-container">
       <h2>Related Problems</h2>
-      <div className="error-message">{error}</div>
+      <div className="error-message">
+        <AlertCircle className="w-6 h-6 mx-auto mb-2" />
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-3 text-sm px-4 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md transition-colors"
+        >
+          Retry
+        </button>
+      </div>
     </div>
   );
 
   return (
     <div className="related-problems-container">
-      <h2>Related Problems</h2>
+      <h2 className="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ height: '1.5em', width: '1.5em' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <span>Related Problems</span>
+      </h2>
+      
       {relatedProblems.length === 0 ? (
         <div className="no-related-problems">
-          <p>No related problems found for this algorithm type.</p>
-          <p>Check back later for more problems!</p>
+          <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+            <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No related problems found</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
+              We couldn't find any related problems for this algorithm. Check back later or explore other algorithms.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="related-problems-grid">
           {relatedProblems.map(problem => (
-            <ProblemCard
-              key={problem.id}
-              problem={{
-                ...problem,
-                title: problem.name || 'Untitled Problem',
-                description: problem.description || '',
-                difficulty: problem.difficulty || 'medium',
-                platform: 'AlgoVerse',
-                url: `/algorithms/${problem.id}`,
-                tags: problem.tags || ''
-              }}
-              progress={progressMap[problem.id]}
-              user={user}
-              onUpdateProgress={handleUpdateProgress}
+            <ProblemCard 
+              key={problem.id} 
+              problem={problem} 
+              progress={progressMap[problem.id]} 
+              user={user} 
+              onUpdateProgress={handleUpdateProgress} 
             />
           ))}
         </div>

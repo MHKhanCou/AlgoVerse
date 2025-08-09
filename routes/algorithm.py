@@ -68,7 +68,27 @@ def get_algorithm_related_problems(id: int, db: Session = Depends(get_db)):
             models.RelatedProblem.status == models.ProblemStatus.APPROVED
         ).all()
         
-        return problems
+        # Format the problems for frontend consumption
+        formatted_problems = []
+        for problem in problems:
+            formatted_problems.append({
+                "id": problem.id,
+                "title": problem.title,
+                "name": problem.title,  # Frontend expects 'name' field
+                "platform": problem.platform.value if problem.platform else "Unknown",
+                "difficulty": problem.difficulty.value if problem.difficulty else "Medium",
+                "url": problem.problem_url,
+                "problem_url": problem.problem_url,
+                "problem_id": problem.problem_id,
+                "description": problem.description,
+                "tags": problem.tags,
+                "algorithm_id": problem.algorithm_id,
+                "status": problem.status.value if problem.status else "pending",
+                "created_at": problem.created_at.isoformat() if problem.created_at else None,
+                "updated_at": problem.updated_at.isoformat() if problem.updated_at else None
+            })
+        
+        return formatted_problems
     except HTTPException as he:
         raise he
     except Exception as e:

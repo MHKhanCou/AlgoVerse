@@ -8,7 +8,6 @@ import ManageAlgorithms from '../components/admin/ManageAlgorithms';
 import ManageUserProgress from '../components/admin/ManageUserProgress';
 import ManageBlogs from '../components/admin/ManageBlogs';
 import RelatedProblemsManager from '../components/admin/RelatedProblemsManager';
-import HelpSection from '../components/admin/HelpSection';
 import Sidebar from '../components/admin/Sidebar';
 import '../styles/AdminDashboard.css';
 
@@ -108,12 +107,30 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const data = await adminService.fetchBlogs();
-      const validBlogs = Array.isArray(data)
-        ? data.filter(blog => blog && typeof blog === 'object')
-        : [];
-      setBlogs(validBlogs);
+      console.log('Fetched blogs data:', data); // Debug log
+      
+      // Handle both array and object responses
+      let blogList = [];
+      if (Array.isArray(data)) {
+        blogList = data.filter(blog => blog && typeof blog === 'object');
+      } else if (data && typeof data === 'object') {
+        // If the response is an object with a 'blogs' property
+        if (data.blogs && Array.isArray(data.blogs)) {
+          blogList = data.blogs.filter(blog => blog && typeof blog === 'object');
+        } else if (data.items && Array.isArray(data.items)) {
+          // If the response has an 'items' array
+          blogList = data.items.filter(blog => blog && typeof blog === 'object');
+        } else {
+          // If it's a single blog object
+          blogList = [data];
+        }
+      }
+      
+      console.log('Processed blogs:', blogList); // Debug log
+      setBlogs(blogList);
     } catch (error) {
-      toast.error(error.message, { theme: 'dark' });
+      console.error('Error fetching blogs:', error);
+      toast.error(error.response?.data?.detail || error.message || 'Failed to load blogs', { theme: 'dark' });
       setBlogs([]);
     } finally {
       setLoading(false);
@@ -121,12 +138,40 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeSection === 'dashboard') fetchDashboardStats();
-    if (activeSection === 'users') fetchUsers();
-    if (activeSection === 'algo-types') fetchAlgoTypes();
-    if (activeSection === 'algorithms') fetchAlgorithms();
-    if (activeSection === 'progress') fetchUserProgress();
-    if (activeSection === 'blogs') fetchBlogs();
+    const loadSectionData = async () => {
+      try {
+        setLoading(true);
+        switch (activeSection) {
+          case 'dashboard':
+            await fetchDashboardStats();
+            break;
+          case 'users':
+            await fetchUsers();
+            break;
+          case 'algo-types':
+            await fetchAlgoTypes();
+            break;
+          case 'algorithms':
+            await fetchAlgorithms();
+            break;
+          case 'progress':
+            await fetchUserProgress();
+            break;
+          case 'blogs':
+            await fetchBlogs();
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error(`Error loading ${activeSection} data:`, error);
+        toast.error(`Failed to load ${activeSection} data: ${error.message}`, { theme: 'dark' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSectionData();
   }, [activeSection]);
 
   return (
@@ -172,26 +217,25 @@ const AdminDashboard = () => {
               adminService={adminService}
             />
           )}
-          {activeSection === 'progress' && (
-            <ManageUserProgress
-              userProgress={userProgress}
-              users={users}
-              algorithms={algorithms}
-              searchQuery={searchQuery}
-              fetchUserProgress={fetchUserProgress}
-              adminService={adminService}
-            />
-          )}
           {activeSection === 'blogs' && (
-            <ManageBlogs
-              blogs={blogs}
-              fetchBlogs={fetchBlogs}
-              searchQuery={searchQuery}
-              adminService={adminService}
-            />
+            <div className="section-container">
+              {loading ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>Loading blogs...</p>
+                </div>
+              ) : (
+                <ManageBlogs
+                  blogs={blogs}
+                  fetchBlogs={fetchBlogs}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  adminService={adminService}
+                />
+              )}
+            </div>
           )}
           {activeSection === 'problems' && <RelatedProblemsManager />}
-          {activeSection === 'help' && <HelpSection />}
         </main>
       </div>
     </div>

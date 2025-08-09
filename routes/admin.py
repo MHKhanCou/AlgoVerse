@@ -157,9 +157,9 @@ async def get_dashboard_stats(db: Session = Depends(get_db), admin: User = Depen
 @router_dashboard.get("/admin-info")
 async def get_admin_dashboard_stats(db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     try:
-        logger.info(f"Admin dashboard accessed by user: {admin.username}")
+        logger.info(f"Admin dashboard accessed by user: {admin.name}")
         return {
-            "username": admin.username,
+            "username": admin.name,  # Using name instead of user_name or username
             "email": admin.email,
             "is_admin": admin.is_admin
         }

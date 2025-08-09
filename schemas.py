@@ -20,11 +20,24 @@ class Login(BaseModel):  # Fixed: Capitalized class name
     class Config:
         from_attributes = True
 
+# User schemas
+class ShowUser(BaseModel):
+    id: int
+    name: str
+    email: str
+    is_admin: bool
+    codeforces_handle: Optional[str] = None
+    joined_at: Optional[datetime] = None  # Fixed: renamed from created_at
+
+    class Config:
+        from_attributes = True  # Fixed: removed duplicate Config
+
 class ShowBlog(BaseModel):
     id: int
     title: Optional[str] = None
     body: Optional[str] = None
     author: Optional[str] = None
+    user: Optional[ShowUser] = None
     created_at: datetime
     updated_at: datetime
     status: BlogStatus
@@ -119,8 +132,6 @@ class ShowAlgorithm(BaseModel):
     class Config:
         from_attributes = True
       
-# User schemas
-
 class UserProfile(BaseModel):
     id: int
     name: str
@@ -158,21 +169,13 @@ class RegisterUser(BaseModel):
     class Config:
         from_attributes = True
 
-class ShowUser(BaseModel):
-    id: int
-    name: str
-    email: str
-    is_admin: bool
-    codeforces_handle: Optional[str] = None
-    joined_at: Optional[datetime] = None  # Fixed: renamed from created_at
-
-    class Config:
-        from_attributes = True  # Fixed: removed duplicate Config
-
 class UpdateUser(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     codeforces_handle: Optional[str] = None
+
+class BatchProgressRequest(BaseModel):
+    algorithm_ids: List[int]
 
     class Config:
         from_attributes = True
@@ -245,3 +248,35 @@ class BlogModerationAction(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Comment schemas
+class AddComment(BaseModel):
+    content: str
+    parent_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class UpdateComment(BaseModel):
+    content: str
+
+    class Config:
+        from_attributes = True
+
+class ShowComment(BaseModel):
+    id: int
+    blog_id: int
+    user_id: int
+    content: str
+    parent_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    is_edited: bool
+    author_name: str
+    replies: List['ShowComment'] = []
+
+    class Config:
+        from_attributes = True
+
+# Forward reference for nested comments
+ShowComment.model_rebuild()

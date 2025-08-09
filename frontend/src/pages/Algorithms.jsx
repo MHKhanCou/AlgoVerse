@@ -7,16 +7,15 @@ import {
   BookOpen, 
   Target, 
   Play, 
-  Filter,
   Grid,
   List,
-  TrendingUp,
   Star,
   ChevronRight,
   Code,
   Brain,
   ChevronLeft
 } from 'lucide-react';
+
 import '../styles/TopicListPage.css';
 
 const Algorithms = () => {
@@ -249,7 +248,6 @@ const Algorithms = () => {
         {/* Categories Overview - Simple List */}
         <div className="categories-section">
           <h2 className="section-title">
-            <Grid className="filter-icon" />
             Categories
           </h2>
           <div className="categories-simple-list">
@@ -282,12 +280,14 @@ const Algorithms = () => {
 
             {/* Filters */}
             <div className="filters-group">
-              <div className="filter-group">
-                <Filter className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <BookOpen />
+                </span>
                 <select
                   value={selectedCategory}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="all">All Categories</option>
                   {algoTypes.map((type) => (
@@ -298,11 +298,14 @@ const Algorithms = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Target />
+                </span>
                 <select
                   value={selectedDifficulty}
                   onChange={(e) => handleDifficultyChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="all">All Difficulties</option>
                   <option value="easy">Easy</option>
@@ -311,12 +314,14 @@ const Algorithms = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
-                <TrendingUp className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Star />
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="name">Sort by Name</option>
                   <option value="difficulty">Sort by Difficulty</option>

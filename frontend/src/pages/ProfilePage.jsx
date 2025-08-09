@@ -1,6 +1,26 @@
+  // Local relative time formatter (no API changes)
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 5) return 'just now';
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return `${day}d ago`;
+    // Fallback to date + time for older entries
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
+import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -15,6 +35,7 @@ const ProfilePage = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [blogs, setBlogs] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [settingsForm, setSettingsForm] = useState({
     email: user?.email || '',
     oldPassword: '',
@@ -32,6 +53,48 @@ const ProfilePage = () => {
         setUser(profile);
         setStats(statsData);
         setSettingsForm((prev) => ({ ...prev, email: profile.email }));
+
+        // Build robust recent activity list from multiple possible sources
+        try {
+          let recent = Array.isArray(statsData?.recent_completions)
+            ? statsData.recent_completions
+            : (Array.isArray(statsData?.recent_activities) ? statsData.recent_activities : []);
+
+          if (!recent || recent.length === 0) {
+            // Try detailed stats endpoint
+            const detailed = await userProgressService.getDetailedStats().catch(() => null);
+            if (detailed) {
+              recent = detailed.recent || detailed.recent_completions || detailed.activities || [];
+            }
+          }
+
+          if (!recent || recent.length === 0) {
+            // Fallback: derive from all progress entries
+            const allProgress = await userProgressService.getAllProgress().catch(() => []);
+            recent = (allProgress || [])
+              .filter(Boolean)
+              .sort((a, b) => new Date(b.completed_at || b.updated_at || b.last_accessed_at || 0) - new Date(a.completed_at || a.updated_at || a.last_accessed_at || 0))
+              .slice(0, 8)
+              .map(p => ({
+                algorithm_id: p.algo_id || p.algorithm_id || p.id || p.algorithm?.id,
+                algorithm_name: p.algorithm_name || p.name || p.algorithm?.name,
+                difficulty: p.difficulty || p.algorithm_difficulty || p.algorithm?.difficulty,
+                completed_at: p.completed_at || p.updated_at || p.last_accessed_at,
+              }));
+          }
+
+          // Normalize shape
+          const normalized = (recent || []).map(item => ({
+            id: item.algorithm_id || item.algo_id || item.id || item.algorithm?.id,
+            name: item.algorithm_name || item.name || item.title,
+            difficulty: (item.difficulty || item.difficulty_level || '').toString(),
+            date: item.completed_at || item.updated_at || item.last_accessed_at || item.date,
+          })).filter(r => r.name);
+
+          setRecentActivity(normalized);
+        } catch (_) {
+          setRecentActivity([]);
+        }
 
         if (isAuthenticated) {
           const token = localStorage.getItem('token');
@@ -168,11 +231,11 @@ const ProfilePage = () => {
               </div>
               <div className="stats-grid">
                 <div className="stat-card">
-                  <h3>Problems Solved</h3>
+                  <h3>Topics Covered</h3>
                   <p className="stat-value">{stats?.solved_problems ?? 0}</p>
                 </div>
                 <div className="stat-card">
-                  <h3>Total Problems</h3>
+                  <h3>Total Topics</h3>
                   <p className="stat-value">{stats?.total_problems ?? 0}</p>
                 </div>
                 <div className="stat-card">
@@ -184,7 +247,7 @@ const ProfilePage = () => {
                 </div>
                 {stats?.by_difficulty && ['easy', 'medium', 'hard'].map(level => (
                   <div key={level} className="stat-card">
-                    <h3>{level.charAt(0).toUpperCase() + level.slice(1)} Problems</h3>
+                    <h3>{level.charAt(0).toUpperCase() + level.slice(1)} Topics</h3>
                     <p className="stat-value">
                       {stats.by_difficulty[level]?.completed ?? 0}/{stats.by_difficulty[level]?.total ?? 0}
                     </p>
@@ -196,15 +259,24 @@ const ProfilePage = () => {
             <section className="recent-activity">
               <h2>Recent Activity</h2>
               <div className="activity-list">
-                {stats?.recent_completions?.length > 0 ? (
+                {recentActivity && recentActivity.length > 0 ? (
                   <ul className="activity-items">
-                    {stats.recent_completions.map((item, index) => (
-                      <li key={index} className="activity-item">
-                        <span className="activity-name">{item.algorithm_name}</span>
-                        <span className={`difficulty ${item.difficulty.toLowerCase()}`}>{item.difficulty}</span>
-                        <span className="activity-date">{new Date(item.completed_at).toLocaleDateString()}</span>
-                      </li>
-                    ))}
+                    {recentActivity.map((item, index) => {
+                      const diff = (item.difficulty || '').toLowerCase();
+                      const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
+                      const rel = formatRelativeTime(item.date);
+                      return (
+                        <li key={index} className="activity-item">
+                          {item.id ? (
+                            <Link className="activity-name" to={`/algorithms/${item.id}`}>{item.name}</Link>
+                          ) : (
+                            <span className="activity-name">{item.name}</span>
+                          )}
+                          {diff && <span className={`difficulty ${diff}`}>{diff.charAt(0).toUpperCase() + diff.slice(1)}</span>}
+                          <span className="activity-date">{rel || dateStr}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="no-activity">No recent activity to show</p>

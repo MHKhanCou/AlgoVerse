@@ -253,6 +253,14 @@ def get_all_blogs_for_admin(db: Session, status_filter: str = None, skip: int = 
                 "title": blog.title,
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
+                "user": {
+                    "id": blog.user.id if blog.user else 0,
+                    "name": blog.user.name if blog.user else "Unknown",
+                    "email": blog.user.email if blog.user else "No email",
+                    "is_admin": blog.user.is_admin if blog.user else False,
+                    "codeforces_handle": blog.user.codeforces_handle if blog.user else None,
+                    "joined_at": blog.user.joined_at.isoformat() if blog.user and blog.user.joined_at else None
+                },
                 "created_at": blog.created_at,
                 "updated_at": blog.updated_at,
                 "status": blog.status,

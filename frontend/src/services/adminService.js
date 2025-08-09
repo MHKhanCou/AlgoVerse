@@ -74,10 +74,34 @@ export const adminService = {
       const response = await axios.get(`${API_URL}/blogs/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Fetched Blogs:', response.data); // Debug log
+      console.log('Fetched Blogs:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Error fetching blogs:', error);
       throw new Error(error.response?.data?.detail || 'Failed to fetch blogs');
+    }
+  },
+
+  async updateBlogStatus(blogId, data) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API_URL}/blogs/${blogId}/moderate`,
+        {
+          status: data.status,
+          admin_feedback: data.status === 'approved' ? 'Approved by admin' : 'Rejected by admin'
+        },
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating blog status:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to update blog status');
     }
   },
 

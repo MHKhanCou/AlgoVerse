@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import CommentSection from '../components/CommentSection';
 import '../styles/SingleBlog.css';
 
 const SingleBlog = () => {
@@ -135,6 +136,9 @@ const SingleBlog = () => {
               </button>
             </div>
           )}
+          
+          {/* Comment Section */}
+          <CommentSection blogId={parseInt(id)} user={user} />
         </>
       )}
     </div>

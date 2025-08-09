@@ -5,15 +5,14 @@ import {
   BookOpen, 
   Target, 
   Play, 
-  Filter,
   Grid,
   List,
-  TrendingUp,
   Star,
   ChevronRight,
   Code,
   Brain
 } from 'lucide-react';
+
 import '../styles/TopicListPage.css';
 
 const TopicListPage = () => {
@@ -23,7 +22,7 @@ const TopicListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   const [sortBy, setSortBy] = useState('name');
   
   const navigate = useNavigate();
@@ -87,6 +86,25 @@ const TopicListPage = () => {
 
         setAlgorithms(processedAlgorithms);
         setAlgoTypes(typesData);
+
+        // Default category to 'Sorting' if none selected via URL
+        const params = new URLSearchParams(location.search);
+        const categoryFromURL = params.get('category');
+        if (!categoryFromURL) {
+          const sortingType = typesData.find(
+            (t) => t.name && t.name.toLowerCase() === 'sorting'
+          );
+          if (sortingType) {
+            setSelectedCategory(sortingType.id.toString());
+            updateURL({
+              search: searchTerm,
+              category: sortingType.id.toString(),
+              difficulty: selectedDifficulty,
+              sort: sortBy,
+              view: viewMode,
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -262,12 +280,14 @@ const TopicListPage = () => {
 
             {/* Filters */}
             <div className="filters-group">
-              <div className="filter-group">
-                <Filter className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <BookOpen />
+                </span>
                 <select
                   value={selectedCategory}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="all">All Categories</option>
                   {algoTypes.map((type) => (
@@ -278,11 +298,14 @@ const TopicListPage = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Target />
+                </span>
                 <select
                   value={selectedDifficulty}
                   onChange={(e) => handleDifficultyChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="all">All Difficulties</option>
                   <option value="easy">Easy</option>
@@ -291,12 +314,14 @@ const TopicListPage = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
-                <TrendingUp className="filter-icon" />
+              <div className="filter-group select-with-icon">
+                <span className="select-leading-icon">
+                  <Star />
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="filter-select"
+                  className="filter-select has-icon"
                 >
                   <option value="name">Sort by Name</option>
                   <option value="difficulty">Sort by Difficulty</option>
@@ -324,7 +349,7 @@ const TopicListPage = () => {
 
         {/* Results */}
         <div className="results-info">
-          Showing {filteredAndSortedAlgorithms.length} of {algorithms.length} algorithms
+          Showing {Math.min(10, filteredAndSortedAlgorithms.length)} of {filteredAndSortedAlgorithms.length} algorithms
           {selectedCategory !== 'all' && (
             <span>
               {' '}in <strong>{algoTypes.find(t => t.id.toString() === selectedCategory)?.name}</strong>
@@ -345,7 +370,7 @@ const TopicListPage = () => {
         {/* Algorithms Grid/List */}
         {viewMode === 'grid' ? (
           <div className="algorithms-grid">
-            {filteredAndSortedAlgorithms.map((algorithm) => (
+            {filteredAndSortedAlgorithms.slice(0, 10).map((algorithm) => (
               <Link
                 key={algorithm.id}
                 to={`/algorithms/${algorithm.id}`}
@@ -374,7 +399,7 @@ const TopicListPage = () => {
           </div>
         ) : (
           <div className="algorithms-list">
-            {filteredAndSortedAlgorithms.map((algorithm) => (
+            {filteredAndSortedAlgorithms.slice(0, 10).map((algorithm) => (
               <Link
                 key={algorithm.id}
                 to={`/algorithms/${algorithm.id}`}

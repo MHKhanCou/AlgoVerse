@@ -4,7 +4,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
   return (
     <aside className="dashboard-sidebar">
       <ul>
-        {['dashboard', 'users', 'algo-types', 'algorithms', 'problems', 'progress', 'blogs', 'help'].map((section) => (
+        {['dashboard', 'users', 'algo-types', 'algorithms', 'problems', 'blogs'].map((section) => (
           <li
             key={section}
             className={activeSection === section ? 'active' : ''}
