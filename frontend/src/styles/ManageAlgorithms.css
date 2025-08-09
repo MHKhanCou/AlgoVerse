@@ -10,6 +10,20 @@
   margin-bottom: 1rem;
 }
 
+/* Header with toggle button */
+.manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.manage-header .add-inline {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+}
+
 .create-form {
   display: flex;
   flex-direction: column;
@@ -19,6 +33,32 @@
   border-radius: 8px;
   border: 1px solid var(--border-color);
   margin-bottom: 2rem;
+}
+
+/* Inline expandable wrapper */
+.inline-add-form {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 320ms ease, opacity 250ms ease, transform 250ms ease;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.inline-add-form.open {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--border-color);
+}
+
+.inline-form-content {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+.inline-form-content .create-form {
+  margin: 0;
 }
 
 .create-form input,
@@ -49,6 +89,12 @@
 
 .create-form button {
   align-self: flex-start;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
 }
 
 .dashboard-table {

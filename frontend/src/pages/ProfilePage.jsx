@@ -44,6 +44,9 @@ const ProfilePage = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -308,13 +311,105 @@ const ProfilePage = () => {
 
               <form onSubmit={handleUpdatePassword} className="form-group">
                 <h3>Update Password</h3>
-                {['oldPassword', 'newPassword', 'confirmNewPassword'].map(field => (
-                  <div className="form-field" key={field}>
-                    <label htmlFor={field}>{field.replace(/([A-Z])/g, ' $1')}</label>
-                    <input type="password" id={field} name={field} value={settingsForm[field]} onChange={handleInputChange} placeholder={`Enter your ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`} />
-                    {formErrors[field] && <p className="error-text">{formErrors[field]}</p>}
-                  </div>
-                ))}
+                <div className="form-field password-group">
+                  <label htmlFor="oldPassword">Old Password</label>
+                  <input
+                    id="oldPassword"
+                    type={showOldPassword ? 'text' : 'password'}
+                    name="oldPassword"
+                    value={settingsForm.oldPassword}
+                    onChange={handleInputChange}
+                    placeholder="Enter your old password"
+                  />
+                  <span
+                    className="toggle-password"
+                    onClick={() => setShowOldPassword(prev => !prev)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={showOldPassword ? 'Hide old password' : 'Show old password'}
+                  >
+                    {showOldPassword ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      </svg>
+                    )}
+                  </span>
+                  {formErrors.oldPassword && <p className="error-text">{formErrors.oldPassword}</p>}
+                </div>
+
+                <div className="form-field password-group">
+                  <label htmlFor="newPassword">New Password</label>
+                  <input
+                    id="newPassword"
+                    type={showNewPassword ? 'text' : 'password'}
+                    name="newPassword"
+                    value={settingsForm.newPassword}
+                    onChange={handleInputChange}
+                    placeholder="Enter your new password"
+                  />
+                  <span
+                    className="toggle-password"
+                    onClick={() => setShowNewPassword(prev => !prev)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                  >
+                    {showNewPassword ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      </svg>
+                    )}
+                  </span>
+                  {formErrors.newPassword && <p className="error-text">{formErrors.newPassword}</p>}
+                </div>
+
+                <div className="form-field password-group">
+                  <label htmlFor="confirmNewPassword">Confirm New Password</label>
+                  <input
+                    id="confirmNewPassword"
+                    type={showConfirmNewPassword ? 'text' : 'password'}
+                    name="confirmNewPassword"
+                    value={settingsForm.confirmNewPassword}
+                    onChange={handleInputChange}
+                    placeholder="Confirm your new password"
+                  />
+                  <span
+                    className="toggle-password"
+                    onClick={() => setShowConfirmNewPassword(prev => !prev)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={showConfirmNewPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showConfirmNewPassword ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      </svg>
+                    )}
+                  </span>
+                  {formErrors.confirmNewPassword && <p className="error-text">{formErrors.confirmNewPassword}</p>}
+                </div>
+
                 <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Password'}</button>
               </form>
 

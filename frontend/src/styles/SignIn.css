@@ -131,20 +131,57 @@ input:focus {
 
 /* Add these new styles to your existing SignIn.css */
 
-/* Password toggle */
-.password-group {
+/* Password toggle - Support both form-field and form-group */
+.form-field.password-group,
+.form-group.password-group {
   position: relative;
 }
 
-.toggle-password {
+.form-field.password-group,
+.form-group.password-group {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Input field with padding for the icon */
+.form-field.password-group input,
+.form-group.password-group input {
+  width: 100%;
+  padding-right: 2.5rem; /* Space for the eye icon */
+  box-sizing: border-box;
+  height: 100%;
+  font-size: 1rem; /* Ensure consistent font size */
+  line-height: 1.5; /* Match line height with input height */
+}
+
+/* Toggle password visibility icon */
+.form-field.password-group .toggle-password,
+.form-group.password-group .toggle-password {
   position: absolute;
-  right: 0.75rem;
+  right: 2rem;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   font-size: 1.1rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #666);
   user-select: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  pointer-events: auto;
+  z-index: 2;
+  /* Reset any browser default styles */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 /* Email validation hint */

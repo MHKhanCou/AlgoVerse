@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import { 
   Search, 
   Plus, 
@@ -26,9 +27,11 @@ const RelatedProblemsManager = () => {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showInlineForm, setShowInlineForm] = useState(false);
   const [editingProblem, setEditingProblem] = useState(null);
   const [viewMode, setViewMode] = useState('all'); // 'all' or 'pending'
+  const inlineFormContentRef = useRef(null);
+  const [inlineMaxHeight, setInlineMaxHeight] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -95,6 +98,26 @@ const RelatedProblemsManager = () => {
     
     fetchData();
   }, [viewMode]);
+
+  // Smoothly expand/collapse inline form by measuring content height
+  useEffect(() => {
+    const el = inlineFormContentRef.current;
+    if (!el) return;
+    let ro;
+    if (showInlineForm) {
+      const updateHeight = () => setInlineMaxHeight(el.scrollHeight + 16); // small buffer
+      // next frame for accurate layout
+      requestAnimationFrame(updateHeight);
+      // observe any size changes (e.g., responsive wraps, fonts, async data)
+      ro = new ResizeObserver(() => updateHeight());
+      ro.observe(el);
+    } else {
+      setInlineMaxHeight(0);
+    }
+    return () => {
+      if (ro) ro.disconnect();
+    };
+  }, [showInlineForm]);
   
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -132,7 +155,7 @@ const RelatedProblemsManager = () => {
       
       const newProblem = await response.json();
       setProblems(prev => [newProblem, ...prev]);
-      setShowAddModal(false);
+      setShowInlineForm(false);
       setFormData({
         title: '',
         platform: 'LeetCode',
@@ -341,12 +364,153 @@ const RelatedProblemsManager = () => {
           </div>
           <button 
             className="add-btn"
-            onClick={() => setShowAddModal(true)}
+            onClick={() => setShowInlineForm(prev => !prev)}
           >
             <Plus size={16} />
             Add Problem
           </button>
         </div>
+      </div>
+
+      {/* Inline Expandable Add Problem Form */}
+      <div
+        className={`inline-add-form ${showInlineForm ? 'open' : ''}`}
+        style={{ maxHeight: `${inlineMaxHeight}px` }}
+      >
+        {showInlineForm && (
+          <div className="inline-form-content" ref={inlineFormContentRef}>
+            <div className="inline-form-header">
+              <h3>Add New Problem</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowInlineForm(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="problem-form">
+              <div className="form-group">
+                <label>Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Platform *</label>
+                  <select
+                    name="platform"
+                    value={formData.platform}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    {platforms.map(platform => (
+                      <option key={platform} value={platform}>
+                        {platform}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Difficulty *</label>
+                  <select
+                    name="difficulty"
+                    value={formData.difficulty}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    {difficulties.map(difficulty => (
+                      <option key={difficulty} value={difficulty}>
+                        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Problem URL *</label>
+                <input
+                  type="url"
+                  name="problem_url"
+                  value={formData.problem_url}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Problem ID</label>
+                <input
+                  type="text"
+                  name="problem_id"
+                  value={formData.problem_id}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Algorithm *</label>
+                <select
+                  name="algorithm_id"
+                  value={formData.algorithm_id}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="">Select Algorithm</option>
+                  {algorithms.map(algo => (
+                    <option key={algo.id} value={algo.id}>
+                      {algo.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Tags (comma separated)</label>
+                <input
+                  type="text"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleInputChange}
+                  placeholder="e.g., array, sorting, binary-search"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
+                />
+              </div>
+
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={() => setShowInlineForm(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                >
+                  Save Problem
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Filters and Search */}
@@ -411,7 +575,7 @@ const RelatedProblemsManager = () => {
       <div className="problems-grid">
         {filteredProblems.length === 0 ? (
           <div className="empty-state">
-            <TargetIcon className="empty-icon" />
+            <Target className="empty-icon" />
             <h3>No problems found</h3>
             <p>
               {searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
@@ -505,144 +669,7 @@ const RelatedProblemsManager = () => {
         )}
       </div>
 
-      {/* Add Problem Modal */}
-      {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Add New Problem</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowAddModal(false)}
-              >
-                &times;
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="problem-form">
-              <div className="form-group">
-                <label>Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Platform *</label>
-                  <select
-                    name="platform"
-                    value={formData.platform}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    {platforms.map(platform => (
-                      <option key={platform} value={platform}>
-                        {platform}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label>Difficulty *</label>
-                  <select
-                    name="difficulty"
-                    value={formData.difficulty}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    {difficulties.map(difficulty => (
-                      <option key={difficulty} value={difficulty}>
-                        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label>Problem URL *</label>
-                <input
-                  type="url"
-                  name="problem_url"
-                  value={formData.problem_url}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Problem ID</label>
-                <input
-                  type="text"
-                  name="problem_id"
-                  value={formData.problem_id}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Algorithm *</label>
-                <select
-                  name="algorithm_id"
-                  value={formData.algorithm_id}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Algorithm</option>
-                  {algorithms.map(algo => (
-                    <option key={algo.id} value={algo.id}>
-                      {algo.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label>Tags (comma separated)</label>
-                <input
-                  type="text"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  placeholder="e.g., array, sorting, binary-search"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="4"
-                />
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="btn-secondary"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary"
-                >
-                  Save Problem
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Inline form replaces previous modal; modal removed */}
 
       {/* Stats Summary */}
       <div className="stats-summary">

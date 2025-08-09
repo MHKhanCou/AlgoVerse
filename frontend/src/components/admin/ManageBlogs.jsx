@@ -145,7 +145,7 @@ const ManageBlogs = ({ blogs, searchQuery, setSearchQuery, fetchBlogs, adminServ
               <th>Author</th>
               <th>Status</th>
               <th>Created</th>
-              <th className="text-right">Actions</th>
+              <th className="actions">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -165,29 +165,32 @@ const ManageBlogs = ({ blogs, searchQuery, setSearchQuery, fetchBlogs, adminServ
                   <td className="blog-date">
                     {new Date(blog.created_at).toLocaleDateString()}
                   </td>
-                  <td className="blog-actions">
-                    <div className="action-buttons">
+                  <td className="blog-actions actions">
+                    <div className="table-actions">
                       <button
                         onClick={() => viewBlog(blog)}
-                        className="action-btn view-btn"
+                        className="cta-button secondary sm"
                         title="View Blog"
                       >
                         <Eye className="icon" />
+                        View
                       </button>
                       <button
                         onClick={() => toggleBlogStatus(blog.id, blog.status)}
                         disabled={isUpdating[blog.id]}
-                        className={`action-btn ${blog.status === 'approved' ? 'pending-btn' : 'approve-btn'}`}
+                        className={`cta-button ${blog.status === 'approved' ? 'warning' : 'success'} sm`}
                         title={blog.status === 'approved' ? 'Mark as Pending' : 'Approve Blog'}
                       >
                         {blog.status === 'approved' ? <Clock className="icon" /> : <Check className="icon" />}
+                        {blog.status === 'approved' ? 'Pending' : 'Approve'}
                       </button>
                       <button
                         onClick={() => deleteBlog(blog.id)}
-                        className="action-btn delete-btn"
+                        className="cta-button danger sm"
                         title="Delete Blog"
                       >
                         <Trash2 className="icon" />
+                        Delete
                       </button>
                     </div>
                   </td>

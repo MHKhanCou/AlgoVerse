@@ -37,19 +37,22 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  pointer-events: none; /* ensure clicks focus input */
 }
 
 .search-input {
   width: 100%;
-  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  height: 40px; /* fixed control height for consistent vertical centering */
+  padding: 0 12px 0 40px; /* left padding accommodates icon inside border */
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.9rem;
   background-color: var(--input-bg);
   color: var(--text-color);
   transition: border-color 0.2s, box-shadow 0.2s;
+  line-height: 1.2; /* keep text baseline stable */
 }
 
 .search-input:focus {
@@ -127,10 +130,8 @@
   color: var(--text-muted);
 }
 
-.blog-actions {
-  text-align: right;
-  white-space: nowrap;
-}
+.blog-actions { text-align: right; white-space: nowrap; }
+.table-actions { display: inline-flex; gap: 0.5rem; align-items: center; }
 
 /* Status Badges */
 .status-badge {
@@ -158,63 +159,7 @@
   color: #166534;
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-muted);
-}
-
-.action-btn:hover {
-  background-color: var(--hover-bg);
-}
-
-.action-btn .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.view-btn:hover {
-  color: var(--primary-color);
-}
-
-.approve-btn {
-  color: #10b981;
-}
-
-.approve-btn:hover {
-  background-color: rgba(16, 185, 129, 0.1);
-}
-
-.pending-btn {
-  color: #f59e0b;
-}
-
-.pending-btn:hover {
-  background-color: rgba(245, 158, 11, 0.1);
-}
-
-.delete-btn {
-  color: #ef4444;
-}
-
-.delete-btn:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-}
+/* Action Buttons: now using shared .cta-button variants from AdminDashboard.css */
 
 /* No Blogs Message */
 .no-blogs {

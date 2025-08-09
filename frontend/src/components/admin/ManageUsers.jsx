@@ -46,7 +46,7 @@ const ManageUsers = ({ users, searchQuery, fetchUsers, adminService }) => {
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
-            <th>Actions</th>
+            <th className="actions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -57,15 +57,17 @@ const ManageUsers = ({ users, searchQuery, fetchUsers, adminService }) => {
                 <td>{user.name || 'N/A'}</td>
                 <td>{user.email || 'N/A'}</td>
                 <td>{user.is_admin ? 'Admin' : 'User'}</td>
-                <td>
-                  {!user.is_admin && (
-                    <button onClick={() => makeAdmin(user.id)} className="action-btn make-admin">
-                      Make Admin
+                <td className="actions">
+                  <div className="table-actions">
+                    {!user.is_admin && (
+                      <button onClick={() => makeAdmin(user.id)} className="cta-button warning sm">
+                        Make Admin
+                      </button>
+                    )}
+                    <button onClick={() => deleteUser(user.id)} className="cta-button danger sm">
+                      Delete
                     </button>
-                  )}
-                  <button onClick={() => deleteUser(user.id)} className="action-btn delete">
-                    Delete
-                  </button>
+                  </div>
                 </td>
               </tr>
             ))

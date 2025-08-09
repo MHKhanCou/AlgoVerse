@@ -1,0 +1,139 @@
+@import url('./app.css');
+
+.manage-section {
+  margin: 2rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.manage-header .add-inline {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+}
+
+/* Inline expandable wrapper */
+.inline-add-form {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 320ms ease, opacity 250ms ease, transform 250ms ease;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.inline-add-form.open {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--border-color);
+}
+
+.inline-form-content {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+.create-type-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--bg-secondary);
+  padding: 1.25rem;
+  border-radius: 10px;
+}
+
+.create-type-form input,
+.create-type-form textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.create-type-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.create-type-form input:focus,
+.create-type-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* Button variants aligning with dashboard buttons */
+.cta-button {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.cta-button.primary {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.cta-button.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.cta-button.tertiary {
+  background: #ef4444;
+  color: #fff;
+}
+
+.cta-button.primary:hover {
+  filter: brightness(0.95);
+}
+
+.cta-button.secondary:hover {
+  background: var(--bg-primary);
+}
+
+.cta-button.tertiary:hover {
+  background: #dc2626;
+}
+
+/* Table styles reuse existing dashboard classes if present */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.dashboard-table th {
+  background: var(--bg-primary);
+}
+
+@media (max-width: 768px) {
+  .manage-section { margin: 1rem; }
+  .create-type-form { padding: 1rem; }
+}
