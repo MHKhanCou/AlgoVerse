@@ -46,6 +46,7 @@ last_fetch_stats: Dict[str, Dict[str, object]] = {
     "leetcode": {},
     "codechef": {},
     "topcoder": {},
+    "hackerearth": {},
 }
 
 
@@ -117,6 +118,91 @@ def fetch_codeforces() -> List[Dict]:
         return normalized
     except Exception as e:
         last_fetch_stats["codeforces"] = {"ok": False, "error": str(e)}
+        return []
+
+
+def fetch_hackerearth() -> List[Dict]:
+    """Scrape HackerEarth challenges page (Next.js) by reading __NEXT_DATA__ JSON and extracting ongoing/upcoming contests."""
+    base = "https://www.hackerearth.com"
+    paths = [
+        "/challenges/",
+        "/challenges/competitive/",
+        "/challenges/hiring/",
+    ]
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        data = None
+        for p in paths:
+            r = requests.get(base + p, timeout=12, headers=headers)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.text, "lxml")
+            script = soup.find("script", id="__NEXT_DATA__")
+            if script and script.string:
+                try:
+                    data = json.loads(script.string)
+                    break
+                except Exception:
+                    continue
+        if data is None:
+            # Fallback: chrome extension JSON endpoint
+            try:
+                r = requests.get(base + "/chrome-extension/events/", timeout=12, headers=headers)
+                r.raise_for_status()
+                data = r.json()
+            except Exception:
+                last_fetch_stats["hackerearth"] = {"ok": False, "error": "next_data_missing"}
+                return []
+
+        # Heuristic: recursively scan for items with title/url and start/end timestamps
+        norm: List[Dict] = []
+
+        def scan(obj):
+            if isinstance(obj, dict):
+                keys = obj.keys()
+                # common fields seen in HE data
+                title = obj.get("title") or obj.get("name")
+                url_path = obj.get("url") or obj.get("slug")
+                start_ts = obj.get("start_time") or obj.get("start_ts") or obj.get("start_timestamp")
+                end_ts = obj.get("end_time") or obj.get("end_ts") or obj.get("end_timestamp")
+                if title and url_path and (start_ts or obj.get("start")):
+                    try:
+                        st_epoch = int(start_ts or obj.get("start"))
+                        ed_epoch = int(end_ts or obj.get("end", st_epoch))
+                        st = datetime.fromtimestamp(st_epoch, tz=timezone.utc)
+                        duration = max(0, ed_epoch - st_epoch)
+                        url_full = url_path if url_path.startswith("http") else f"https://www.hackerearth.com{url_path}"
+                        norm.append({
+                            "site": "HackerEarth",
+                            "name": str(title),
+                            "url": url_full,
+                            "start_time": to_iso_utc(st),
+                            "duration": duration,
+                        })
+                    except Exception:
+                        pass
+                for v in obj.values():
+                    scan(v)
+            elif isinstance(obj, list):
+                for v in obj:
+                    scan(v)
+
+        scan(data)
+        # de-duplicate by url
+        seen = set()
+        dedup = []
+        for c in norm:
+            u = c.get("url")
+            if u in seen:
+                continue
+            seen.add(u)
+            dedup.append(c)
+        last_fetch_stats["hackerearth"] = {"ok": True, "count": len(dedup)}
+        return dedup
+    except Exception as e:
+        last_fetch_stats["hackerearth"] = {"ok": False, "error": str(e)}
         return []
 
 
@@ -218,56 +304,101 @@ def fetch_atcoder_html() -> List[Dict]:
     url = "https://atcoder.jp/contests/"
     try:
         r = requests.get(url, timeout=12, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept-Language": "en-US,en;q=0.9"
         })
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "lxml")
 
-        def extract_from(header_text: str) -> List[Dict]:
-            out: List[Dict] = []
-            h = soup.find(lambda tag: tag.name in ("h2", "h3") and header_text in tag.get_text())
-            if not h:
-                return out
-            table = h.find_next("table")
-            if not table:
-                return out
+        norm: List[Dict] = []
+        now = datetime.now(timezone.utc)
+        # Robust scan: any table rows with <time datetime> and a link to /contests/
+        for table in soup.find_all("table"):
             body = table.find("tbody") or table
             for tr in body.find_all("tr"):
                 tds = tr.find_all("td")
-                if len(tds) < 3:
+                if len(tds) < 2:
                     continue
-                # start time
-                start_iso = None
                 time_tag = tds[0].find("time")
-                if time_tag and time_tag.has_attr("datetime"):
-                    start_iso = time_tag["datetime"]
-                # name and url
                 a = tds[1].find("a")
-                name = a.get_text(strip=True) if a else tds[1].get_text(strip=True)
-                href = a.get("href") if a else None
-                url2 = f"https://atcoder.jp{href}" if href and href.startswith("/") else href
-                # duration
-                dur_text = tds[2].get_text(strip=True)
-                duration = _parse_duration_hhmm(dur_text)
-
+                if not (time_tag and a and a.get("href")):
+                    # If <time> tag missing, try parsing text content (JST displayed on site)
+                    if not (a and a.get("href")):
+                        continue
+                    href = a.get("href")
+                    if "/contests/" not in href:
+                        continue
+                    raw = tds[0].get_text(" ", strip=True)
+                    st = None
+                    # Try several common formats
+                    candidates = [
+                        r"(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?\s*\(JST\)",
+                        r"(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?\s*\+?0?9:?(?:00)?",
+                        r"(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?",
+                    ]
+                    for pat in candidates:
+                        m = re.search(pat, raw)
+                        if not m:
+                            continue
+                        y, mo, d, hh, mm = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5))
+                        ss = int(m.group(6)) if m.lastindex and m.lastindex >= 6 and m.group(6) else 0
+                        # Assume JST if no offset given
+                        tz = timezone(timedelta(hours=9))
+                        st = datetime(y, mo, d, hh, mm, ss, tzinfo=tz)
+                        break
+                    if not st:
+                        continue
+                    duration = 0
+                    if len(tds) >= 3:
+                        duration = _parse_duration_hhmm(tds[2].get_text(strip=True))
+                    norm.append({
+                        "site": "AtCoder",
+                        "name": a.get_text(strip=True),
+                        "url": f"https://atcoder.jp{href}" if href.startswith("/") else href,
+                        "start_time": to_iso_utc(st),
+                        "duration": duration,
+                    })
+                    continue
+                href = a.get("href")
+                if "/contests/" not in href:
+                    continue
+                start_iso = time_tag.get("datetime")
                 if not start_iso:
-                    continue
-                try:
-                    st = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
-                except Exception:
-                    continue
-                out.append({
+                    # Try text fallback even if <time> exists without datetime
+                    raw = tds[0].get_text(" ", strip=True)
+                    try:
+                        m = re.search(r"(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?", raw)
+                        if m:
+                            y, mo, d, hh, mm = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5))
+                            ss = int(m.group(6)) if m.lastindex and m.lastindex >= 6 and m.group(6) else 0
+                            st = datetime(y, mo, d, hh, mm, ss, tzinfo=timezone(timedelta(hours=9)))
+                        else:
+                            continue
+                    except Exception:
+                        continue
+                else:
+                    try:
+                        st = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+                    except Exception:
+                        # If ISO parsing fails, skip
+                        continue
+                # Only consider now->future; also allow running
+                # Duration from 3rd td if present in HH:MM
+                duration = 0
+                if len(tds) >= 3:
+                    duration = _parse_duration_hhmm(tds[2].get_text(strip=True))
+                norm.append({
                     "site": "AtCoder",
-                    "name": name,
-                    "url": url2,
+                    "name": a.get_text(strip=True),
+                    "url": f"https://atcoder.jp{href}" if href.startswith("/") else href,
                     "start_time": to_iso_utc(st),
                     "duration": duration,
                 })
-            return out
-
-        active = extract_from("Active Contests")
-        upcoming = extract_from("Upcoming Contests")
-        norm = active + upcoming
+        # Fallback to kenkoooo if HTML yields zero
+        if not norm:
+            ken = fetch_atcoder_kenkoooo()
+            last_fetch_stats["atcoder"] = {"ok": True, "count": len(ken), "source": "kenkoooo_html_zero"}
+            return ken
         last_fetch_stats["atcoder"] = {"ok": True, "count": len(norm), "source": "html"}
         return norm
     except Exception as e:
@@ -279,14 +410,14 @@ def fetch_topcoder() -> List[Dict]:
     """Fetch Topcoder ACTIVE and UPCOMING challenges and normalize schedule."""
     try:
         norm: List[Dict] = []
-        # Topcoder API expects status values like 'Active' and 'Upcoming'
-        for status in ("Active", "Upcoming"):
-            params = {
-                "status": status,
-                "perPage": 100,
-                "page": 1,
-                "isLightweight": "true",
-            }
+        # First try with 'statuses' combined to avoid 400s
+        params = {
+            "statuses": "Active,Upcoming",
+            "perPage": 100,
+            "page": 1,
+            "isLightweight": "true",
+        }
+        try:
             r = requests.get(TOPCODER_API, params=params, timeout=12)
             r.raise_for_status()
             arr = r.json() or []
@@ -313,10 +444,82 @@ def fetch_topcoder() -> List[Dict]:
                     })
                 except Exception:
                     continue
-        last_fetch_stats["topcoder"] = {"ok": True, "count": len(norm)}
+        except Exception:
+            # Ignore, will try fallback forms
+            pass
+
+        # If API returned empty, try HTML/Next.js fallback
+        if not norm:
+            html_norm = fetch_topcoder_html()
+            if html_norm:
+                last_fetch_stats["topcoder"] = {"ok": True, "count": len(html_norm), "source": "html"}
+                return html_norm
+        last_fetch_stats["topcoder"] = {"ok": True, "count": len(norm), "source": "api"}
         return norm
     except Exception as e:
+        # On API failure, attempt HTML fallback
+        html_norm = fetch_topcoder_html()
+        if html_norm:
+            last_fetch_stats["topcoder"] = {"ok": True, "count": len(html_norm), "source": "html", "api_error": str(e)}
+            return html_norm
         last_fetch_stats["topcoder"] = {"ok": False, "error": str(e)}
+        return []
+
+
+def fetch_topcoder_html() -> List[Dict]:
+    """Scrape Topcoder challenges page and extract Active/Upcoming from __NEXT_DATA__."""
+    try:
+        url = "https://www.topcoder.com/challenges?statuses=Active,Upcoming"
+        r = requests.get(url, timeout=12, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "lxml")
+        script = soup.find("script", id="__NEXT_DATA__")
+        if not script or not script.string:
+            return []
+        data = json.loads(script.string)
+        norm: List[Dict] = []
+
+        def scan(obj):
+            if isinstance(obj, dict):
+                title = obj.get("name") or obj.get("title")
+                cid = obj.get("id") or obj.get("challengeId")
+                start = obj.get("startDate") or obj.get("startAt")
+                end = obj.get("endDate") or obj.get("endAt") or obj.get("submissionEndDate")
+                status = obj.get("status")
+                if title and cid and start and end and (str(status).lower() in ("active", "upcoming")):
+                    try:
+                        st = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+                        ed = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+                        duration = max(0, int((ed - st).total_seconds()))
+                        norm.append({
+                            "site": "Topcoder",
+                            "name": str(title),
+                            "url": f"https://www.topcoder.com/challenges/{cid}",
+                            "start_time": to_iso_utc(st),
+                            "duration": duration,
+                        })
+                    except Exception:
+                        pass
+                for v in obj.values():
+                    scan(v)
+            elif isinstance(obj, list):
+                for v in obj:
+                    scan(v)
+
+        scan(data)
+        # Deduplicate by URL
+        seen, out = set(), []
+        for c in norm:
+            u = c.get("url")
+            if u in seen:
+                continue
+            seen.add(u)
+            out.append(c)
+        return out
+    except Exception:
         return []
 def fetch_leetcode_graphql() -> List[Dict]:
     """Fetch upcoming LeetCode contests via GraphQL with fallback query."""
@@ -414,8 +617,17 @@ def get_contests(days: int = Query(7, ge=1), include_running: bool = True):
     lc = fetch_leetcode_graphql()
     cc = fetch_codechef()
     tc = fetch_topcoder()
-    merged = cf + atc + lc + cc + tc
-    counts = {"total": len(merged), "cf": len(cf), "atcoder": len(atc), "leetcode": len(lc), "codechef": len(cc), "topcoder": len(tc)}
+    he = fetch_hackerearth()
+    merged = cf + atc + lc + cc + tc + he
+    counts = {
+        "total": len(merged),
+        "cf": len(cf),
+        "atcoder": len(atc),
+        "leetcode": len(lc),
+        "codechef": len(cc),
+        "topcoder": len(tc),
+        "hackerearth": len(he),
+    }
 
     upcoming = filter_upcoming(merged, days)
     running = filter_running(merged) if include_running else []

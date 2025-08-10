@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
 const DayButtons = ({ days, setDays }) => (
-  <div className="contest-filter-buttons">
+  <div className="segmented">
     {[1, 7, 30].map((d) => (
       <button
         key={d}
-        className={`btn ${days === d ? 'btn-primary' : 'btn-ghost'}`}
+        className={`seg ${days === d ? 'active' : ''}`}
         onClick={() => setDays(d)}
+        aria-pressed={days === d}
       >
-        Next {d} day{d > 1 ? 's' : ''}
+        {d === 1 ? 'Next 24 hours' : `Next ${d} days`}
       </button>
     ))}
   </div>
@@ -51,9 +52,12 @@ const PlatformBadge = ({ site }) => {
 
 const fmtDuration = (sec) => {
   if (!sec || isNaN(sec)) return '';
-  const h = Math.floor(sec / 3600);
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
   const m = Math.round((sec % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 };
 
 const timeDiffLabel = (start) => {
@@ -70,28 +74,45 @@ const timeDiffLabel = (start) => {
   return `in ${d}d ${rh}h`;
 };
 
+const IconClock = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+);
+const IconTimer = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2h4"/><path d="M12 14V8"/><circle cx="12" cy="16" r="6"/></svg>
+);
+
 const ContestCard = ({ c, status, nowTick }) => {
   const start = new Date(c.start_time);
   const durationSec = Number(c.duration || 0);
   const end = new Date(start.getTime() + durationSec * 1000);
   // Recompute live label using nowTick (updates each second)
-  const liveLabel = status === 'Upcoming' ? `(${timeDiffLabel(start)})` : '';
+  const liveLabel = status === 'Upcoming' ? `${timeDiffLabel(start)}` : '';
+  const key = (c.site || '').toLowerCase().includes('codeforces') ? 'cf'
+    : (c.site || '').toLowerCase().includes('atcoder') ? 'atcoder'
+    : (c.site || '').toLowerCase().includes('leetcode') ? 'leetcode'
+    : (c.site || '').toLowerCase().includes('codechef') ? 'codechef'
+    : (c.site || '').toLowerCase().includes('topcoder') ? 'topcoder'
+    : (c.site || '').toLowerCase().includes('hacker') ? 'hackerearth'
+    : 'other';
   return (
-    <li className="contest-card">
+    <li className={`contest-card site-${key}`} tabIndex={0}>
+      <span className="card-accent" aria-hidden="true" />
       <div className="contest-card-left">
         <div className="contest-title-row">
           <PlatformBadge site={c.site} />
           <a href={c.url} target="_blank" rel="noreferrer" className="contest-title">{c.name}</a>
-          <StatusBadge status={status} />
+          <span className={`badge ${status === 'Running' ? 'badge-success' : 'badge-info'} badge-accent`}>{status}</span>
         </div>
-        <div className="contest-platform">{c.site} • {fmtDuration(durationSec)}</div>
+        <div className="contest-platform">
+          <span className="muted">{c.site}</span> • <IconTimer /> {fmtDuration(durationSec)} • <IconClock /> <b>{liveLabel || 'Started'}</b>
+        </div>
       </div>
       <div className="contest-card-right">
         <div className="contest-time">
-          <span className="label">Starts:</span> {start.toLocaleString()} <span className="muted">{liveLabel}</span>
+          <span className="label"><IconClock /> Starts:</span> {start.toLocaleString()}
         </div>
         <div className="contest-time">
-          <span className="label">Ends:</span> {end.toLocaleString()}
+          <span className="label"><IconClock /> Ends:</span> {end.toLocaleString()}
         </div>
       </div>
     </li>
@@ -106,6 +127,8 @@ export default function ContestTracker() {
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
+  const ALL_SITES = ['cf','atcoder','leetcode','codechef','topcoder','hackerearth'];
+  const [sites, setSites] = useState(new Set(ALL_SITES));
 
   useEffect(() => {
     const load = async () => {
@@ -173,26 +196,77 @@ export default function ContestTracker() {
     return buckets;
   };
 
-  const grouped = days >= 7 ? groupUpcoming(data.upcoming) : null;
+  // grouped will be computed after filters are defined
+  let grouped = null;
 
-  // removed CLIST resource filtering
+  // Judge filter helpers
+  const siteKey = (site) => {
+    const s = (site || '').toLowerCase();
+    if (s.includes('codeforces')) return 'cf';
+    if (s.includes('atcoder')) return 'atcoder';
+    if (s.includes('leetcode')) return 'leetcode';
+    if (s.includes('codechef')) return 'codechef';
+    if (s.includes('topcoder')) return 'topcoder';
+    if (s.includes('hacker')) return 'hackerearth';
+    return 'other';
+  };
+  const matchesFilter = (c) => sites.has(siteKey(c.site));
+  const filtered = {
+    running: (data.running || []).filter(matchesFilter),
+    upcoming: (data.upcoming || []).filter(matchesFilter),
+  };
+  const toggleSite = (key) => {
+    setSites((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  const setAll = () => setSites(new Set(ALL_SITES));
+  const setNone = () => setSites(new Set());
+
+  // Now that `filtered` is available, compute grouped upcoming (if needed)
+  grouped = days >= 7 ? groupUpcoming(filtered.upcoming) : null;
 
   return (
     <div className="contest-tracker" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      <div className="contest-header-row">
-        <h2 className="contest-heading">Contest Tracker</h2>
-        <div className="contest-filter-row">
-          <DayButtons days={days} setDays={setDays} />
+      <div className="contest-header sticky">
+        <div className="contest-header-row">
+          <h2 className="contest-heading">Contest Tracker</h2>
+          <div className="contest-filter-row">
+            <DayButtons days={days} setDays={setDays} />
+          </div>
         </div>
-      </div>
 
-      <div className="contest-tabs">
-        <button className={`tab ${tab === 'running' ? 'active' : ''}`} onClick={() => setTab('running')}>
-          Running ({data.running.length})
-        </button>
-        <button className={`tab ${tab === 'upcoming' ? 'active' : ''}`} onClick={() => setTab('upcoming')}>
-          Upcoming ({data.upcoming.length})
-        </button>
+        <div className="contest-tabs">
+          <button className={`tab ${tab === 'running' ? 'active' : ''}`} onClick={() => setTab('running')}>
+            Running ({filtered.running.length})
+          </button>
+          <button className={`tab ${tab === 'upcoming' ? 'active' : ''}`} onClick={() => setTab('upcoming')}>
+            Upcoming ({filtered.upcoming.length})
+          </button>
+        </div>
+
+        <div className="contest-filter-row" style={{ marginBottom: 8, overflowX: 'auto' }}>
+          <div className="resource-filter" aria-label="Online judges filter">
+            {[
+              {k:'cf', label:'Codeforces'},
+              {k:'atcoder', label:'AtCoder'},
+              {k:'leetcode', label:'LeetCode'},
+              {k:'codechef', label:'CodeChef'},
+              {k:'topcoder', label:'Topcoder'},
+              {k:'hackerearth', label:'HackerEarth'},
+            ].map(({k,label}) => (
+            <button key={k} className={`resource-chip chip-${k} ${sites.has(k)?'active':''}`} onClick={() => toggleSite(k)}>
+              {label}
+            </button>
+            ))}
+          </div>
+          <div className="actions">
+            <button className="btn btn-ghost" onClick={setAll}>All</button>
+            <button className="btn btn-ghost" onClick={setNone}>None</button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -203,9 +277,9 @@ export default function ContestTracker() {
           <code style={{ fontSize: '0.8rem' }}>{error}</code>
         </div>
       ) : tab === 'running' ? (
-        data.running.length ? (
+        filtered.running.length ? (
           <ul className="contest-list">
-            {data.running.map((c, i) => (
+            {filtered.running.map((c, i) => (
               <ContestCard key={`${c.name}-${i}`} c={c} status="Running" nowTick={nowTick} />
             ))}
           </ul>
@@ -233,22 +307,21 @@ export default function ContestTracker() {
               <p className="empty">No contests in this window.</p>
             )}
           </div>
-          <div className="group">
-            <h3 className="group-title">Next 30 days</h3>
-            {grouped.d30.length ? (
-              <ul className="contest-list">{grouped.d30.map((c, i) => <ContestCard key={`d30-${i}`} c={c} status="Upcoming" nowTick={nowTick} />)}</ul>
-            ) : (
-              <div className="empty-state">
+          {days === 30 && (
+            <div className="group">
+              <h3 className="group-title">Next 30 days</h3>
+              {grouped.d30.length ? (
+                <ul className="contest-list">{grouped.d30.map((c, i) => <ContestCard key={`d30-${i}`} c={c} status="Upcoming" nowTick={nowTick} />)}</ul>
+              ) : (
                 <p className="empty">No contests in this window.</p>
-                <div className="actions"><button className="btn btn-ghost" onClick={() => setDays(30)}>Try 30 days</button></div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
-        data.upcoming.length ? (
+        filtered.upcoming.length ? (
           <ul className="contest-list">
-            {data.upcoming.map((c, i) => (
+            {filtered.upcoming.map((c, i) => (
               <ContestCard key={`${c.name}-${i}`} c={c} status="Upcoming" nowTick={nowTick} />
             ))}
           </ul>
@@ -289,32 +362,64 @@ export default function ContestTracker() {
           --primary: #4e8df7;      /* primary blue */
           box-shadow: 0 1px 6px rgba(0,0,0,0.35);
         }
+        .contest-header { position: sticky; top: 0; z-index: 30; backdrop-filter: saturate(120%) blur(6px); box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin: -16px -16px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 86%, transparent); }
         .contest-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .contest-heading { margin: 0; font-size: 1.125rem; font-weight: 700; }
-        .contest-filter-row { display: flex; gap: 12px; align-items: center; }
+        .contest-filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .contest-filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 0.9rem; background: transparent; color: var(--text); }
+        .btn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-size: 0.9rem; background: transparent; color: var(--text); }
         .btn-ghost { background: transparent; }
         .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
         .contest-tabs { display: flex; gap: 8px; margin-top: 12px; margin-bottom: 12px; }
         .tab { padding: 6px 10px; border-radius: 8px; background: var(--chip); cursor: pointer; border: 1px solid var(--border); color: var(--text); }
         .tab.active { background: var(--chip-active); border-color: var(--primary); font-weight: 600; }
-        .contest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-        .contest-card { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: transparent; }
+        .contest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
+        .contest-card { 
+          display: flex; gap: 12px; justify-content: space-between; align-items: flex-start;
+          border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: transparent;
+          transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+          position: relative; overflow: hidden;
+          animation: fadeIn .25s ease-out;
+        }
+        .card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border); }
+        .site-cf .card-accent { background: #4e8df7; }
+        .site-atcoder .card-accent { background: #10b981; }
+        .site-leetcode .card-accent { background: #f59e0b; }
+        .site-codechef .card-accent { background: #c084fc; }
+        .site-topcoder .card-accent { background: #ef4444; }
+        .site-hackerearth .card-accent { background: #22c55e; }
+        .contest-card:hover { 
+          border-color: var(--primary);
+          background: rgba(78, 141, 247, 0.06);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+          transform: translateY(-1px);
+        }
+        :root[data-theme='dark'] .contest-card:hover, .dark .contest-card:hover {
+          background: rgba(78, 141, 247, 0.09);
+          box-shadow: 0 8px 20px rgba(8, 14, 35, 0.6);
+        }
         .contest-card-left { min-width: 0; }
-        .contest-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .contest-title { font-weight: 600; color: var(--text); text-decoration: none; }
+        .contest-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .contest-title { font-weight: 700; color: var(--text); text-decoration: none; font-size: 1rem; max-width: min(64vw, 560px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .contest-title:hover { text-decoration: underline; }
         .contest-platform { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
-        .contest-card-right { text-align: right; }
-        .contest-time { font-size: 0.9rem; color: var(--text); }
-        .contest-time .label { color: var(--muted); margin-right: 6px; }
+        .contest-card-right { text-align: right; min-width: 240px; }
+        .contest-time { font-size: 0.92rem; color: var(--text); line-height: 1.4; }
+        .contest-time .label { color: #475569; font-weight: 600; margin-right: 6px; }
         .contest-time .muted { color: var(--muted); margin-left: 6px; }
-        .badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 999px; border: 1px solid transparent; }
-        .badge-success { background: #0f3a2e; color: #b9f6e8; border-color: #1f7a65; }
-        .badge-info { background: #153a7a; color: #cfe4ff; border-color: var(--primary); }
+        :root[data-theme='dark'] .contest-time .label, .dark .contest-time .label { color: #cbd5e1; }
+        .badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 999px; border: 1px solid transparent; font-weight: 700; }
+        .badge-success { background: #103a2f; color: #b9f6e8; border-color: #1e6f5d; }
+        .badge-info { background: #0f2d5f; color: #d6e6ff; border-color: #2a56a5; }
+        /* Accent badge background to match site color (high contrast for light theme) */
+        .site-cf .badge-accent { background: #2563eb; color: #ffffff; border-color: #1e40af; }
+        .site-atcoder .badge-accent { background: #059669; color: #ffffff; border-color: #065f46; }
+        .site-leetcode .badge-accent { background: #d97706; color: #ffffff; border-color: #b45309; }
+        .site-codechef .badge-accent { background: #7c3aed; color: #ffffff; border-color: #5b21b6; }
+        .site-topcoder .badge-accent { background: #dc2626; color: #ffffff; border-color: #991b1b; }
+        .site-hackerearth .badge-accent { background: #16a34a; color: #ffffff; border-color: #166534; }
 
-        .plat { font-size: 0.72rem; font-weight: 700; padding: 3px 6px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px; }
+        .plat { font-size: 0.72rem; font-weight: 800; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 0 rgba(0,0,0,0.08) inset; }
         .plat-cf { background: #0e1a33; color: #9cc0ff; border-color: #1c2f57; }
         .plat-atc { background: #0e1a33; color: #a7f3d0; border-color: #1c2f57; }
         .plat-cc { background: #0e1a33; color: #fde68a; border-color: #1c2f57; }
@@ -329,15 +434,35 @@ export default function ContestTracker() {
         .empty-state { display: grid; gap: 10px; }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .resource-filter { display: flex; gap: 6px; flex-wrap: wrap; }
-        .resource-chip { padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; font-size: 0.82rem; }
-        .resource-chip.active { background: var(--chip-active); border-color: var(--primary); }
+        .resource-filter { display: flex; gap: 6px; flex-wrap: nowrap; }
+        .resource-chip { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; font-size: 0.82rem; white-space: nowrap; }
+        .resource-chip.active { color: #fff; border-color: transparent; }
+        .chip-cf.active { background: #4e8df7; }
+        .chip-atcoder.active { background: #10b981; }
+        .chip-leetcode.active { background: #f59e0b; }
+        .chip-codechef.active { background: #7c3aed; }
+        .chip-topcoder.active { background: #ef4444; }
+        .chip-hackerearth.active { background: #22c55e; }
+
+        .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .seg { padding: 6px 10px; background: transparent; color: var(--text); border: 0; cursor: pointer; }
+        .seg + .seg { border-left: 1px solid var(--border); }
+        .seg.active { background: var(--chip-active); color: var(--text); font-weight: 600; }
+
+        /* Focus rings for a11y */
+        .btn:focus-visible, .tab:focus-visible, .resource-chip:focus-visible, .seg:focus-visible, .contest-card:focus-visible, .contest-title:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 
         @media (max-width: 640px) {
           .contest-card { flex-direction: column; align-items: stretch; }
-          .contest-card-right { text-align: left; }
+          .contest-card-right { text-align: left; min-width: 0; }
+          .contest-title { max-width: 100%; }
           .contest-header-row { align-items: flex-start; }
+          .contest-tabs { overflow-x: auto; }
         }
+
+        
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(2px);} to { opacity: 1; transform: translateY(0);} }
       `}</style>
     </div>
   );
