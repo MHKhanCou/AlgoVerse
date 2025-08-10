@@ -105,8 +105,6 @@ export default function ContestTracker() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({});
-  const [clistActive, setClistActive] = useState(false);
-  const [resources, setResources] = useState([]); // selected CLIST resources
   const [nowTick, setNowTick] = useState(Date.now());
 
   useEffect(() => {
@@ -116,7 +114,6 @@ export default function ContestTracker() {
         setError('');
         const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
         const params = new URLSearchParams({ days: String(days), include_running: 'true' });
-        if (resources && resources.length) params.set('resources', resources.join(','));
         const url = `${base}/api/contests?${params.toString()}`;
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
         const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
@@ -136,10 +133,6 @@ export default function ContestTracker() {
         const upcoming = js.upcoming || [];
         setData({ running, upcoming });
         setCounts(js.counts || {});
-        setClistActive(!!js.clist_active);
-        if (Array.isArray(js.resources_used) && js.resources_used.length) {
-          setResources(js.resources_used);
-        }
         // Auto-pick a tab with data on first load or when current tab is empty
         setTimeout(() => {
           setTab((prev) => {
@@ -156,31 +149,6 @@ export default function ContestTracker() {
     };
     load();
   }, [days]);
-
-  // Refetch when resources filter changes
-  useEffect(() => {
-    // Only apply when CLIST is active (backend returns counts.clist)
-    if (!clistActive) return;
-    const reload = async () => {
-      try {
-        setLoading(true); setError('');
-        const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
-        const params = new URLSearchParams({ days: String(days), include_running: 'true' });
-        if (resources && resources.length) params.set('resources', resources.join(','));
-        const url = `${base}/api/contests?${params.toString()}`;
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        const js = await res.json();
-        const running = js.running || [];
-        const upcoming = js.upcoming || [];
-        setData({ running, upcoming });
-      } catch (e) {
-        setError(e.message || 'Failed to load contests');
-      } finally {
-        setLoading(false);
-      }
-    };
-    reload();
-  }, [resources]);
 
   // Live countdown ticker (1s)
   useEffect(() => {
@@ -207,43 +175,13 @@ export default function ContestTracker() {
 
   const grouped = days >= 7 ? groupUpcoming(data.upcoming) : null;
 
-  const allResources = [
-    { key: 'codeforces.com', label: 'Codeforces' },
-    { key: 'atcoder.jp', label: 'AtCoder' },
-    { key: 'codechef.com', label: 'CodeChef' },
-    { key: 'leetcode.com', label: 'LeetCode' },
-    { key: 'hackerrank.com', label: 'HackerRank' },
-    { key: 'hackerearth.com', label: 'HackerEarth' },
-    { key: 'csacademy.com', label: 'CSAcademy' },
-    { key: 'kaggle.com', label: 'Kaggle' },
-    { key: 'topcoder.com', label: 'Topcoder' },
-  ];
-
-  const toggleResource = (key) => {
-    setResources((prev) => {
-      const set = new Set(prev);
-      if (set.has(key)) set.delete(key); else set.add(key);
-      return Array.from(set);
-    });
-  };
+  // removed CLIST resource filtering
 
   return (
     <div className="contest-tracker" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <div className="contest-header-row">
         <h2 className="contest-heading">Contest Tracker</h2>
         <div className="contest-filter-row">
-          {clistActive ? (
-            <div className="resource-filter" title="Filter CLIST resources">
-              {allResources.map((r) => (
-                <button
-                  type="button"
-                  key={r.key}
-                  className={`resource-chip ${resources.includes(r.key) ? 'active' : ''}`}
-                  onClick={() => toggleResource(r.key)}
-                >{r.label}</button>
-              ))}
-            </div>
-          ) : null}
           <DayButtons days={days} setDays={setDays} />
         </div>
       </div>
