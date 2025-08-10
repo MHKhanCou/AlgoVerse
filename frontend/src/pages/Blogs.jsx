@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import UserLink from '../components/common/UserLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearch } from '../contexts/SearchContext';
 import axios from 'axios';
@@ -428,7 +429,11 @@ const Blogs = () => {
                       </span>
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
-                        {blog.author}
+                        {blog.author_id ? (
+                          <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+                        ) : (
+                          blog.author
+                        )}
                       </span>
                     </div>
                   </div>
@@ -469,7 +474,11 @@ const Blogs = () => {
                       </span>
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
-                        {blog.author}
+                        {blog.author_id ? (
+                          <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+                        ) : (
+                          blog.author
+                        )}
                       </span>
                     </div>
                   </div>

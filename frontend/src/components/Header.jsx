@@ -109,6 +109,7 @@ const Header = ({ darkMode, toggleDarkMode }) => {
                   <path d="M12 2.5a5.5 5.5 0 0 1 5.5 5.5c0 2.2-1.3 4-3.3 4.9a5.5 5.5 0 0 1-4.4 0C7.8 11.9 6.5 10.1 6.5 8a5.5 5.5 0 0 1 5.5-5.5zm0 13c-3.6 0-10.5 1.8-10.5 5.5v2h21v-2c0-3.7-6.9-5.5-10.5-5.5z" />
                 </svg>
               </Link>
+
               <button onClick={handleLogout} className="nav-icon" title="Exit">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />

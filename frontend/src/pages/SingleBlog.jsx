@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import CommentSection from '../components/CommentSection';
+import UserLink from '../components/common/UserLink';
 import '../styles/SingleBlog.css';
 
 const SingleBlog = () => {
@@ -122,7 +123,11 @@ const SingleBlog = () => {
         <>
           <h1>{blog.title}</h1>
           <p className="blog-meta">
-            By {blog.author} | Created: {new Date(blog.created_at).toLocaleDateString()} | Updated:{' '}
+            By {blog.author_id ? (
+              <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+            ) : (
+              blog.author
+            )} | Created: {new Date(blog.created_at).toLocaleDateString()} | Updated:{' '}
             {new Date(blog.updated_at).toLocaleDateString()}
           </p>
           <div className="blog-body">{blog.body}</div>

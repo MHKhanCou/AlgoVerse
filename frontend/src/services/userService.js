@@ -80,4 +80,9 @@ export const userService = {
     });
     return handleResponse(response);
   },
+
+  async getPublicProfile(userId) {
+    const response = await fetch(`${API_URL}/users/${userId}/public`);
+    return handleResponse(response);
+  },
 };

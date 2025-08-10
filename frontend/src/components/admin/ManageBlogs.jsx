@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import UserLink from '../common/UserLink';
 import { toast } from 'react-toastify';
 import { Check, X, Edit, Trash2, Eye, Clock, Search } from 'lucide-react';
 import '../../styles/admin/ManageBlogs.css';
@@ -156,8 +157,18 @@ const ManageBlogs = ({ blogs, searchQuery, setSearchQuery, fetchBlogs, adminServ
                     {blog.title || 'Untitled Blog'}
                   </td>
                   <td className="blog-author">
-                    <div className="author-name">{getAuthorName(blog)}</div>
-                    <div className="author-email">{getAuthorEmail(blog)}</div>
+                    {blog.user && typeof blog.user === 'object' && blog.user.id ? (
+                      <UserLink
+                        userId={blog.user.id}
+                        to={`/users/${blog.user.id}`}
+                        showDetails={false}
+                      />
+                    ) : (
+                      <>
+                        <div className="author-name">{getAuthorName(blog)}</div>
+                        <div className="author-email">{getAuthorEmail(blog)}</div>
+                      </>
+                    )}
                   </td>
                   <td className="blog-status">
                     {getStatusBadge(blog.status || 'pending')}

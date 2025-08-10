@@ -37,6 +37,7 @@ class ShowBlog(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
     author: Optional[str] = None
+    author_id: Optional[int] = None
     user: Optional[ShowUser] = None
     created_at: datetime
     updated_at: datetime
@@ -138,6 +139,19 @@ class UserProfile(BaseModel):
     email: EmailStr
     codeforces_handle: Optional[str] = None
     progress: List[AlgorithmProgress]
+
+    class Config:
+        from_attributes = True
+
+# Public-facing profile for guests and other users (no sensitive fields)
+class PublicUserProfile(BaseModel):
+    id: int
+    name: str
+    codeforces_handle: Optional[str] = None
+    topics_covered: List[str] = []
+    total_algorithms_enrolled: int
+    total_algorithms_completed: int
+    joined_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

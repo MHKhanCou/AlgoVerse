@@ -30,3 +30,8 @@ def create_user(request: schemas.RegisterUser, db: Session = Depends(get_db)):
 def get_user_profile(user_id: int, db: Session = Depends(get_db)):
     return user_repo.get_user_profile(db, user_id)
 
+# 🔹 Public user profile (no auth) – limited, non-sensitive data
+@router.get("/{user_id}/public", response_model=schemas.PublicUserProfile)
+def get_public_user_profile(user_id: int, db: Session = Depends(get_db)):
+    return user_repo.get_public_user_profile(db, user_id)
+

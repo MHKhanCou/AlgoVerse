@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../styles/CommentSection.css';
+import UserLink from './common/UserLink';
 
 const CommentSection = ({ blogId, user }) => {
   const [comments, setComments] = useState([]);
@@ -242,7 +243,13 @@ const CommentSection = ({ blogId, user }) => {
       <div className="comment-header">
         <div className="comment-author">
           <User className="author-icon" />
-          <span className="author-name">{comment.author_name}</span>
+          <span className="author-name">
+            {comment.user_id ? (
+              <UserLink userId={comment.user_id} to={`/users/${comment.user_id}`} showDetails={false} />
+            ) : (
+              comment.author_name
+            )}
+          </span>
           {comment.is_edited && (
             <span className="edited-badge">
               <Edit3 className="edited-icon" />

@@ -20,6 +20,7 @@ def get_blog_by_id(db: Session, blog_id: int):
         "title": blog.title,
         "body": blog.body,
         "author": blog.user.name if blog.user else "Unknown",
+        "author_id": blog.user.id if blog.user else None,
         "created_at": blog.created_at,
         "updated_at": blog.updated_at,
         "status": blog.status,
@@ -39,6 +40,7 @@ def get_all_blogs(db: Session, skip: int = 0, limit: int = 5):
                 "title": blog.title,
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
+                "author_id": blog.user.id if blog.user else None,
                 "created_at": blog.created_at,
                 "updated_at": blog.updated_at,
                 "status": blog.status,
@@ -179,18 +181,29 @@ def search_blogs(db: Session, query: str):
 
 def get_user_blogs(db: Session, user_id: int, skip: int = 0, limit: int = 5):
     try:
-        blogs = db.query(Blog).options(joinedload(Blog.user)).filter(Blog.user_id == user_id).offset(skip).limit(limit).all()
+        # Public: only return approved blogs for the given user
+        blogs = (
+            db.query(Blog)
+            .options(joinedload(Blog.user))
+            .filter(Blog.user_id == user_id)
+            .filter(Blog.status == BlogStatus.approved)
+            .order_by(Blog.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return [
             {
                 "id": blog.id,
                 "title": blog.title,
                 "body": blog.body,
                 "author": blog.user.name if blog.user else "Unknown",
+                "author_id": blog.user.id if blog.user else None,
                 "created_at": blog.created_at,
                 "updated_at": blog.updated_at,
                 "status": blog.status,
                 "admin_feedback": blog.admin_feedback,
-                "approved_at": blog.approved_at
+                "approved_at": blog.approved_at,
             }
             for blog in blogs
         ]

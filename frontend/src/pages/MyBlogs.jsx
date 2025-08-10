@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import UserLink from '../components/common/UserLink';
+
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -57,7 +59,12 @@ const MyBlogs = () => {
               <Link to={`/blogs/${blog.id}`} className="blog-title">
                 <h3>{blog.title}</h3>
               </Link>
-              <p className="blog-author">By {blog.author}</p>
+              <p className="blog-author">By {blog.author_id ? (
+                <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+              ) : (
+                blog.author
+              )}
+              </p>
               <p className="blog-meta">
                 Created: {new Date(blog.created_at).toLocaleDateString()} | Updated:{' '}
                 {new Date(blog.updated_at).toLocaleDateString()}

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from models import User, Blog, UserProgress, RelatedProblem, AlgoStatus
 from schemas import RegisterUser, UpdateUser, UpdatePassword, UpdateName, UpdateEmail, ShowUser, UserProfile
+
 from auth.password_utils import hash_password, verify_password, validate_password
 from datetime import datetime
 import logging
@@ -82,6 +83,56 @@ def get_user_profile(db: Session, user_id: int):
         raise HTTPException(status_code=500, detail="Failed to fetch user profile")
     except Exception as e:
         logger.error(f"Unexpected error fetching profile for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+def get_public_user_profile(db: Session, user_id: int):
+    """
+    Return only public-facing user information:
+    - id, name, codeforces_handle, joined_at
+    - topics_covered: unique algorithm type names from user's progress
+    - total_algorithms_enrolled, total_algorithms_completed
+    """
+    try:
+        user = db.query(User).options(
+            joinedload(User.user_progress).joinedload(UserProgress.algorithm)
+        ).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
+
+        enrolled_count = 0
+        completed_count = 0
+        topics = set()
+
+        for p in user.user_progress:
+            # Count status
+            if p.status == AlgoStatus.enrolled:
+                enrolled_count += 1
+            elif p.status == AlgoStatus.completed:
+                completed_count += 1
+
+            # Collect topics (algorithm type names if available)
+            algo = getattr(p, "algorithm", None)
+            if algo is not None:
+                type_rel = getattr(algo, "type", None)
+                if type_rel and getattr(type_rel, "name", None):
+                    topics.add(type_rel.name)
+                elif getattr(algo, "name", None):
+                    topics.add(algo.name)
+
+        return {
+            "id": user.id,
+            "name": user.name,
+            "codeforces_handle": user.codeforces_handle,
+            "topics_covered": sorted(list(topics)),
+            "total_algorithms_enrolled": enrolled_count,
+            "total_algorithms_completed": completed_count,
+            "joined_at": user.joined_at,
+        }
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching public profile for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch public profile")
+    except Exception as e:
+        logger.error(f"Unexpected error fetching public profile for user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 def create_user(db: Session, user_data: RegisterUser):

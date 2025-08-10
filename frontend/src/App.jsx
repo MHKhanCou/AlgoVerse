@@ -38,6 +38,7 @@ import OTPPasswordResetPage from './pages/OTPPasswordResetPage';
 // Import TopicListPage and CodeforcesAnalytics
 import TopicListPage from './pages/TopicListPage';
 import CodeforcesAnalytics from './pages/CodeforcesAnalytics';
+import UserPublicPage from './pages/UserPublicPage';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -96,6 +97,8 @@ function AppRoutes() {
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:id" element={<SingleBlog />} />
           <Route path="/my-blogs" element={<MyBlogs />} />
+          <Route path="/users/:id" element={<UserPublicPage />} />
+          <Route path="/codeforces-analyzer" element={<CodeforcesAnalytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
