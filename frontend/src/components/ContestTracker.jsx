@@ -94,6 +94,33 @@ const ContestCard = ({ c, status, nowTick }) => {
     : (c.site || '').toLowerCase().includes('topcoder') ? 'topcoder'
     : (c.site || '').toLowerCase().includes('hacker') ? 'hackerearth'
     : 'other';
+
+  // Generate editorial and standings links based on platform
+  const getLinks = () => {
+    const baseUrl = c.url.replace(/\/$/, '');
+    if (key === 'cf') {
+      return {
+        editorial: `${baseUrl}/blog`,
+        standings: `${baseUrl}/standings`
+      };
+    }
+    if (key === 'atcoder') {
+      return {
+        editorial: `${baseUrl}/editorial`,
+        standings: `${baseUrl}/standings`
+      };
+    }
+    if (key === 'leetcode') {
+      return {
+        editorial: `${baseUrl}/editorial`,
+        standings: `${baseUrl}/ranking`
+      };
+    }
+    return null;
+  };
+
+  const links = status === 'Finished' ? getLinks() : null;
+
   return (
     <li className={`contest-card site-${key}`} tabIndex={0}>
       <span className="card-accent" aria-hidden="true" />
@@ -101,10 +128,20 @@ const ContestCard = ({ c, status, nowTick }) => {
         <div className="contest-title-row">
           <PlatformBadge site={c.site} />
           <a href={c.url} target="_blank" rel="noreferrer" className="contest-title">{c.name}</a>
-          <span className={`badge ${status === 'Running' ? 'badge-success' : 'badge-info'} badge-accent`}>{status}</span>
+          <span className={`badge ${status === 'Running' ? 'badge-success' : status === 'Finished' ? 'badge-finished' : 'badge-info'} badge-accent`}>{status}</span>
         </div>
         <div className="contest-platform">
-          <span className="muted">{c.site}</span> • <IconTimer /> {fmtDuration(durationSec)} • <IconClock /> <b>{liveLabel || 'Started'}</b>
+          <span className="muted">{c.site}</span> • <IconTimer /> {fmtDuration(durationSec)} • <IconClock /> <b>{liveLabel || (status === 'Finished' ? 'Ended' : 'Started')}</b>
+          {links && (
+            <span className="contest-links">
+              {links.editorial && (
+                <> • <a href={links.editorial} target="_blank" rel="noreferrer" className="link-editorial">Editorial</a></>  
+              )}
+              {links.standings && (
+                <> • <a href={links.standings} target="_blank" rel="noreferrer" className="link-standings">Standings</a></>  
+              )}
+            </span>
+          )}
         </div>
       </div>
       <div className="contest-card-right">
@@ -122,7 +159,9 @@ const ContestCard = ({ c, status, nowTick }) => {
 export default function ContestTracker() {
   const [tab, setTab] = useState('running');
   const [days, setDays] = useState(30);
-  const [data, setData] = useState({ running: [], upcoming: [] });
+  const [recentDays, setRecentDays] = useState(7);
+  const [data, setData] = useState({ running: [], upcoming: [], recent: [] });
+  const [cacheStatus, setCacheStatus] = useState({ isCached: false, timestamp: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({});
@@ -130,47 +169,66 @@ export default function ContestTracker() {
   const ALL_SITES = ['cf','atcoder','leetcode','codechef','topcoder','hackerearth'];
   const [sites, setSites] = useState(new Set(ALL_SITES));
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
-        const params = new URLSearchParams({ days: String(days), include_running: 'true' });
-        const url = `${base}/api/contests?${params.toString()}`;
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(`HTTP ${res.status}: ${txt?.slice(0, 200) || res.statusText}`);
-        }
-        let js;
-        if (ct.includes('application/json')) {
-          js = await res.json();
-        } else {
-          const txt = await res.text();
-          throw new Error(`Unexpected response type: ${ct || 'unknown'}; Body: ${txt?.slice(0, 200)}`);
-        }
-        if (js.status !== 'success') throw new Error(js.message || 'Failed to fetch contests');
-        const running = js.running || [];
-        const upcoming = js.upcoming || [];
-        setData({ running, upcoming });
-        setCounts(js.counts || {});
-        // Auto-pick a tab with data on first load or when current tab is empty
-        setTimeout(() => {
-          setTab((prev) => {
-            if (prev === 'upcoming' && upcoming.length) return prev;
-            if (prev === 'running' && running.length) return prev;
-            return upcoming.length ? 'upcoming' : 'running';
-          });
-        }, 0);
-      } catch (e) {
-        setError(e.message || 'Failed to load contests');
-      } finally {
-        setLoading(false);
+  const loadContests = async (forceRefresh = false) => {
+    try {
+      setLoading(true);
+      setError('');
+      const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
+      const params = new URLSearchParams({ 
+        days: String(days),
+        recent_days: String(recentDays),
+        include_running: 'true',
+        include_recent: 'true',
+        refresh: forceRefresh ? 'true' : 'false'
+      });
+      const url = `${base}/api/contests?${params.toString()}`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt?.slice(0, 200) || res.statusText}`);
       }
-    };
-    load();
+      let js;
+      if (ct.includes('application/json')) {
+        js = await res.json();
+      } else {
+        const txt = await res.text();
+        throw new Error(`Unexpected response type: ${ct || 'unknown'}; Body: ${txt?.slice(0, 200)}`);
+      }
+      if (js.status !== 'success') throw new Error(js.message || 'Failed to fetch contests');
+      const running = js.running || [];
+      const upcoming = js.upcoming || [];
+      const recent = js.recent || [];
+      setData({ running, upcoming, recent });
+      setCounts(js.counts || {});
+      
+      // Set cache status
+      const isCached = js.cached === true;
+      const timestamp = js.fetched_at ? new Date(js.fetched_at) : new Date();
+      setCacheStatus({ isCached, timestamp });
+      // Auto-pick a tab with data on first load or when current tab is empty
+      setTimeout(() => {
+        setTab((prev) => {
+          if (prev === 'upcoming' && upcoming.length) return prev;
+          if (prev === 'running' && running.length) return prev;
+          if (prev === 'recent' && recent.length) return prev;
+          return upcoming.length ? 'upcoming' : running.length ? 'running' : 'recent';
+        });
+      }, 0);
+    } catch (e) {
+      setError(e.message || 'Failed to load contests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    loadContests(true); // Force refresh from API
+  };
+
+  useEffect(() => {
+    loadContests(false); // Use cache if available
   }, [days]);
 
   // Live countdown ticker (1s)
@@ -214,6 +272,7 @@ export default function ContestTracker() {
   const filtered = {
     running: (data.running || []).filter(matchesFilter),
     upcoming: (data.upcoming || []).filter(matchesFilter),
+    recent: (data.recent || []).filter(matchesFilter),
   };
   const toggleSite = (key) => {
     setSites((prev) => {
@@ -235,16 +294,43 @@ export default function ContestTracker() {
           <h2 className="contest-heading">Contest Tracker</h2>
           <div className="contest-filter-row">
             <DayButtons days={days} setDays={setDays} />
+            <button 
+              className="btn btn-refresh" 
+              onClick={handleRefresh} 
+              title="Refresh data from source"
+              aria-label="Refresh contest data"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 01-9 9 9 9 0 01-9-9 9 9 0 019-9" />
+                <path d="M21 3v9h-9" />
+              </svg>
+              <span>Refresh</span>
+            </button>
           </div>
         </div>
 
-        <div className="contest-tabs">
-          <button className={`tab ${tab === 'running' ? 'active' : ''}`} onClick={() => setTab('running')}>
-            Running ({filtered.running.length})
-          </button>
-          <button className={`tab ${tab === 'upcoming' ? 'active' : ''}`} onClick={() => setTab('upcoming')}>
-            Upcoming ({filtered.upcoming.length})
-          </button>
+        <div className="contest-header-row">
+          <div className="contest-tabs">
+            <button className={`tab ${tab === 'running' ? 'active' : ''}`} onClick={() => setTab('running')}>
+              Running ({filtered.running.length})
+            </button>
+            <button className={`tab ${tab === 'upcoming' ? 'active' : ''}`} onClick={() => setTab('upcoming')}>
+              Upcoming ({filtered.upcoming.length})
+            </button>
+            <button className={`tab ${tab === 'recent' ? 'active' : ''}`} onClick={() => setTab('recent')}>
+              Recent ({filtered.recent.length})
+            </button>
+          </div>
+          
+          {cacheStatus.timestamp && (
+            <div className="cache-status" title={`Data ${cacheStatus.isCached ? 'from cache' : 'freshly loaded'}`}>
+              <span className={`cache-indicator ${cacheStatus.isCached ? 'cached' : 'fresh'}`}></span>
+              <span className="cache-text">
+                {cacheStatus.isCached ? 'Cached' : 'Fresh'} • 
+                {cacheStatus.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="contest-filter-row" style={{ marginBottom: 8, overflowX: 'auto' }}>
@@ -287,6 +373,23 @@ export default function ContestTracker() {
           <div className="empty-state">
             <p className="empty">No running contests right now.</p>
             <div className="actions"><button className="btn btn-primary" onClick={() => setTab('upcoming')}>View Upcoming</button></div>
+          </div>
+        )
+      ) : tab === 'recent' ? (
+        filtered.recent.length ? (
+          <ul className="contest-list">
+            {filtered.recent.map((c, i) => (
+              <ContestCard key={`${c.name}-${i}`} c={c} status="Finished" nowTick={nowTick} />
+            ))}
+          </ul>
+        ) : (
+          <div className="empty-state">
+            <p className="empty">No recent contests found.</p>
+            <div className="actions">
+              <button className="btn btn-ghost" onClick={() => setRecentDays(3)}>Last 3 days</button>
+              <button className="btn btn-ghost" onClick={() => setRecentDays(7)}>Last 7 days</button>
+              <button className="btn btn-ghost" onClick={() => setRecentDays(14)}>Last 14 days</button>
+            </div>
           </div>
         )
       ) : grouped ? (
@@ -360,17 +463,23 @@ export default function ContestTracker() {
           --chip: #0a1a33;         /* chip bg */
           --chip-active: #14284d;  /* active chip */
           --primary: #4e8df7;      /* primary blue */
+          --link: #60a5fa;         /* link blue */
+          --link-hover: #93c5fd;   /* link hover */
           box-shadow: 0 1px 6px rgba(0,0,0,0.35);
         }
         .contest-header { position: sticky; top: 0; z-index: 30; backdrop-filter: saturate(120%) blur(6px); box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin: -16px -16px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 86%, transparent); }
-        .contest-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .contest-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
         .contest-heading { margin: 0; font-size: 1.125rem; font-weight: 700; }
         .contest-filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .contest-filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-size: 0.9rem; background: transparent; color: var(--text); }
+        .btn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-size: 0.9rem; background: transparent; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
         .btn-ghost { background: transparent; }
         .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-        .contest-tabs { display: flex; gap: 8px; margin-top: 12px; margin-bottom: 12px; }
+        .btn-refresh { background: var(--chip); border-color: var(--border); transition: all 0.2s ease; }
+        .btn-refresh:hover { background: var(--chip-active); border-color: var(--primary); }
+        .btn-refresh svg { transition: transform 0.3s ease; }
+        .btn-refresh:hover svg { transform: rotate(30deg); }
+        .contest-tabs { display: flex; gap: 8px; margin-top: 0; margin-bottom: 0; }
         .tab { padding: 6px 10px; border-radius: 8px; background: var(--chip); cursor: pointer; border: 1px solid var(--border); color: var(--text); }
         .tab.active { background: var(--chip-active); border-color: var(--primary); font-weight: 600; }
         .contest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
@@ -380,6 +489,7 @@ export default function ContestTracker() {
           transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease;
           position: relative; overflow: hidden;
           animation: fadeIn .25s ease-out;
+          backdrop-filter: blur(8px);
         }
         .card-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border); }
         .site-cf .card-accent { background: #4e8df7; }
@@ -403,6 +513,9 @@ export default function ContestTracker() {
         .contest-title { font-weight: 700; color: var(--text); text-decoration: none; font-size: 1rem; max-width: min(64vw, 560px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .contest-title:hover { text-decoration: underline; }
         .contest-platform { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+        .contest-links { display: inline-flex; gap: 4px; align-items: center; }
+        .link-editorial, .link-standings { color: var(--link, #3b82f6); text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+        .link-editorial:hover, .link-standings:hover { color: var(--link-hover, #60a5fa); text-decoration: underline; }
         .contest-card-right { text-align: right; min-width: 240px; }
         .contest-time { font-size: 0.92rem; color: var(--text); line-height: 1.4; }
         .contest-time .label { color: #475569; font-weight: 600; margin-right: 6px; }
@@ -411,6 +524,14 @@ export default function ContestTracker() {
         .badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 999px; border: 1px solid transparent; font-weight: 700; }
         .badge-success { background: #103a2f; color: #b9f6e8; border-color: #1e6f5d; }
         .badge-info { background: #0f2d5f; color: #d6e6ff; border-color: #2a56a5; }
+        .badge-finished { background: #1f2937; color: #9ca3af; border-color: #374151; }
+        
+        /* Cache status indicator */
+        .cache-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); background: var(--chip); padding: 4px 8px; border-radius: 999px; }
+        .cache-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .cache-indicator.cached { background: #f59e0b; /* amber */ }
+        .cache-indicator.fresh { background: #10b981; /* emerald */ }
+        .cache-text { white-space: nowrap; }
         /* Accent badge background to match site color (high contrast for light theme) */
         .site-cf .badge-accent { background: #2563eb; color: #ffffff; border-color: #1e40af; }
         .site-atcoder .badge-accent { background: #059669; color: #ffffff; border-color: #065f46; }

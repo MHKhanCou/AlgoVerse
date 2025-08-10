@@ -1,6 +1,6 @@
 import datetime
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 from models import AlgoDifficulty, AlgoComplexity, AlgoStatus, BlogStatus
 
@@ -294,3 +294,18 @@ class ShowComment(BaseModel):
 
 # Forward reference for nested comments
 ShowComment.model_rebuild()
+
+# schemas.py
+class ContestCacheBase(BaseModel):
+    source: str
+    data: Dict[str, Any]
+    last_fetched_at: datetime
+
+class ContestCacheCreate(ContestCacheBase):
+    pass
+
+class ContestCache(ContestCacheBase):
+    id: int
+
+    class Config:
+        from_attributes = True

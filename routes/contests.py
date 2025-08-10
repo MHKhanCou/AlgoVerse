@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 import requests
 import os
 import re
 import json
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
+from db.redis_client import get_redis, set_cache, get_cache, delete_cache
+from redis import Redis
 
 def _load_dotenv_into_environ():
     """Minimal .env loader: reads key=value lines and sets os.environ if unset."""
@@ -61,6 +63,21 @@ def to_iso_utc(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat()
 
 
+def filter_recent(contests: List[Dict], days: int = 7):
+    now = datetime.now(timezone.utc)
+    start_limit = now - timedelta(days=days)
+    out = []
+    for c in contests:
+        try:
+            start = parse_iso(c.get("start_time"))
+            dur_seconds = float(c.get("duration", 0) or 0)
+            end = start + timedelta(seconds=dur_seconds)
+            if start_limit <= end <= now:
+                out.append(c)
+        except Exception:
+            continue
+    return sorted(out, key=lambda x: parse_iso(x.get("start_time")), reverse=True)
+
 def filter_upcoming(contests: List[Dict], days: int):
     now = datetime.now(timezone.utc)
     end_limit = now + timedelta(days=days)
@@ -73,7 +90,6 @@ def filter_upcoming(contests: List[Dict], days: int):
         except Exception:
             continue
     return out
-
 
 def filter_running(contests: List[Dict]):
     now = datetime.now(timezone.utc)
@@ -602,15 +618,40 @@ def fetch_kontests(platform: str) -> List[Dict]:
 
 
 @router.get("/contests")
-def get_contests(days: int = Query(7, ge=1), include_running: bool = True):
+def get_contests(
+    days: int = Query(7, ge=1), 
+    include_running: bool = True,
+    include_recent: bool = True,
+    recent_days: int = Query(7, ge=1, le=30),
+    refresh: bool = False,
+    redis: Redis = Depends(get_redis)
+):
     """
-    Returns contests grouped into running and upcoming (within next N days).
+    Returns contests grouped into running, upcoming, and recent.
     Sources:
     - Codeforces official API (robust)
     - AtCoder contests dataset (kenkoooo)
     - LeetCode via GraphQL
     - CodeChef public API
+    
+    Args:
+        days: Number of days to look ahead for upcoming contests
+        include_running: Whether to include currently running contests
+        include_recent: Whether to include recently finished contests
+        recent_days: Number of past days to look for recent contests
+        refresh: If True, bypass cache and fetch fresh data
+        redis: Redis client instance
     """
+    # Define cache keys for different sources
+    cache_key = f"contest_cache:all:{days}:{include_running}:{include_recent}:{recent_days}"
+    
+    # Check if we have cached data and refresh flag is not set
+    if not refresh:
+        cached_data = get_cache(cache_key)
+        if cached_data:
+            return cached_data
+    
+    # If no cache or refresh requested, fetch from sources
     cf = fetch_codeforces()
     # Prefer HTML scraping for AtCoder for freshness
     atc = fetch_atcoder_html() or fetch_atcoder_kenkoooo()
@@ -631,16 +672,95 @@ def get_contests(days: int = Query(7, ge=1), include_running: bool = True):
 
     upcoming = filter_upcoming(merged, days)
     running = filter_running(merged) if include_running else []
-    return {
+    recent = filter_recent(merged, recent_days) if include_recent else []
+    
+    # Prepare response data
+    response_data = {
         "status": "success",
         "running": running,
         "upcoming": upcoming,
+        "recent": recent,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "counts": counts,
+        "cached": False
     }
+    
+    # Cache the response data (expires in 1 hour)
+    set_cache(cache_key, response_data, expiry=60*60)
+    
+    return response_data
 
 
 @router.get("/contests/debug")
 def contests_debug():
     """Return last fetch stats for each source to aid debugging."""
     return {"sources": last_fetch_stats}
+
+
+@router.get("/contests/{source}")
+def get_contests_by_source(
+    source: str,
+    days: int = Query(7, ge=1),
+    include_running: bool = True,
+    refresh: bool = False,
+    redis: Redis = Depends(get_redis)
+):
+    """
+    Returns contests from a specific source with Redis caching.
+    
+    Args:
+        source: The contest source (codeforces, atcoder, leetcode, codechef, topcoder, hackerearth)
+        days: Number of days to look ahead for upcoming contests
+        include_running: Whether to include currently running contests
+        refresh: If True, bypass cache and fetch fresh data
+        redis: Redis client instance
+    """
+    source = source.lower()
+    valid_sources = ["codeforces", "atcoder", "leetcode", "codechef", "topcoder", "hackerearth"]
+    
+    if source not in valid_sources:
+        return {"status": "error", "message": f"Invalid source. Valid sources are: {', '.join(valid_sources)}"}
+    
+    # Define cache key for this source
+    cache_key = f"contest_cache:{source}:{days}:{include_running}"
+    
+    # Check if we have cached data and refresh flag is not set
+    if not refresh:
+        cached_data = get_cache(cache_key)
+        if cached_data:
+            return cached_data
+    
+    # Fetch data based on source
+    contests = []
+    if source == "codeforces":
+        contests = fetch_codeforces()
+    elif source == "atcoder":
+        contests = fetch_atcoder_html() or fetch_atcoder_kenkoooo()
+    elif source == "leetcode":
+        contests = fetch_leetcode_graphql()
+    elif source == "codechef":
+        contests = fetch_codechef()
+    elif source == "topcoder":
+        contests = fetch_topcoder()
+    elif source == "hackerearth":
+        contests = fetch_hackerearth()
+    
+    # Filter contests
+    upcoming = filter_upcoming(contests, days)
+    running = filter_running(contests) if include_running else []
+    
+    # Prepare response data
+    response_data = {
+        "status": "success",
+        "source": source,
+        "running": running,
+        "upcoming": upcoming,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "count": len(contests),
+        "cached": False
+    }
+    
+    # Cache the response data (expires in 1 hour)
+    set_cache(cache_key, response_data, expiry=60*60)
+    
+    return response_data
