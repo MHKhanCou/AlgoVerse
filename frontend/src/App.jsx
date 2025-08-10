@@ -109,7 +109,7 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router> {/* Wrap Router above AuthProvider */}
+    <Router future={{ v7_relativeSplatPath: true }}> {/* Wrap Router above AuthProvider */}
       <AuthProvider>
         <SearchProvider>
           <AppRoutes />

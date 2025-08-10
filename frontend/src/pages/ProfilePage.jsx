@@ -25,6 +25,7 @@ import { toast } from 'react-toastify';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import CodeforcesAnalyzer from '../components/CodeforcesAnalyzer';
+import ContestTracker from '../components/ContestTracker';
 import '../styles/ProfilePage.css';
 
 const ProfilePage = () => {
@@ -220,6 +221,7 @@ const ProfilePage = () => {
       <div className="profile-tabs">
         <button className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Dashboard</button>
         <button className={`tab-button ${activeTab === 'codeforces' ? 'active' : ''}`} onClick={() => setActiveTab('codeforces')}>CF Analytics</button>
+        <button className={`tab-button ${activeTab === 'contests' ? 'active' : ''}`} onClick={() => setActiveTab('contests')}>Contests</button>
         <button className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>Settings</button>
         <button className={`tab-button ${activeTab === 'blogs' ? 'active' : ''}`} onClick={() => setActiveTab('blogs')}>My Blogs</button>
       </div>
@@ -286,12 +288,19 @@ const ProfilePage = () => {
                 )}
               </div>
             </section>
+
           </>
         )}
 
         {activeTab === 'codeforces' && (
           <section className="codeforces-section">
             <CodeforcesAnalyzer />
+          </section>
+        )}
+
+        {activeTab === 'contests' && (
+          <section className="contests-section">
+            <ContestTracker />
           </section>
         )}
 

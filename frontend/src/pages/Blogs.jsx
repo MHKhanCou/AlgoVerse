@@ -430,7 +430,7 @@ const Blogs = () => {
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
                         {blog.author_id ? (
-                          <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+                          <UserLink userId={blog.author_id} showDetails={false} />
                         ) : (
                           blog.author
                         )}
@@ -475,7 +475,7 @@ const Blogs = () => {
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
                         {blog.author_id ? (
-                          <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+                          <UserLink userId={blog.author_id} showDetails={false} />
                         ) : (
                           blog.author
                         )}
