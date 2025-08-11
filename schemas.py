@@ -171,6 +171,7 @@ class UpdateName(BaseModel):
 
 class UpdateEmail(BaseModel):
     email: EmailStr
+    """Request payload for updating a user's email address."""
 
     class Config:
         from_attributes = True
@@ -244,6 +245,7 @@ class TokenData(BaseModel):
 # Email verification and password reset schemas
 class EmailVerification(BaseModel):
     token: str
+    """Request payload for verifying a user's email address."""
 
 class ForgotPassword(BaseModel):
     email: EmailStr
@@ -254,6 +256,16 @@ class ResetPassword(BaseModel):
 
 class ResendVerification(BaseModel):
     email: EmailStr
+
+# Email change with OTP flow
+class RequestEmailOtp(BaseModel):
+    email: EmailStr
+    """Request payload for requesting an OTP to change a user's email address."""
+
+class VerifyEmailOtp(BaseModel):
+    email: EmailStr
+    otp: str
+    """Request payload for verifying an OTP to change a user's email address."""
 
 # Blog moderation schemas
 class BlogModerationAction(BaseModel):

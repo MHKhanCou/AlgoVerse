@@ -115,11 +115,6 @@ const SingleAlgorithm = () => {
 
   return (
     <div className="algorithm-page">
-      <nav className="breadcrumb">
-        <Link to="/">Home</Link> {' > '} <Link to="/algorithms">Algorithms</Link> {' > '}
-        {algorithm.name}
-      </nav>
-
       <h1>{algorithm.name}</h1>
       <div className="meta">
         <span className={`tag difficulty ${algorithm.difficulty?.toLowerCase()}`}>
@@ -216,9 +211,9 @@ const SingleAlgorithm = () => {
         </div>
       </section>
 
-      <Link className="back-link" to="/algorithms">
-        ← Back to Algorithms
-      </Link>
+      <button type="button" className="btn btn-white" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
     </div>
   );
 };

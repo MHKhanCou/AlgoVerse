@@ -20,7 +20,7 @@ import {
 import { toast } from 'react-toastify';
 import '../styles/CodeforcesAnalyzer.css';
 
-const PublicCodeforcesAnalyzer = ({ initialHandle = null }) => {
+const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [contests, setContests] = useState([]);
@@ -30,22 +30,39 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null }) => {
   const [handle, setHandle] = useState(initialHandle || '');
   const [isEditing, setIsEditing] = useState(!initialHandle);
 
+  // Comparison state (public view)
+  const [comparisonHandles, setComparisonHandles] = useState([]);
+  const [comparisonData, setComparisonData] = useState([]);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+
   useEffect(() => {
-    // Check for initial handle from prop or URL params
+    // Determine handles from URL or props and initialize view
     const urlParams = new URLSearchParams(window.location.search);
     const urlHandles = urlParams.get('handles');
-    
+
+    let handlesFromUrl = [];
     if (urlHandles) {
-      const handleList = urlHandles.split(',').map(s => s.trim()).filter(Boolean);
-      if (handleList.length > 0) {
-        setHandle(handleList[0]);
-        fetchCodeforcesData(handleList[0]);
+      handlesFromUrl = urlHandles.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    const handles = handlesFromUrl.length > 0 ? handlesFromUrl : (Array.isArray(initialHandles) ? initialHandles : []);
+
+    if (handles.length > 0) {
+      setHandle(handles[0]);
+      fetchCodeforcesData(handles[0]);
+      // If there are multiple handles, set up comparison
+      if (handles.length > 1) {
+        setComparisonHandles(handles);
+        fetchComparisonData(handles);
+      } else {
+        setComparisonHandles([]);
+        setComparisonData([]);
       }
     } else if (initialHandle) {
       setHandle(initialHandle);
       fetchCodeforcesData(initialHandle);
     }
-  }, [initialHandle]);
+  }, [initialHandle, initialHandles]);
 
   const fetchCodeforcesData = async (cfHandle) => {
     if (!cfHandle) return;
@@ -138,15 +155,68 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null }) => {
     });
   };
 
+  // Lightweight per-user stats calculator for comparison table
+  const calculateStatsForUser = (subs) => {
+    const solved = new Set();
+    const attempted = new Set();
+    const verdictCount = {};
+    subs.forEach((submission) => {
+      const key = `${submission.problem.contestId}-${submission.problem.index}`;
+      attempted.add(key);
+      if (submission.verdict === 'OK') solved.add(key);
+      verdictCount[submission.verdict] = (verdictCount[submission.verdict] || 0) + 1;
+    });
+    return {
+      totalSolved: solved.size,
+      totalAttempted: attempted.size,
+      totalSubmissions: subs.length,
+      successRate: attempted.size > 0 ? ((solved.size / attempted.size) * 100).toFixed(1) : 0,
+      verdictCount,
+    };
+  };
+
+  const fetchComparisonData = async (handles) => {
+    setComparisonLoading(true);
+    const results = [];
+    try {
+      for (const h of handles) {
+        try {
+          const userResponse = await fetch(`https://codeforces.com/api/user.info?handles=${h}`);
+          const userData = await userResponse.json();
+          if (userData.status !== 'OK') continue;
+
+          const submissionsResponse = await fetch(`https://codeforces.com/api/user.status?handle=${h}&from=1&count=10000`);
+          const submissionsData = await submissionsResponse.json();
+
+          let userStats = {};
+          if (submissionsData.status === 'OK') {
+            userStats = calculateStatsForUser(submissionsData.result);
+          }
+
+          results.push({
+            handle: h,
+            userInfo: userData.result[0],
+            stats: userStats,
+          });
+        } catch (err) {
+          console.error(`Error fetching data for ${h}:`, err);
+        }
+      }
+      setComparisonData(results);
+    } catch (err) {
+      toast.error('Failed to fetch comparison data');
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
   const saveHandle = () => {
     if (!handle.trim()) {
-      toast.error('Please enter a valid Codeforces handle');
+      toast.warn('Please enter a handle');
       return;
     }
-
-    fetchCodeforcesData(handle.trim());
     setIsEditing(false);
-    toast.success('Handle loaded successfully!');
+    fetchCodeforcesData(handle.trim());
   };
 
   const getRankColor = (rank) => {
@@ -226,14 +296,71 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null }) => {
       {error && (
         <div className="cf-error">
           <AlertCircle className="cf-icon" />
-          <h3>Error</h3>
-          <p>{error}</p>
-          <button onClick={() => fetchCodeforcesData(handle)} className="cf-btn cf-btn-primary">
-            Try Again
-          </button>
+          <div>
+            <h3>Error</h3>
+            <p>{error}</p>
+          </div>
         </div>
       )}
 
+      {/* Comparison Section (when multiple handles provided) */}
+      {comparisonHandles.length > 1 && (
+        <div className="cf-handle-section" style={{ marginTop: 0 }}>
+          <div className="cf-section-title">Comparison</div>
+          {comparisonLoading ? (
+            <div className="cf-loading">Loading comparison…</div>
+          ) : (
+            <div className="cf-comparison-table">
+              <div className="cf-comparison-header">
+                <div>User</div>
+                <div>Rank</div>
+                <div>Current Rating</div>
+                <div>Max Rating</div>
+                <div>Solved</div>
+                <div>Attempted</div>
+                <div>Success</div>
+              </div>
+              {comparisonData.map((u) => (
+                <div key={u.handle} className="cf-comparison-row">
+                  <div className="cf-comparison-user">
+                    <div className="cf-comparison-avatar" aria-hidden>
+                      {String(u.userInfo.handle || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="cf-comparison-details">
+                      <div className="cf-user-handle">
+                        <a
+                          className="cf-problem-link"
+                          href={`https://codeforces.com/profile/${u.userInfo.handle}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {u.userInfo.handle}
+                        </a>
+                      </div>
+                      <div className="cf-user-name">{u.userInfo.firstName || u.userInfo.lastName ? `${u.userInfo.firstName || ''} ${u.userInfo.lastName || ''}`.trim() : ''}</div>
+                    </div>
+                  </div>
+                  <div className="cf-comparison-rank">
+                    <span
+                      className="cf-rank-badge"
+                      style={{ backgroundColor: getRankColor(u.userInfo.rank) }}
+                    >
+                      {u.userInfo.rank || '—'}
+                    </span>
+                  </div>
+                  <div className="cf-comparison-rating">{u.userInfo.rating ?? '—'}</div>
+                  <div className="cf-comparison-max-rating cf-max-rating">{u.userInfo.maxRating ?? '—'}</div>
+                  <div className="cf-comparison-stat">{u.stats?.totalSolved ?? 0}</div>
+                  <div className="cf-comparison-stat">{u.stats?.totalAttempted ?? 0}</div>
+                  <div className="cf-comparison-stat cf-success-rate">{u.stats?.successRate ?? 0}%</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* User Info Section */}
       {/* Single User Analytics */}
       {userInfo && (
         <>

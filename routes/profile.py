@@ -2,11 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from models import User, AlgoDifficulty, AlgoComplexity, AlgoStatus
-from schemas import ShowUser, UpdatePassword, UpdateEmail, UpdateUser, Token, ShowBlog, ShowUserProgress
+from schemas import (
+    ShowUser,
+    UpdatePassword,
+    UpdateEmail,
+    UpdateUser,
+    Token,
+    ShowBlog,
+    ShowUserProgress,
+    RequestEmailOtp,
+    VerifyEmailOtp,
+)
 from db import get_db
 from auth.oauth2 import get_current_user
 from repositories import user_repo, user_progress_repo, blog_repo
 from auth.jwt_token import create_access_token
+from auth.email_utils import (
+    generate_otp,
+    send_verification_otp_email,
+    get_token_expiry_time,
+    is_token_expired,
+)
 from typing import List, Optional
 import logging
 
@@ -56,6 +72,9 @@ def change_email(
     current_user: User = Depends(get_current_user)
 ):
     try:
+        # Prevent no-op updates
+        if email_data.email == current_user.email:
+            raise HTTPException(status_code=400, detail="New email is the same as current email")
         updated_user = user_repo.update_email(db, current_user.id, email_data)
         access_token = create_access_token(data={"sub": updated_user.email})
         return {
@@ -71,6 +90,131 @@ def change_email(
     except Exception as e:
         db.rollback()
         logger.error(f"Unexpected error updating email for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# --- OTP-based Email Change Flow ---
+@router.post("/request-email-otp", response_model=dict)
+def request_email_otp(
+    payload: RequestEmailOtp,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Step 1: User provides a new email. We generate a 6-digit OTP, store it on the user along with
+    an expiry, and temporarily store the target email in reset_token. OTP is emailed to the new email.
+    """
+    try:
+        new_email = payload.email
+
+        # Same email check
+        if new_email == current_user.email:
+            raise HTTPException(status_code=400, detail="New email is the same as current email")
+
+        # Check if taken by another account
+        if user_repo.is_email_taken(db, new_email, exclude_id=current_user.id):
+            raise HTTPException(status_code=400, detail="Email already in use")
+
+        # Generate OTP and expiry (10 minutes)
+        otp = generate_otp(6)
+        expires_at = get_token_expiry_time(10)
+
+        # Persist on current user: reuse fields for OTP flows
+        user = user_repo.get_user_by_id(db, current_user.id)
+        user.verification_token = otp  # store OTP
+        user.reset_token = new_email   # temporarily store pending new email
+        user.reset_token_expires = expires_at
+        db.commit()
+
+        # Send OTP to the NEW email to prove ownership
+        send_verification_otp_email(new_email, user.name or "", otp)
+
+        return {"message": f"Verification code sent to {new_email}", "otp_expires_in": 10}
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error requesting email OTP for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process OTP request")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error requesting email OTP for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/verify-email-otp", response_model=Token)
+def verify_email_otp(
+    payload: VerifyEmailOtp,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Step 2: User submits the OTP. If valid and not expired, update the email to the target stored
+    in reset_token, issue a fresh access token, and clear temporary fields.
+    """
+    try:
+        user = user_repo.get_user_by_id(db, current_user.id)
+
+        # Sanity checks
+        if not user.verification_token or not user.reset_token_expires or not user.reset_token:
+            raise HTTPException(status_code=400, detail="No pending email change request")
+
+        # Ensure the email being verified matches the pending one
+        if payload.email != user.reset_token:
+            raise HTTPException(status_code=400, detail="Email does not match pending request")
+
+        # Verify OTP
+        if is_token_expired(user.reset_token_expires):
+            # Clear pending state
+            user.verification_token = None
+            user.reset_token = None
+            user.reset_token_expires = None
+            db.commit()
+            raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new code.")
+
+        if payload.otp != user.verification_token:
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+
+        # Same email check (defensive)
+        if user.reset_token == user.email:
+            # Clear pending state
+            user.verification_token = None
+            user.reset_token = None
+            user.reset_token_expires = None
+            db.commit()
+            raise HTTPException(status_code=400, detail="New email is the same as current email")
+
+        # Check if taken by another account (exclude current)
+        if user_repo.is_email_taken(db, user.reset_token, exclude_id=user.id):
+            # Clear pending state (avoid reuse of leaked OTP)
+            user.verification_token = None
+            user.reset_token = None
+            user.reset_token_expires = None
+            db.commit()
+            raise HTTPException(status_code=400, detail="Email already in use")
+
+        # Perform the update
+        final_email = user.reset_token
+        user.email = final_email
+        # Clear pending state
+        user.verification_token = None
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.commit()
+
+        access_token = create_access_token(data={"sub": final_email})
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error verifying email OTP for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to verify email OTP")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error verifying email OTP for user {current_user.id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update", response_model=ShowUser)

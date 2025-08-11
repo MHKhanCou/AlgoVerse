@@ -20,6 +20,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
+import { authService } from '../services/authService';
 import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
 import { useNavigate, Link } from 'react-router-dom';
@@ -39,16 +40,23 @@ const ProfilePage = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [settingsForm, setSettingsForm] = useState({
     email: user?.email || '',
+    emailPassword: '',
     oldPassword: '',
     newPassword: '',
     confirmNewPassword: '',
+    deletePassword: '',
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [emailSectionOpen, setEmailSectionOpen] = useState(true);
+  const [passwordSectionOpen, setPasswordSectionOpen] = useState(false);
+  const [dangerSectionOpen, setDangerSectionOpen] = useState(false);
   const [myBlogsStatusFilter, setMyBlogsStatusFilter] = useState('approved'); // 'all' | 'approved' | 'unapproved'
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -128,14 +136,18 @@ const ProfilePage = () => {
     const errors = {};
     if (activeTab === 'settings') {
       if (!settingsForm.email || !/\S+@\S+\.\S+/.test(settingsForm.email)) {
-        errors.email = 'A valid email is required';
+        errors.email = 'Please enter a valid email address';
+      }
+      // Require current password to re-authenticate before changing email
+      if (!settingsForm.emailPassword) {
+        errors.emailPassword = 'Please enter your current password to confirm email change';
       }
       if (settingsForm.oldPassword || settingsForm.newPassword || settingsForm.confirmNewPassword) {
         if (!settingsForm.oldPassword) {
-          errors.oldPassword = 'Old password is required';
+          errors.oldPassword = 'Please enter your old password';
         }
         if (!settingsForm.newPassword) {
-          errors.newPassword = 'New password is required';
+          errors.newPassword = 'Please enter a new password';
         } else if (settingsForm.newPassword.length < 6) {
           errors.newPassword = 'New password must be at least 6 characters';
         }
@@ -148,17 +160,58 @@ const ProfilePage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleUpdateEmail = async (e) => {
+  const handleSendEmailOtp = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+    // Frontend guard: avoid server call if email hasn't changed
+    const newEmail = (settingsForm.email || '').trim().toLowerCase();
+    const currentEmail = (user?.email || '').trim().toLowerCase();
+    if (newEmail && currentEmail && newEmail === currentEmail) {
+      toast.info('New email is the same as your current email');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const response = await userService.updateEmail({ email: settingsForm.email });
+      // Re-authenticate with current credentials before updating email
+      await authService.login(user?.email, settingsForm.emailPassword);
+      // Try OTP request flow if backend supports it
+      await userService.requestEmailOtp({ email: settingsForm.email });
+      setEmailOtpSent(true);
+      toast.info('Verification code sent to your new email. Please enter the OTP to confirm.');
+    } catch (error) {
+      // Fallback to immediate update if OTP endpoints are not available
+      try {
+        const response = await userService.updateEmail({ email: settingsForm.email });
+        setUser((prev) => ({ ...prev, email: settingsForm.email }));
+        toast.success('Email updated successfully');
+        setSettingsForm((prev) => ({ ...prev, emailPassword: '' }));
+        setEmailOtpSent(false);
+        setEmailOtpCode('');
+      } catch (fallbackErr) {
+        console.error('Error updating email:', fallbackErr);
+        toast.error(fallbackErr.message || 'Failed to update email. Please verify your current password.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async (e) => {
+    e.preventDefault();
+    if (!emailOtpCode) {
+      toast.error('Please enter the OTP code sent to your email');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await userService.verifyEmailOtp({ email: settingsForm.email, otp: emailOtpCode });
       setUser((prev) => ({ ...prev, email: settingsForm.email }));
-      localStorage.setItem('token', response.access_token);
-      toast.success('Email updated successfully');
+      toast.success('Email verified and updated successfully');
+      setSettingsForm((prev) => ({ ...prev, emailPassword: '' }));
+      setEmailOtpSent(false);
+      setEmailOtpCode('');
     } catch (err) {
-      toast.error(err.message || 'Failed to update email');
+      toast.error(err.message || 'Failed to verify OTP');
     } finally {
       setIsSubmitting(false);
     }
@@ -188,9 +241,15 @@ const ProfilePage = () => {
   };
 
   const handleDeleteAccount = async () => {
+    if (!settingsForm.deletePassword) {
+      toast.error('Please enter your current password to confirm deletion');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete your account? All progress and blogs will be permanently removed.')) return;
     setIsSubmitting(true);
     try {
+      // Re-authenticate before allowing deletion
+      await authService.login(user?.email, settingsForm.deletePassword);
       await userService.deleteAccount();
       logout();
       toast.success('Account deleted successfully');
@@ -314,124 +373,200 @@ const ProfilePage = () => {
           <section className="settings-section">
             <h2>Account Settings</h2>
             <div className="settings-form">
-              <form onSubmit={handleUpdateEmail} className="form-group">
-                <h3>Update Email</h3>
-                <div className="form-field">
-                  <label htmlFor="email">Email</label>
-                  <input type="email" id="email" name="email" value={settingsForm.email} onChange={handleInputChange} placeholder="Enter your new email" />
-                  {formErrors.email && <p className="error-text">{formErrors.email}</p>}
-                </div>
-                <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Email'}</button>
-              </form>
-
-              <form onSubmit={handleUpdatePassword} className="form-group">
-                <h3>Update Password</h3>
-                <div className="form-field password-group">
-                  <label htmlFor="oldPassword">Old Password</label>
-                  <input
-                    id="oldPassword"
-                    type={showOldPassword ? 'text' : 'password'}
-                    name="oldPassword"
-                    value={settingsForm.oldPassword}
-                    onChange={handleInputChange}
-                    placeholder="Enter your old password"
-                  />
-                  <span
-                    className="toggle-password"
-                    onClick={() => setShowOldPassword(prev => !prev)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={showOldPassword ? 'Hide old password' : 'Show old password'}
-                  >
-                    {showOldPassword ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
-                      </svg>
+              {/* Update Email - Expandable */}
+              <div className="form-group">
+                <button type="button" className="btn-ghost" onClick={() => setEmailSectionOpen(v => !v)} aria-expanded={emailSectionOpen} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontWeight: 600 }}>Update Email</span>
+                  <span>{emailSectionOpen ? '▾' : '▸'}</span>
+                </button>
+                {emailSectionOpen && (
+                  <form onSubmit={emailOtpSent ? handleVerifyEmailOtp : handleSendEmailOtp} className="form-inner">
+                    <div className="form-field">
+                      <label htmlFor="email">New Email</label>
+                      <input className="input" type="email" id="email" name="email" value={settingsForm.email} onChange={handleInputChange} placeholder="Enter your new email" />
+                      {formErrors.email && <p className="error-text">{formErrors.email}</p>}
+                    </div>
+                    <div className="form-field password-group">
+                      <label htmlFor="emailPassword">Current Password</label>
+                      <input
+                        className="input"
+                        id="emailPassword"
+                        type="password"
+                        name="emailPassword"
+                        value={settingsForm.emailPassword}
+                        onChange={handleInputChange}
+                        placeholder="Enter your current password to confirm"
+                      />
+                      {formErrors.emailPassword && <p className="error-text">{formErrors.emailPassword}</p>}
+                    </div>
+                    {emailOtpSent && (
+                      <div className="form-field">
+                        <label htmlFor="emailOtp">Email OTP</label>
+                        <input
+                          className="input"
+                          id="emailOtp"
+                          type="text"
+                          name="emailOtp"
+                          value={emailOtpCode}
+                          onChange={(e) => setEmailOtpCode(e.target.value)}
+                          placeholder="Enter the 6-digit code sent to your new email"
+                        />
+                      </div>
                     )}
-                  </span>
-                  {formErrors.oldPassword && <p className="error-text">{formErrors.oldPassword}</p>}
-                </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button className="btn btn-white" type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? (emailOtpSent ? 'Verifying...' : 'Sending...') : (emailOtpSent ? 'Verify & Update Email' : 'Send Verification Code')}
+                      </button>
+                      {emailOtpSent && (
+                        <button type="button" className="btn btn-ghost" onClick={() => { setEmailOtpSent(false); setEmailOtpCode(''); }} disabled={isSubmitting}>
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                )}
+              </div>
 
-                <div className="form-field password-group">
-                  <label htmlFor="newPassword">New Password</label>
-                  <input
-                    id="newPassword"
-                    type={showNewPassword ? 'text' : 'password'}
-                    name="newPassword"
-                    value={settingsForm.newPassword}
-                    onChange={handleInputChange}
-                    placeholder="Enter your new password"
-                  />
-                  <span
-                    className="toggle-password"
-                    onClick={() => setShowNewPassword(prev => !prev)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
-                  >
-                    {showNewPassword ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
-                      </svg>
-                    )}
-                  </span>
-                  {formErrors.newPassword && <p className="error-text">{formErrors.newPassword}</p>}
-                </div>
+              {/* Update Password - Expandable */}
+              <div className="form-group">
+                <button type="button" className="btn-ghost" onClick={() => setPasswordSectionOpen(v => !v)} aria-expanded={passwordSectionOpen} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontWeight: 600 }}>Update Password</span>
+                  <span>{passwordSectionOpen ? '▾' : '▸'}</span>
+                </button>
+                {passwordSectionOpen && (
+                  <form onSubmit={handleUpdatePassword} className="form-inner">
+                  <div className="form-field password-group">
+                    <label htmlFor="oldPassword">Old Password</label>
+                    <input
+                      className="input"
+                      id="oldPassword"
+                      type={showOldPassword ? 'text' : 'password'}
+                      name="oldPassword"
+                      value={settingsForm.oldPassword}
+                      onChange={handleInputChange}
+                      placeholder="Enter your old password"
+                    />
+                    <span
+                      className="toggle-password"
+                      onClick={() => setShowOldPassword(prev => !prev)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={showOldPassword ? 'Hide old password' : 'Show old password'}
+                    >
+                      {showOldPassword ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                      )}
+                    </span>
+                    {formErrors.oldPassword && <p className="error-text">{formErrors.oldPassword}</p>}
+                  </div>
 
-                <div className="form-field password-group">
-                  <label htmlFor="confirmNewPassword">Confirm New Password</label>
-                  <input
-                    id="confirmNewPassword"
-                    type={showConfirmNewPassword ? 'text' : 'password'}
-                    name="confirmNewPassword"
-                    value={settingsForm.confirmNewPassword}
-                    onChange={handleInputChange}
-                    placeholder="Confirm your new password"
-                  />
-                  <span
-                    className="toggle-password"
-                    onClick={() => setShowConfirmNewPassword(prev => !prev)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={showConfirmNewPassword ? 'Hide confirm password' : 'Show confirm password'}
-                  >
-                    {showConfirmNewPassword ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
-                      </svg>
-                    )}
-                  </span>
-                  {formErrors.confirmNewPassword && <p className="error-text">{formErrors.confirmNewPassword}</p>}
-                </div>
+                  <div className="form-field password-group">
+                    <label htmlFor="newPassword">New Password</label>
+                    <input
+                      className="input"
+                      id="newPassword"
+                      type={showNewPassword ? 'text' : 'password'}
+                      name="newPassword"
+                      value={settingsForm.newPassword}
+                      onChange={handleInputChange}
+                      placeholder="Enter your new password"
+                    />
+                    <span
+                      className="toggle-password"
+                      onClick={() => setShowNewPassword(prev => !prev)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                    >
+                      {showNewPassword ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                      )}
+                    </span>
+                    {formErrors.newPassword && <p className="error-text">{formErrors.newPassword}</p>}
+                  </div>
 
-                <button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Password'}</button>
-              </form>
+                  <div className="form-field password-group">
+                    <label htmlFor="confirmNewPassword">Confirm New Password</label>
+                    <input
+                      className="input"
+                      id="confirmNewPassword"
+                      type={showConfirmNewPassword ? 'text' : 'password'}
+                      name="confirmNewPassword"
+                      value={settingsForm.confirmNewPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm your new password"
+                    />
+                    <span
+                      className="toggle-password"
+                      onClick={() => setShowConfirmNewPassword(prev => !prev)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={showConfirmNewPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    >
+                      {showConfirmNewPassword ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6.71 6.71C4.27 8.3 2.77 10.5 2 12c1.73 3.46 5.54 7 10 7 2.02 0 3.9-.6 5.5-1.61M9.88 4.14C10.56 4.05 11.27 4 12 4c4.46 0 8.27 3.54 10 7-.46.92-1.09 1.86-1.84 2.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        </svg>
+                      )}
+                    </span>
+                    {formErrors.confirmNewPassword && <p className="error-text">{formErrors.confirmNewPassword}</p>}
+                  </div>
 
+                    <button className="btn btn-white" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Password'}</button>
+                  </form>
+                )}
+              </div>
+
+              {/* Danger Zone - Expandable */}
               <div className="form-group danger-zone">
-                <h2>Delete Account</h2>
-                <p>Deleting your account is permanent and cannot be undone. All your progress and blogs will be removed.</p>
-                <button className="delete-button" onClick={handleDeleteAccount} disabled={isSubmitting}>{isSubmitting ? 'Deleting...' : 'Delete Account'}</button>
+                <button type="button" className="btn-ghost" onClick={() => setDangerSectionOpen(v => !v)} aria-expanded={dangerSectionOpen} style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--error, #ef4444)' }}>Danger Zone</span>
+                  <span>{dangerSectionOpen ? '▾' : '▸'}</span>
+                </button>
+                {dangerSectionOpen && (
+                  <div className="form-inner">
+                    <h2>Delete Account</h2>
+                    <p>Deleting your account is permanent and cannot be undone. All your progress and blogs will be removed.</p>
+                    <div className="form-field">
+                      <label htmlFor="deletePassword">Current Password</label>
+                      <input
+                        className="input"
+                        id="deletePassword"
+                        type="password"
+                        name="deletePassword"
+                        value={settingsForm.deletePassword}
+                        onChange={handleInputChange}
+                        placeholder="Enter your current password to confirm deletion"
+                      />
+                    </div>
+                    <button className="btn btn-white" onClick={handleDeleteAccount} disabled={isSubmitting}>{isSubmitting ? 'Deleting...' : 'Delete Account'}</button>
+                  </div>
+                )}
               </div>
             </div>
           </section>

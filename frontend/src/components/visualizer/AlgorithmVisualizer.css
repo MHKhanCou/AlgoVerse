@@ -1,13 +1,33 @@
 .algorithm-visualizer {
   width: 100%;
   min-height: 400px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
   padding: 20px;
   margin-bottom: 30px;
   position: relative;
   overflow: hidden;
+}
+
+/* Container classes actually used in JSX */
+.algorithm-visualizer-container {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.visualizer-wrapper {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+/* Do not theme the actual visualization canvas area heavily */
+.visualizer-content {
+  background: transparent; /* Allow child visualizers to control visuals */
 }
 
 /* Loading and placeholder states */
@@ -19,7 +39,7 @@
   justify-content: center;
   height: 300px;
   width: 100%;
-  color: #6c757d;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -49,33 +69,36 @@
 
 .visualizer-controls button {
   padding: 8px 16px;
-  background-color: #4a6ee0;
-  color: white;
+  background: var(--primary);
+  color: #ffffff;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-fast);
 }
 
 .visualizer-controls button:hover {
-  background-color: #3a5bbf;
+  background: var(--primary-hover);
 }
 
 .visualizer-controls button:disabled {
-  background-color: #b0b0b0;
+  background: var(--border-color);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .visualizer-controls button.active {
-  background-color: #2d4ba0;
+  background: var(--primary-dark);
 }
 
 .visualizer-controls select,
 .visualizer-controls input {
   padding: 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
   font-size: 14px;
 }
 
@@ -103,8 +126,9 @@
 .algorithm-info {
   margin-top: 20px;
   padding: 15px;
-  background-color: #e9ecef;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
   font-size: 14px;
 }
 
@@ -112,21 +136,23 @@
   margin-top: 0;
   margin-bottom: 10px;
   font-size: 16px;
-  color: #343a40;
+  color: var(--text-primary);
 }
 
 .algorithm-info p {
   margin: 5px 0;
   line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 /* Completion message */
 .completion-message {
   margin-top: 20px;
   padding: 15px;
-  background-color: #d4edda;
-  color: #155724;
-  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
   text-align: center;
   font-weight: 500;
 }

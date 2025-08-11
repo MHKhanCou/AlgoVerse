@@ -74,7 +74,12 @@ const SingleBlog = () => {
     return <div className="loading">Loading...</div>;
   }
 
-  const isOwner = isAuthenticated && user && blog.author === user.name;
+  const isOwner = Boolean(
+    isAuthenticated &&
+    user &&
+    ((blog.author_id != null && (user.id === blog.author_id || user.user_id === blog.author_id)) ||
+      (blog.author && user.name && blog.author === user.name))
+  );
   const canManage = isOwner || isAdmin;
 
   return (
@@ -121,27 +126,34 @@ const SingleBlog = () => {
         </form>
       ) : (
         <>
-          <h1>{blog.title}</h1>
-          <p className="blog-meta">
-            By {blog.author_id ? (
-              <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
-            ) : (
-              blog.author
-            )} | Created: {new Date(blog.created_at).toLocaleDateString()} | Updated:{' '}
-            {new Date(blog.updated_at).toLocaleDateString()}
-          </p>
+          <div className="blog-header">
+            <h1 className="blog-title">{blog.title}</h1>
+            {canManage && (
+              <div className="blog-actions">
+                <button className="cta-button primary" onClick={() => setIsEditing(true)}>
+                  Edit Blog
+                </button>
+                <button className="cta-button tertiary" onClick={handleDelete}>
+                  Delete Blog
+                </button>
+              </div>
+            )}
+          </div>
+
+          <ul className="blog-meta pill-list">
+            <li className="pill">
+              By {blog.author_id ? (
+                <UserLink userId={blog.author_id} to={`/users/${blog.author_id}`} showDetails={false} />
+              ) : (
+                blog.author
+              )}
+            </li>
+            <li className="pill">Created: {new Date(blog.created_at).toLocaleDateString()}</li>
+            <li className="pill">Updated: {new Date(blog.updated_at).toLocaleDateString()}</li>
+          </ul>
+
           <div className="blog-body">{blog.body}</div>
-          {canManage && (
-            <div className="blog-actions">
-              <button className="cta-button primary" onClick={() => setIsEditing(true)}>
-                Edit Blog
-              </button>
-              <button className="cta-button tertiary" onClick={handleDelete}>
-                Delete Blog
-              </button>
-            </div>
-          )}
-          
+
           {/* Comment Section */}
           <CommentSection blogId={parseInt(id)} user={user} />
         </>

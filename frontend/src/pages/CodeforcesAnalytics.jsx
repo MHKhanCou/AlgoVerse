@@ -7,17 +7,20 @@ import '../styles/CodeforcesAnalytics.css';
 const CodeforcesAnalytics = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const [initialHandle, setInitialHandle] = useState(null);
+  const [initialHandles, setInitialHandles] = useState([]);
 
   useEffect(() => {
-    // Handle deep linking with query params
+    // Handle deep linking with query params, supporting multiple handles
     const params = new URLSearchParams(location.search);
-    const handles = params.get('handles');
-    if (handles) {
-      const handleList = handles.split(',').map(s => s.trim()).filter(Boolean);
-      if (handleList.length > 0) {
-        setInitialHandle(handleList[0]);
-      }
+    const handlesParam = params.get('handles');
+    if (handlesParam) {
+      const list = handlesParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      setInitialHandles(list);
+    } else {
+      setInitialHandles([]);
     }
   }, [location.search]);
 
@@ -30,9 +33,10 @@ const CodeforcesAnalytics = () => {
           and progress tracking similar to CFViz.
         </p>
       </div>
-      
+
       <div className="cf-analyzer-container">
-        <PublicCodeforcesAnalyzer initialHandle={initialHandle} />
+        {/* Backward compatibility: if only one handle, PublicCodeforcesAnalyzer will show single view */}
+        <PublicCodeforcesAnalyzer initialHandles={initialHandles} />
       </div>
     </div>
   );

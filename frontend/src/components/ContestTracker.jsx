@@ -454,6 +454,17 @@ export default function ContestTracker() {
     upcoming: (data.upcoming || []).filter(matchesFilter),
     recent: (data.recent || []).filter(matchesFilter),
   };
+  // Apply time window to upcoming based on selected `days`
+  const nowMs = Date.now();
+  const filteredUpcomingWindow = (filtered.upcoming || []).filter((c) => {
+    try {
+      const start = new Date(c.start_time).getTime();
+      const diff = start - nowMs; // ms until start
+      return diff >= 0 && diff <= days * 24 * 60 * 60 * 1000;
+    } catch (_) {
+      return false;
+    }
+  });
   const toggleSite = (key) => {
     setSites((prev) => {
       const next = new Set(prev);
@@ -465,7 +476,7 @@ export default function ContestTracker() {
   const setNone = () => setSites(new Set());
 
   // Now that `filtered` is available, compute grouped upcoming (if needed)
-  grouped = days >= 7 ? groupUpcoming(filtered.upcoming) : null;
+  grouped = days >= 7 ? groupUpcoming(filteredUpcomingWindow) : null;
 
   return (
     <div className="contest-tracker" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -503,7 +514,7 @@ export default function ContestTracker() {
               className={`tab ${tab === 'upcoming' ? 'active' : ''}`}
               onClick={() => { if (days !== 1) setDays(1); setTab('upcoming'); }}
             >
-              Upcoming ({filtered.upcoming.length})
+              Upcoming ({filteredUpcomingWindow.length})
             </button>
             <button
               className={`tab ${tab === 'icpc' ? 'active' : ''}`}
@@ -637,9 +648,9 @@ export default function ContestTracker() {
           )}
         </div>
       ) : (
-        filtered.upcoming.length ? (
+        filteredUpcomingWindow.length ? (
           <ul className="contest-list">
-            {filtered.upcoming.map((c, i) => (
+            {filteredUpcomingWindow.map((c, i) => (
               <ContestCard key={`${c.name}-${i}`} c={c} status="Upcoming" nowTick={nowTick} />
             ))}
           </ul>

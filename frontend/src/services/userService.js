@@ -17,6 +17,38 @@ export const userService = {
     if (!response.ok) throw new Error('Failed to fetch profile');
     return response.json();
   },
+  
+  // Request OTP to be sent to the new email for verification
+  async requestEmailOtp(data) {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/profile/request-email-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+  
+  // Verify OTP and finalize email change, expecting new access token
+  async verifyEmailOtp(data) {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/profile/verify-email-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(response);
+    if (result.access_token) {
+      localStorage.setItem('token', result.access_token);
+    }
+    return result;
+  },
 
   async getStats() {
     const token = localStorage.getItem('token');
