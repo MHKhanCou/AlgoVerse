@@ -77,6 +77,52 @@ const timeDiffLabel = (start) => {
 const IconClock = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
 );
+
+const IconICPC = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 64 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="4" width="12" height="16" rx="2" fill="#2563eb"/>
+    <rect x="18" y="4" width="12" height="16" rx="2" fill="#f59e0b"/>
+    <rect x="34" y="4" width="12" height="16" rx="2" fill="#ef4444"/>
+    <path d="M16 12h2" stroke="#fff" strokeWidth="2"/>
+    <path d="M32 12h2" stroke="#fff" strokeWidth="2"/>
+    <circle cx="56" cy="12" r="6" stroke="#94a3b8" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+// ICPC card styled similarly to contest cards with a special accent
+const IcpcCard = ({ ev, nowTick, formatCountdown }) => {
+  const start = new Date(ev.start_time);
+  // Countdown to 2 PM on start day (start + 14 hours)
+  const target = new Date(start.getTime() + 14 * 60 * 60 * 1000);
+  return (
+    <li
+      className="contest-card"
+      style={{
+        listStyle: 'none',
+        marginBottom: 8,
+        border: '1px solid rgba(14,165,233,0.40)',
+        borderRadius: 8,
+        background: 'var(--card-bg, #0c1424)'
+      }}
+    >
+      <div
+        className="contest-card-inner"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 12 }}
+      >
+        <div className="contest-card-left" style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
+          <span className="icpc-logo" aria-hidden="true"><IconICPC size={22} /></span>
+          <div style={{ width: '100%' }}>
+            <div className="contest-name" style={{ fontWeight: 700 }}>{ev.name}</div>
+            <div className="icpc-countdown-row" style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 6 }}>
+              <span className="badge" style={{ background: '#0ea5e9', color: '#001018', padding: '4px 8px', borderRadius: 6, fontWeight: 700 }}>Starts In</span>
+              <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 18, fontWeight: 800 }}>{formatCountdown(target.toISOString())}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+};
 const IconTimer = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2h4"/><path d="M12 14V8"/><circle cx="12" cy="16" r="6"/></svg>
 );
@@ -166,8 +212,62 @@ export default function ContestTracker() {
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
-  const ALL_SITES = ['cf','atcoder','leetcode','codechef','topcoder','hackerearth'];
-  const [sites, setSites] = useState(new Set(ALL_SITES));
+  // Remove HackerEarth for now
+  const ALL_SITES = ['cf','codechef','atcoder','leetcode','topcoder'];
+  // Default selected platforms: CF, CodeChef, AtCoder
+  const [sites, setSites] = useState(new Set(['cf','codechef','atcoder']));
+
+  // 1s ticker for live countdowns
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ICPC contests (hardcoded)
+  const ICPC_EVENTS = [
+    {
+      name: 'ICPC Dhaka Regional 2025 – Preliminary (BUBT Host)',
+      site: 'ICPC',
+      url: 'https://icpc.global/',
+      start_time: '2025-10-24T00:00:00+06:00',
+      duration: 2 * 24 * 60 * 60, // 2 days
+    },
+    {
+      name: 'ICPC Dhaka Regional 2025 – On-site (BUBT Host)',
+      site: 'ICPC',
+      url: 'https://icpc.global/',
+      start_time: '2025-12-19T00:00:00+06:00',
+      duration: 2 * 24 * 60 * 60, // 2 days
+    },
+  ];
+
+  // Determine next ICPC event relative to nowTick
+  const nextIcpcEvent = (() => {
+    const now = new Date(nowTick);
+    // sort by start
+    const sorted = [...ICPC_EVENTS].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    for (const ev of sorted) {
+      const st = new Date(ev.start_time);
+      const end = new Date(st.getTime() + (Number(ev.duration||0) * 1000));
+      if (now <= end) return ev; // either before start or during preliminary -> then onsite later
+    }
+    return sorted[sorted.length - 1];
+  })();
+
+  const formatCountdown = (targetIso) => {
+    const target = new Date(targetIso).getTime();
+    const now = nowTick;
+    let diff = Math.max(0, target - now);
+    const sec = Math.floor(diff / 1000);
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
 
   const loadContests = async (forceRefresh = false) => {
     try {
@@ -206,13 +306,16 @@ export default function ContestTracker() {
       const isCached = js.cached === true;
       const timestamp = js.fetched_at ? new Date(js.fetched_at) : new Date();
       setCacheStatus({ isCached, timestamp });
-      // Auto-pick a tab with data on first load or when current tab is empty
+      // Auto-pick a tab with data on first load or when current tab is empty.
+      // Priority: running -> recent -> upcoming (default is 'running').
       setTimeout(() => {
         setTab((prev) => {
           if (prev === 'upcoming' && upcoming.length) return prev;
           if (prev === 'running' && running.length) return prev;
           if (prev === 'recent' && recent.length) return prev;
-          return upcoming.length ? 'upcoming' : running.length ? 'running' : 'recent';
+          const next = running.length ? 'running' : (recent.length ? 'recent' : 'upcoming');
+          if (next === 'upcoming' && days !== 1) setDays(1);
+          return next;
         });
       }, 0);
     } catch (e) {
@@ -293,7 +396,9 @@ export default function ContestTracker() {
         <div className="contest-header-row">
           <h2 className="contest-heading">Contest Tracker</h2>
           <div className="contest-filter-row">
-            <DayButtons days={days} setDays={setDays} />
+            {tab === 'upcoming' && (
+              <DayButtons days={days} setDays={setDays} />
+            )}
             <button 
               className="btn btn-refresh" 
               onClick={handleRefresh} 
@@ -311,14 +416,26 @@ export default function ContestTracker() {
 
         <div className="contest-header-row">
           <div className="contest-tabs">
+            <button className={`tab ${tab === 'recent' ? 'active' : ''}`} onClick={() => setTab('recent')}>
+              Recent ({filtered.recent.length})
+            </button>
             <button className={`tab ${tab === 'running' ? 'active' : ''}`} onClick={() => setTab('running')}>
               Running ({filtered.running.length})
             </button>
-            <button className={`tab ${tab === 'upcoming' ? 'active' : ''}`} onClick={() => setTab('upcoming')}>
+            <button
+              className={`tab ${tab === 'upcoming' ? 'active' : ''}`}
+              onClick={() => { if (days !== 1) setDays(1); setTab('upcoming'); }}
+            >
               Upcoming ({filtered.upcoming.length})
             </button>
-            <button className={`tab ${tab === 'recent' ? 'active' : ''}`} onClick={() => setTab('recent')}>
-              Recent ({filtered.recent.length})
+            <button
+              className={`tab ${tab === 'icpc' ? 'active' : ''}`}
+              onClick={() => setTab('icpc')}
+              title="International Collegiate Programming Contest"
+              style={tab === 'icpc' ? { borderBottomColor: '#0ea5e9' } : {}}
+            >
+              <span className="icpc-logo" aria-hidden="true" style={{ marginRight: 6 }}><IconICPC /></span>
+              ICPC
             </button>
           </div>
           
@@ -337,14 +454,28 @@ export default function ContestTracker() {
           <div className="resource-filter" aria-label="Online judges filter">
             {[
               {k:'cf', label:'Codeforces'},
+              {k:'codechef', label:'CodeChef'},
               {k:'atcoder', label:'AtCoder'},
               {k:'leetcode', label:'LeetCode'},
-              {k:'codechef', label:'CodeChef'},
               {k:'topcoder', label:'Topcoder'},
-              {k:'hackerearth', label:'HackerEarth'},
             ].map(({k,label}) => (
-            <button key={k} className={`resource-chip chip-${k} ${sites.has(k)?'active':''}`} onClick={() => toggleSite(k)}>
-              {label}
+            <button
+              key={k}
+              className={`resource-chip ${sites.has(k) ? 'active' : ''}`}
+              onClick={() => toggleSite(k)}
+              aria-pressed={sites.has(k)}
+              title={label}
+            >
+              <span className="judge-logo" aria-hidden="true">
+                {k === 'cf' ? <IconCF /> :
+                 k === 'atcoder' ? <IconATC /> :
+                 k === 'leetcode' ? <IconLC /> :
+                 k === 'codechef' ? <IconCC /> :
+                 /* Fallback: simple initial for others */
+                 <span className="logo-initial">{label.slice(0,2).toUpperCase()}</span>
+                }
+              </span>
+              <span>{label}</span>
             </button>
             ))}
           </div>
@@ -392,6 +523,13 @@ export default function ContestTracker() {
             </div>
           </div>
         )
+      ) : tab === 'icpc' ? (
+        <div className="icpc-pane" style={{ padding: 8 }}>
+          {/* Two similar ICPC cards with consistent styling */}
+          {ICPC_EVENTS.map((ev, i) => (
+            <IcpcCard key={`icpc-card-${i}`} ev={ev} nowTick={nowTick} formatCountdown={formatCountdown} />
+          ))}
+        </div>
       ) : grouped ? (
         <div className="grouped-lists">
           <div className="group">
@@ -432,9 +570,9 @@ export default function ContestTracker() {
           <div className="empty-state">
             <p className="empty">No upcoming contests found.</p>
             <div className="actions">
-              <button className={`btn ${days === 30 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setDays(30)}>Next 30 days</button>
+              <button className={`btn ${days === 1 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setDays(1)}>Next 24 hours</button>
               <button className={`btn ${days === 7 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setDays(7)}>Next 7 days</button>
-              <button className={`btn ${days === 1 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setDays(1)}>Next 1 day</button>
+              <button className={`btn ${days === 30 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setDays(30)}>Next 30 days</button>
             </div>
           </div>
         )
@@ -555,15 +693,13 @@ export default function ContestTracker() {
         .empty-state { display: grid; gap: 10px; }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .resource-filter { display: flex; gap: 6px; flex-wrap: nowrap; }
-        .resource-chip { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; font-size: 0.82rem; white-space: nowrap; }
-        .resource-chip.active { color: #fff; border-color: transparent; }
-        .chip-cf.active { background: #4e8df7; }
-        .chip-atcoder.active { background: #10b981; }
-        .chip-leetcode.active { background: #f59e0b; }
-        .chip-codechef.active { background: #7c3aed; }
-        .chip-topcoder.active { background: #ef4444; }
-        .chip-hackerearth.active { background: #22c55e; }
+        .resource-filter { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; }
+        .resource-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); color: var(--text); cursor: pointer; font-size: 0.82rem; white-space: nowrap; transition: background .2s ease, border-color .2s ease; }
+        .resource-chip:hover { background: var(--chip-hover, rgba(255,255,255,0.04)); }
+        .resource-chip.active { background: var(--chip-active); border-color: var(--border); font-weight: 600; }
+        .judge-logo { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 6px; background: var(--card); border: 1px solid var(--border); font-size: 0.65rem; font-weight: 700; color: var(--muted); }
+        .judge-logo svg { width: 14px; height: 14px; }
+        .logo-initial { line-height: 1; }
 
         .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .seg { padding: 6px 10px; background: transparent; color: var(--text); border: 0; cursor: pointer; }

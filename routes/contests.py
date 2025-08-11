@@ -138,12 +138,19 @@ def fetch_codeforces() -> List[Dict]:
 
 
 def fetch_hackerearth() -> List[Dict]:
-    """Scrape HackerEarth challenges page (Next.js) by reading __NEXT_DATA__ JSON and extracting ongoing/upcoming contests."""
+    """Scrape HackerEarth challenges page (Next.js) by reading __NEXT_DATA__ JSON and extracting ongoing/upcoming contests.
+
+    More robust scanning logic to accommodate structure changes:
+    - Expands paths checked
+    - Parses timestamps in epoch seconds, epoch millis, or ISO formats
+    - Accepts multiple possible keys for title/url/start/end
+    """
     base = "https://www.hackerearth.com"
     paths = [
         "/challenges/",
         "/challenges/competitive/",
         "/challenges/hiring/",
+        "/challenges/hackathon/",
     ]
     try:
         headers = {
@@ -151,23 +158,56 @@ def fetch_hackerearth() -> List[Dict]:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         data = None
+        used_path = None
         for p in paths:
-            r = requests.get(base + p, timeout=12, headers=headers)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, "lxml")
-            script = soup.find("script", id="__NEXT_DATA__")
-            if script and script.string:
-                try:
-                    data = json.loads(script.string)
-                    break
-                except Exception:
+            try:
+                r = requests.get(base + p, timeout=12, headers=headers)
+                if r.status_code != 200:
+                    # Some sub-paths may be 404/redirect in some regions; try next
                     continue
+                soup = BeautifulSoup(r.text, "lxml")
+                script = soup.find("script", id="__NEXT_DATA__")
+                if script and script.string:
+                    try:
+                        data = json.loads(script.string)
+                        used_path = p
+                        break
+                    except Exception:
+                        continue
+            except Exception:
+                # network or parsing error on this path; try next
+                continue
         if data is None:
-            # Fallback: chrome extension JSON endpoint
+            # Fallback 1: attempt to parse any JSON-LD scripts on the challenges pages
+            try:
+                # Try main challenges page explicitly
+                r = requests.get(base + "/challenges/", timeout=12, headers=headers)
+                if r.status_code == 200:
+                    soup2 = BeautifulSoup(r.text, "lxml")
+                    json_nodes = soup2.find_all("script", attrs={"type": "application/ld+json"})
+                    ld_objs = []
+                    for node in json_nodes:
+                        try:
+                            txt = node.string or node.get_text() or ""
+                            if not txt.strip():
+                                continue
+                            parsed = json.loads(txt)
+                            ld_objs.append(parsed)
+                        except Exception:
+                            continue
+                    if ld_objs:
+                        data = {"ld+json": ld_objs}
+                        used_path = "/challenges/ (ld+json)"
+            except Exception:
+                pass
+
+        if data is None:
+            # Fallback 2: chrome extension JSON endpoint
             try:
                 r = requests.get(base + "/chrome-extension/events/", timeout=12, headers=headers)
                 r.raise_for_status()
                 data = r.json()
+                used_path = "/chrome-extension/events/"
             except Exception:
                 last_fetch_stats["hackerearth"] = {"ok": False, "error": "next_data_missing"}
                 return []
@@ -175,21 +215,97 @@ def fetch_hackerearth() -> List[Dict]:
         # Heuristic: recursively scan for items with title/url and start/end timestamps
         norm: List[Dict] = []
 
+        def parse_dt(any_ts) -> Optional[datetime]:
+            """Parse a timestamp that may be epoch seconds, epoch millis, or ISO string."""
+            if any_ts is None:
+                return None
+            try:
+                # numeric or numeric string
+                if isinstance(any_ts, (int, float)) or (isinstance(any_ts, str) and any_ts.strip().isdigit()):
+                    val = int(float(any_ts))
+                    # Heuristic: millis vs seconds
+                    if val > 10**12:  # definitely millis
+                        val = val // 1000
+                    elif val > 10**10:  # likely millis
+                        val = val // 1000
+                    return datetime.fromtimestamp(val, tz=timezone.utc)
+                # try ISO
+                s = str(any_ts).strip().replace("Z", "+00:00")
+                return datetime.fromisoformat(s)
+            except Exception:
+                return None
+
+        def ensure_full_url(url_path: str) -> str:
+            if not url_path:
+                return ""
+            if url_path.startswith("http"):
+                return url_path
+            if not url_path.startswith("/"):
+                url_path = "/" + url_path
+            return f"{base}{url_path}"
+
         def scan(obj):
             if isinstance(obj, dict):
-                keys = obj.keys()
-                # common fields seen in HE data
-                title = obj.get("title") or obj.get("name")
-                url_path = obj.get("url") or obj.get("slug")
-                start_ts = obj.get("start_time") or obj.get("start_ts") or obj.get("start_timestamp")
-                end_ts = obj.get("end_time") or obj.get("end_ts") or obj.get("end_timestamp")
-                if title and url_path and (start_ts or obj.get("start")):
+                # common fields seen in HE data (try multiple alternatives)
+                title = (
+                    obj.get("title")
+                    or obj.get("name")
+                    or (obj.get("seo") or {}).get("title")
+                    or (obj.get("challenge") or {}).get("title")
+                )
+                url_path = (
+                    obj.get("url")
+                    or obj.get("slug")
+                    or obj.get("challenge_url")
+                    or obj.get("public_url")
+                    or obj.get("canonical_url")
+                    or (obj.get("challenge") or {}).get("url")
+                    or (obj.get("seo") or {}).get("url")
+                )
+                start_ts = (
+                    obj.get("start_time")
+                    or obj.get("start_ts")
+                    or obj.get("start_timestamp")
+                    or obj.get("start_datetime")
+                    or obj.get("startDate")
+                    or obj.get("start")
+                    or obj.get("starts_at")
+                    or obj.get("scheduled_at")
+                    or (obj.get("schedule") or {}).get("start")
+                )
+                end_ts = (
+                    obj.get("end_time")
+                    or obj.get("end_ts")
+                    or obj.get("end_timestamp")
+                    or obj.get("end_datetime")
+                    or obj.get("endDate")
+                    or obj.get("end")
+                    or obj.get("ends_at")
+                    or (obj.get("schedule") or {}).get("end")
+                )
+
+                st = parse_dt(start_ts)
+                ed = parse_dt(end_ts) if end_ts is not None else None
+
+                if title and url_path and st:
                     try:
-                        st_epoch = int(start_ts or obj.get("start"))
-                        ed_epoch = int(end_ts or obj.get("end", st_epoch))
-                        st = datetime.fromtimestamp(st_epoch, tz=timezone.utc)
-                        duration = max(0, ed_epoch - st_epoch)
-                        url_full = url_path if url_path.startswith("http") else f"https://www.hackerearth.com{url_path}"
+                        # compute duration
+                        if ed and ed >= st:
+                            duration = int((ed - st).total_seconds())
+                        else:
+                            # fallback: check "duration" field in minutes/hours/seconds
+                            duration = 0
+                            dur_val = obj.get("duration") or obj.get("duration_sec") or obj.get("duration_secs")
+                            if dur_val:
+                                try:
+                                    duration = int(float(dur_val))
+                                except Exception:
+                                    pass
+                            if duration == 0:
+                                # If no end/duration, assume 2 hours to avoid zero-length
+                                duration = 2 * 60 * 60
+
+                        url_full = ensure_full_url(str(url_path))
                         norm.append({
                             "site": "HackerEarth",
                             "name": str(title),
@@ -215,7 +331,8 @@ def fetch_hackerearth() -> List[Dict]:
                 continue
             seen.add(u)
             dedup.append(c)
-        last_fetch_stats["hackerearth"] = {"ok": True, "count": len(dedup)}
+        src = "html" if used_path and used_path.startswith("/challenges") else ("api" if used_path else "unknown")
+        last_fetch_stats["hackerearth"] = {"ok": True, "count": len(dedup), "source": src, "path": used_path}
         return dedup
     except Exception as e:
         last_fetch_stats["hackerearth"] = {"ok": False, "error": str(e)}
@@ -658,8 +775,8 @@ def get_contests(
     lc = fetch_leetcode_graphql()
     cc = fetch_codechef()
     tc = fetch_topcoder()
-    he = fetch_hackerearth()
-    merged = cf + atc + lc + cc + tc + he
+    # Skip HackerEarth for now in aggregation to avoid unnecessary requests
+    merged = cf + atc + lc + cc + tc
     counts = {
         "total": len(merged),
         "cf": len(cf),
@@ -667,7 +784,6 @@ def get_contests(
         "leetcode": len(lc),
         "codechef": len(cc),
         "topcoder": len(tc),
-        "hackerearth": len(he),
     }
 
     upcoming = filter_upcoming(merged, days)
