@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearch } from '../contexts/SearchContext';
-import logo from './logo.png';
+import logoBlack from '../assets/logo.png';
+import logoWhite from '../assets/logo_white.png';
 import '../styles/Header.css';
 
 const Header = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const { searchQuery, setSearchQuery } = useSearch();
-  const location = useLocation();
   const isAdmin = isAuthenticated && user?.is_admin;
 
   const handleLogout = () => {
@@ -27,35 +25,17 @@ const Header = ({ darkMode, toggleDarkMode }) => {
     setIsMenuOpen(false);
   };
 
-  const handleSearchChange = (e) => {
-    const newQuery = e.target.value;
-    setSearchQuery(newQuery);
-
-    if (!newQuery) return;
-
-    const path = location.pathname;
-
-    if (path.startsWith('/blogs')) {
-      navigate('/blogs');
-    } else if (path.startsWith('/algorithms')) {
-      navigate('/algorithms');
-    } else {
-      // Default to algorithms if you're on homepage or elsewhere
-      navigate('/algorithms');
-    }
-  };
-
-  useEffect(() => {
-    setSearchQuery('');
-  }, [location.pathname, setSearchQuery]);
-
-  const showSearchInput = location.pathname !== '/signin';
+  // Search removed from header
 
   return (
     <header className="header">
       <div className="header-content">
         <Link to="/" className="logo" onClick={closeMenu}>
-          <img src={logo} alt="AlgoVerse Logo" className="logo-img" />
+          <img 
+            src={darkMode ? logoWhite : logoBlack} 
+            alt="AlgoVerse Logo" 
+            className="logo-img" 
+          />
         </Link>
 
         <button
@@ -69,22 +49,6 @@ const Header = ({ darkMode, toggleDarkMode }) => {
         </button>
 
         <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-          {showSearchInput && (
-            <div className="nav-search-wrapper">
-              <button className="nav-search-icon" aria-label="Search">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21.53 20.47l-4.82-4.82a7 7 0 1 0-1.06 1.06l4.82 4.82a.75.75 0 0 0 1.06-1.06zM4 10a6 6 0 1 1 12 0A6 6 0 0 1 4 10z" />
-                </svg>
-              </button>
-              <input
-                className="nav-search"
-                type="text"
-                placeholder="Explore algorithms..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
-          )}
 
           <Link to="/topics" className="nav-link" onClick={closeMenu}>
             Topics

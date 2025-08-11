@@ -11,8 +11,6 @@ import {
   List,
   Star,
   ChevronRight,
-  Code,
-  Brain,
   ChevronLeft
 } from 'lucide-react';
 
@@ -229,21 +227,6 @@ const Algorithms = () => {
 
   return (
     <div className="topics-page">
-      {/* Header */}
-      <div className="topics-header">
-        <div className="topics-header-content">
-          <div className="topics-title">
-            <h1>
-              <Code className="stat-icon" />
-              All Algorithms
-            </h1>
-            <p>
-              Discover and master algorithms with detailed explanations, visualizations, and practice problems.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="topics-content">
         {/* Categories Overview - Simple List */}
         <div className="categories-section">

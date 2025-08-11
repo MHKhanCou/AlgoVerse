@@ -239,21 +239,6 @@ const Blogs = () => {
 
   return (
     <div className="topics-page">
-      {/* Header */}
-      <div className="topics-header">
-        <div className="topics-header-content">
-          <div className="topics-title">
-            <h1>
-              <BookOpen className="stat-icon" />
-              Community Blogs
-            </h1>
-            <p>
-              Discover insights, tutorials, and experiences shared by our community of developers and algorithm enthusiasts.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="topics-content">
         {/* Create Blog Section */}
         {isAuthenticated && (

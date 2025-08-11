@@ -9,8 +9,7 @@ import {
   List,
   Star,
   ChevronRight,
-  Code,
-  Brain
+  
 } from 'lucide-react';
 
 import '../styles/TopicListPage.css';
@@ -215,22 +214,6 @@ const TopicListPage = () => {
 
   return (
     <div className="topics-page">
-      {/* Header */}
-      <div className="topics-header">
-        <div className="topics-header-content">
-          <div className="topics-title">
-            <h1>
-              <Brain className="stat-icon" />
-              Algorithm Topics
-            </h1>
-            <p>
-              Explore our comprehensive collection of algorithms and data structures.
-              Master computer science fundamentals with interactive visualizations.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="topics-content">
         {/* Categories Overview */}
         <div className="categories-section">
