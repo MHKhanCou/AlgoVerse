@@ -45,9 +45,6 @@ const ForgotPasswordPage = () => {
             <p>
               We've sent a password reset link to <strong>{email}</strong>
             </p>
-            <p>
-              Click the link in the email to reset your password. If you don't see it, check your spam folder.
-            </p>
             
             <div className="action-buttons">
               <Link to="/login" className="btn-primary">
@@ -76,9 +73,7 @@ const ForgotPasswordPage = () => {
         <div className="header">
           <div className="icon">🔐</div>
           <h2>Forgot Password?</h2>
-          <p>No worries! Enter your email address and we'll send you a reset link.</p>
         </div>
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email Address</label>

@@ -295,6 +295,39 @@ class ShowComment(BaseModel):
 # Forward reference for nested comments
 ShowComment.model_rebuild()
 
+# Algorithm Comment schemas
+class AddAlgorithmComment(BaseModel):
+    content: str
+    parent_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class UpdateAlgorithmComment(BaseModel):
+    content: str
+
+    class Config:
+        from_attributes = True
+
+class ShowAlgorithmComment(BaseModel):
+    id: int
+    algorithm_id: int
+    user_id: int
+    content: str
+    parent_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    is_edited: bool
+    likes: int = 0
+    author_name: str
+    replies: List['ShowAlgorithmComment'] = []
+
+    class Config:
+        from_attributes = True
+
+# Forward reference for nested algorithm comments
+ShowAlgorithmComment.model_rebuild()
+
 # schemas.py
 class ContestCacheBase(BaseModel):
     source: str

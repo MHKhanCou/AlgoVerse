@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import DOMPurify from 'dompurify';
 import AlgorithmVisualizer from '../components/visualizer/AlgorithmVisualizer';
 import RelatedProblems from '../components/RelatedProblems';
+import AlgorithmDiscussionBoard from '../components/AlgorithmDiscussionBoard';
 import '../styles/SingleAlgorithm.css';
 
 const SingleAlgorithm = () => {
@@ -194,7 +195,7 @@ const SingleAlgorithm = () => {
               disabled={updating}
               className="completed-btn"
             >
-              Mark as Completed
+              {updating ? 'Updating...' : 'Mark as Completed'}
             </button>
           )}
         </div>
@@ -204,6 +205,16 @@ const SingleAlgorithm = () => {
           <p>Progress tracking unavailable. Please try again later.</p>
         </div>
       )}
+
+      <section className="discussion-board">
+        <div className="details-section">
+          <AlgorithmDiscussionBoard
+            algorithmId={algorithm.id}
+            user={user}
+            algorithm={algorithm}
+          />
+        </div>
+      </section>
 
       <Link className="back-link" to="/algorithms">
         ← Back to Algorithms

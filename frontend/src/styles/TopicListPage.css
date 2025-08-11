@@ -7,17 +7,7 @@
 }
 
 /* Header Section */
-.topics-header {
-  background: var(--gradient-primary);
-  color: white;
-  border-bottom: 1px solid var(--border-primary);
-}
-
-.topics-header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
-}
+/* (Removed) .topics-header and .topics-header-content as banners are no longer used */
 
 .topics-title {
   text-align: center;
@@ -464,18 +454,18 @@
 }
 [data-theme="dark"] .difficulty-easy {
   background: rgba(16, 185, 129, 0.18) !important; /* emerald-400 */
-  color: #34d399 !important;
-  border-color: #34d399 !important;
+  color: var(--success) !important;
+  border-color: var(--success) !important;
 }
 [data-theme="dark"] .difficulty-medium {
   background: rgba(245, 158, 11, 0.20) !important; /* amber-500 */
-  color: #f59e0b !important;
-  border-color: #f59e0b !important;
+  color: var(--warning) !important;
+  border-color: var(--warning) !important;
 }
 [data-theme="dark"] .difficulty-hard {
   background: rgba(244, 63, 94, 0.20) !important; /* rose-500 */
-  color: #f43f5e !important;
-  border-color: #f43f5e !important;
+  color: var(--error) !important;
+  border-color: var(--error) !important;
 }
 
 /* Boost baseline contrast for badges across themes */
@@ -488,7 +478,7 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600; /* match difficulty look */
-  background: rgba(59, 130, 246, 0.10); /* subtle blue tint */
+  background: var(--hover-overlay); /* subtle tint via theme */
   color: var(--primary);
   border: 1px solid var(--primary);
   display: inline-flex;
@@ -499,9 +489,9 @@
 
 /* Dark mode category badge to match difficulty style */
 [data-theme="dark"] .topics-page .category-badge {
-  background: rgba(59, 130, 246, 0.18) !important;
-  color: #60a5fa !important;     /* blue-400 */
-  border-color: #60a5fa !important;
+  background: var(--active-overlay) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
 /* Ensure category badge style applies in both GRID (algorithm-badges) and LIST (algorithm-list-stats) */
@@ -511,7 +501,7 @@
   border-radius: 9999px !important;
   font-size: 0.75rem !important;
   font-weight: 600 !important;
-  background: rgba(59, 130, 246, 0.10) !important;
+  background: var(--hover-overlay) !important;
   color: var(--primary) !important;
   border: 1px solid var(--primary) !important;
   display: inline-flex !important;
@@ -521,9 +511,9 @@
 }
 [data-theme="dark"] .topics-page .algorithm-badges .category-badge,
 [data-theme="dark"] .topics-page .algorithm-list-stats .category-badge {
-  background: rgba(59, 130, 246, 0.18) !important;
-  color: #60a5fa !important;
-  border-color: #60a5fa !important;
+  background: var(--active-overlay) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
 .cf-icon-sm {
@@ -944,7 +934,7 @@
 /* Ensure active/inactive states are clearly distinct in both themes */
 .topics-page .view-toggle-btn.active {
   background: var(--primary);
-  color: #fff;
+  color: var(--text-on-primary);
   border-color: var(--primary);
 }
 .topics-page .view-toggle-btn:not(.active) {

@@ -1,28 +1,7 @@
-:root {
-  /* Dark (default) aligned to Tailwind grays */
-  --up-bg: #0f172a;           /* slate-900 */
-  --up-surface: #111827;      /* gray-900 */
-  --up-surface-2: #0f172a;    /* slate-900 */
-  --up-text: #e5e7eb;         /* gray-200 */
-  --up-text-muted: #9ca3af;   /* gray-400 */
-  --up-border: #1f2937;       /* gray-800 */
-  --up-accent: #4f46e5;       /* indigo-600 */
-  --up-accent-2: #22c55e;     /* green-500 */
-  --up-badge: #111827;        /* gray-900 */
-}
+/* Variables removed; use global theme variables instead */
 
 /***** Light mode *****/
-[data-theme="light"] .user-public, html:not(.dark) .user-public {
-  --up-bg: #f7f7fb;
-  --up-surface: #ffffff;
-  --up-surface-2: #f4f6fb;
-  --up-text: #111827;
-  --up-text-muted: #6b7280;
-  --up-border: #e5e7eb;
-  --up-accent: #4f46e5;
-  --up-accent-2: #16a34a;
-  --up-badge: #eef2ff;
-}
+/* Variables removed; use global theme variables instead */
 
 .user-public.container {
   max-width: 1000px;
@@ -34,7 +13,7 @@
 .up-card {
   /* Match Blogs card bluish dark */
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   backdrop-filter: saturate(120%) blur(4px);
@@ -53,7 +32,7 @@
   padding: 20px 20px 12px 20px;
   /* Bluish header like blogs */
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .up-avatar {
@@ -63,8 +42,8 @@
   display: grid;
   place-items: center;
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--up-accent), #7c3aed);
+  color: var(--text-on-primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   user-select: none;
 }
 
@@ -79,7 +58,7 @@
 .up-joined {
   margin-top: 4px;
   font-size: 0.9rem;
-  color: var(--up-text-muted);
+  color: var(--text-secondary);
 }
 
 .up-actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -87,7 +66,7 @@
 .up-btn {
   /* Use header gradient for modern primary CTA */
   background: var(--header-gradient);
-  color: #fff;
+  color: var(--text-on-primary);
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.08);
@@ -98,8 +77,8 @@
 .up-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,0.35); }
 .up-btn.secondary {
   background: transparent;
-  color: var(--accent-color);
-  border-color: var(--accent-color);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 .up-section {
@@ -131,7 +110,7 @@
 .badge {
   /* Bluish tag pill like blogs */
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   color: var(--up-text);
   padding: 6px 10px;
   border-radius: 999px;
@@ -156,7 +135,7 @@
   /* Bluish chip to match blogs */
   background: var(--bg-secondary);
   color: var(--up-text);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 999px;
   padding: 6px 10px;
   font-size: 0.85rem;
@@ -167,7 +146,7 @@
 .stat {
   /* Use lighter panel inside bluish card */
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 12px;
   text-align: center;
@@ -185,7 +164,7 @@
   gap: 10px;
   padding: 10px 12px;
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 10px;
 }
 [data-theme="light"] .blog-item, html:not(.dark) .blog-item { background: var(--bg-primary); }
@@ -200,14 +179,14 @@
 .blog-meta { color: var(--up-text-muted); font-size: 0.85rem; white-space: nowrap; }
 
 .muted { color: var(--up-text-muted); }
-.error-text { color: #ef4444; }
+.error-text { color: var(--error); }
 
 /* Activity list */
 .activity-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .activity-item {
   padding: 8px 10px;
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 10px;
 }
 [data-theme="light"] .activity-item, html:not(.dark) .activity-item { background: var(--bg-primary); }

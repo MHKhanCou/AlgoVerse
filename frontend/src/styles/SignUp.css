@@ -13,7 +13,7 @@
   box-shadow: var(--card-shadow);
   width: 100%;
   max-width: 400px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
 }
 
 .signup-title {
@@ -32,23 +32,25 @@ input[type="email"],
 input[type="password"] {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: all 0.3s ease;
+  min-height: 48px; /* normalize field height so icon centers reliably */
+  line-height: 1.5; /* keep text vertically balanced */
 }
 
 input:focus {
   outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px var(--hover-color);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--hover-overlay);
 }
 
 .signup-btn {
   width: 100%;
   padding: 0.75rem;
-  background-color: var(--accent-color);
+  background-color: var(--primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -73,7 +75,7 @@ input:focus {
 }
 
 .signin-link a {
-  color: var(--accent-color);
+  color: var(--primary);
   text-decoration: none;
   margin-left: 0.25rem;
 }
@@ -105,17 +107,17 @@ input:focus {
 
 .password-strength.weak .strength-bar {
   width: 33%;
-  background-color: #ef5350;
+  background-color: var(--error);
 }
 
 .password-strength.medium .strength-bar {
   width: 66%;
-  background-color: #ffb74d;
+  background-color: var(--warning);
 }
 
 .password-strength.strong .strength-bar {
   width: 100%;
-  background-color: #66bb6a;
+  background-color: var(--success);
 }
 
 .strength-text {
@@ -130,8 +132,27 @@ input:focus {
 .form-group.password-group {
   position: relative;
   width: 100%;
-  display: flex;
-  align-items: center;
+  display: grid; /* use grid so we can overlay the icon on the input */
+  grid-template-columns: 1fr; /* single column */
+  grid-template-rows: max-content auto; /* first row strictly fits the input, second for helper */
+  grid-template-areas:
+    "field"
+    "meta"; /* explicit areas ensure helper doesn't affect icon centering */
+  row-gap: 0.5rem; /* spacing between input and helper */
+}
+
+/* Wrap input + icon so icon positions relative to input height only */
+.form-group.password-group .input-with-toggle,
+.form-field.password-group .input-with-toggle {
+  grid-area: field;
+  position: relative;
+  width: 100%;
+}
+
+/* Ensure enough space for the icon */
+.form-group.password-group .input-with-toggle input,
+.form-field.password-group .input-with-toggle input {
+  padding-right: 2.5rem; /* room for the eye icon */
 }
 
 /* Input field with padding for the icon */
@@ -146,20 +167,21 @@ input:focus {
 }
 
 /* Toggle password visibility icon */
-.form-field.password-group .toggle-password,
-.form-group.password-group .toggle-password {
+.form-group.password-group .input-with-toggle .toggle-password,
+.form-field.password-group .input-with-toggle .toggle-password {
   position: absolute;
-  right: 2rem;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   font-size: 1.1rem;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   user-select: none;
+  line-height: 1; /* crisp centering */
   background: transparent;
   border: none;
   padding: 0;
-  margin: 0;
+  margin-left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,9 +195,22 @@ input:focus {
   -moz-appearance: none;
 }
 
+/* Ensure input spans the first grid cell */
+.form-field.password-group input,
+.form-group.password-group input {
+  grid-area: field;
+}
+
+/* Place strength helper into second row so it doesn't influence the icon alignment */
+.form-group.password-group .password-strength,
+.form-field.password-group .password-strength {
+  grid-area: meta;
+  margin-top: 0; /* avoid extra push since grid gap handles spacing */
+}
+
 /* Email validation hint */
 .validation-hint {
-  color: #ff6f61;
+  color: var(--error);
   font-size: 0.8rem;
   margin-top: 0.25rem;
   margin-left: 0.25rem;

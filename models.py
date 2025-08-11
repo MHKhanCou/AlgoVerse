@@ -110,6 +110,7 @@ class Algorithm(Base):
     type = relationship("AlgorithmType", back_populates="algorithms")
     user_progress = relationship("UserProgress", back_populates="algorithm")
     related_problems = relationship("RelatedProblem", back_populates="algorithm")
+    comments = relationship("AlgorithmComment", back_populates="algorithm", cascade="all, delete-orphan")
 
     @property
     def type_name(self):
@@ -183,6 +184,31 @@ class BlogComment(Base):
     user = relationship("User")
     parent = relationship("BlogComment", remote_side=[id])
     replies = relationship("BlogComment", back_populates="parent")
+    
+    @property
+    def author_name(self):
+        return self.user.name if self.user else "Unknown"
+
+# Algorithm Comment Model
+class AlgorithmComment(Base):
+    __tablename__ = "algorithm_comments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    algorithm_id = Column(Integer, ForeignKey("algorithms.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    parent_id = Column(Integer, ForeignKey("algorithm_comments.id"), nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_edited = Column(Boolean, default=False)
+    likes = Column(Integer, default=0)
+    
+    # Relationships
+    algorithm = relationship("Algorithm", back_populates="comments")
+    user = relationship("User")
+    parent = relationship("AlgorithmComment", remote_side=[id])
+    replies = relationship("AlgorithmComment", back_populates="parent")
     
     @property
     def author_name(self):

@@ -80,6 +80,7 @@
   font-weight: 600;
   color: #374151;
   font-size: 0.9rem;
+  text-align: left; /* ensure label text is left-aligned */
 }
 
 .form-group input {
@@ -91,6 +92,8 @@
   background: rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
   box-sizing: border-box;
+  height: 52px; /* normalize height across inputs */
+  text-align: left; /* ensure input text (and placeholder) is left-aligned */
 }
 
 .form-group input:focus {
@@ -110,6 +113,28 @@
   position: relative;
 }
 
+/* Ensure the Password label is left-aligned even if any parent applies centering */
+.password-group label {
+  text-align: left !important;
+}
+
+/* Wrap input and icon so the icon can be positioned relative to the input */
+.input-with-toggle {
+  position: relative;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Add right padding so text doesn't overlap the icon */
+.password-group .input-with-toggle input {
+  padding-right: 48px;
+  width: 100%;
+  display: block;
+  height: 52px; /* ensure same height when icon is present */
+  text-align: left; /* enforce left alignment on password input as well */
+}
+
 .toggle-password {
   position: absolute;
   right: 18px;
@@ -119,7 +144,6 @@
   font-size: 1.2rem;
   color: #6b7280;
   transition: color 0.2s ease;
-  margin-top: 12px; /* Account for label height */
 }
 
 .toggle-password:hover {

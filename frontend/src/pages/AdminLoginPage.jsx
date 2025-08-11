@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import '../styles/AdminLogin.css';
+// Use the same stylesheet as the user SignIn to match card/form styles
+import '../styles/SignIn.css';
 
 const AdminLoginPage = () => {
   const { adminLogin } = useAuth();
@@ -49,21 +50,15 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div className="admin-login-container">
-      <div className="admin-login-card">
-        <div className="admin-header">
-          <div className="admin-badge">🛡️</div>
-          <h2 className="admin-login-title">Admin Access</h2>
-          <p className="admin-subtitle">Administrative portal login</p>
-        </div>
+    <div className="signin-container">
+      <div className="signin-card">
+        <h2 className="signin-title">Admin Sign In</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
             <input
-              id="email"
               type="email"
-              placeholder="Enter admin email"
+              placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -76,11 +71,9 @@ const AdminLoginPage = () => {
           </div>
 
           <div className="form-group password-group">
-            <label htmlFor="password">Password</label>
             <input
-              id="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Enter admin password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -117,22 +110,17 @@ const AdminLoginPage = () => {
                 onChange={(e) => setRemember(e.target.checked)}
                 disabled={loading}
               />
-              <span>Remember admin email</span>
+              <span>Remember me</span>
             </label>
             <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
           </div>
 
           <button 
             type="submit" 
-            className="admin-login-btn"
+            className="signin-btn"
             disabled={loading || !email || !password}
           >
-            {loading ? <span className="spinner"></span> : (
-              <>
-                <span>🔐</span>
-                Admin Sign In
-              </>
-            )}
+            {loading ? <span className="spinner"></span> : 'Sign In as Admin'}
           </button>
         </form>
 
@@ -142,15 +130,8 @@ const AdminLoginPage = () => {
           <div className="divider-line"></div>
         </div>
 
-        <div className="regular-login-link">
-          <p>
-            Regular user? <Link to="/login">User Login</Link>
-          </p>
-        </div>
-
-        <div className="admin-info">
-          <div className="info-icon">ℹ️</div>
-          <p>Admin access required. Contact system administrator if you need admin privileges.</p>
+        <div className="admin-link">
+          <Link to="/login">User Login</Link>
         </div>
       </div>
     </div>

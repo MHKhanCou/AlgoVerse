@@ -23,6 +23,7 @@
   --primary-hover: #2563eb;
   --primary-light: #dbeafe;
   --primary-dark: #1e40af;
+  --text-on-primary: #ffffff;
   
   /* Semantic Colors */
   --success: #10b981;
@@ -63,6 +64,59 @@
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
+  
+  /* Algorithm Categories */
+  --algo-sorting: #8b5cf6;   /* Purple */
+  --algo-graph: #10b981;     /* Green */
+  --algo-dp: #f59e0b;        /* Orange */
+  --algo-search: #ef4444;    /* Red */
+  --algo-tree: #06b6d4;      /* Cyan */
+  --algo-string: #ec4899;    /* Pink */
+
+  /* CP Platform Colors */
+  --codeforces: #1976d2;
+  --leetcode: #ffa116;
+  --atcoder: #3f51b5;
+  --codechef: #5b4638;
+
+  /* Achievement / Progress */
+  --solved: #10b981;
+  --attempted: #f59e0b;
+  --unsolved: #64748b;
+  --streak: #8b5cf6;
+
+  /* Code editor vibes */
+  --code-bg: #1e1e1e;
+  --code-text: #d4d4d4;
+  --syntax-keyword: #569cd6;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+
+  /* Visualization: nodes/edges */
+  --node-default: #e2e8f0;
+  --node-visited: #3b82f6;
+  --node-current: #ef4444;
+  --node-target: #10b981;
+  --edge-default: #94a3b8;
+  --edge-active: #3b82f6;
+
+  /* Interactivity */
+  --hover-overlay: rgba(59, 130, 246, 0.1);
+  --active-overlay: rgba(59, 130, 246, 0.2);
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.3);
+
+  /* Semantic algorithm states */
+  --state-initial: var(--text-muted);
+  --state-comparing: var(--warning);
+  --state-swapping: var(--error);
+  --state-sorted: var(--success);
+  --state-current: var(--primary);
+
+  /* Learning progress */
+  --progress-beginner: #fbbf24;
+  --progress-intermediate: #f59e0b;
+  --progress-advanced: #dc2626;
+  --progress-expert: #7c3aed;
 }
 
 /* Dark Theme - Bluish Dark */
@@ -110,6 +164,59 @@
   --gradient-primary: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   --gradient-secondary: linear-gradient(135deg, #374151 0%, #1f2937 100%);
   --gradient-accent: linear-gradient(135deg, #475569 0%, #334155 100%);
+  
+  /* Algorithm Categories (dark-tuned) */
+  --algo-sorting: #a78bfa;
+  --algo-graph: #34d399;
+  --algo-dp: #f59e0b;
+  --algo-search: #f87171;
+  --algo-tree: #22d3ee;
+  --algo-string: #f472b6;
+
+  /* CP Platform Colors */
+  --codeforces: #1976d2;
+  --leetcode: #ffa116;
+  --atcoder: #3f51b5;
+  --codechef: #5b4638;
+
+  /* Achievement / Progress */
+  --solved: #34d399;
+  --attempted: #fbbf24;
+  --unsolved: #94a3b8;
+  --streak: #a78bfa;
+
+  /* Code editor vibes (dark) */
+  --code-bg: #0f172a;
+  --code-text: #e5e7eb;
+  --syntax-keyword: #93c5fd;
+  --syntax-string: #fca5a5;
+  --syntax-comment: #86efac;
+
+  /* Visualization */
+  --node-default: #1f2937;
+  --node-visited: #60a5fa;
+  --node-current: #f87171;
+  --node-target: #34d399;
+  --edge-default: #64748b;
+  --edge-active: #60a5fa;
+
+  /* Interactivity */
+  --hover-overlay: rgba(96, 165, 250, 0.12);
+  --active-overlay: rgba(96, 165, 250, 0.22);
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.35);
+
+  /* Semantic algorithm states */
+  --state-initial: var(--text-muted);
+  --state-comparing: var(--warning);
+  --state-swapping: var(--error);
+  --state-sorted: var(--success);
+  --state-current: var(--primary);
+
+  /* Learning progress */
+  --progress-beginner: #fbbf24;
+  --progress-intermediate: #f59e0b;
+  --progress-advanced: #ef4444;
+  --progress-expert: #a78bfa;
 }
 
 /* Global Styles */

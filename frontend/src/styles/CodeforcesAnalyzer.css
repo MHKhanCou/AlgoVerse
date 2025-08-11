@@ -346,7 +346,7 @@
 
 .cf-success-rate {
   font-weight: 600;
-  color: var(--success-color);
+  color: var(--success);
 }
 
 .cf-max-rating {
