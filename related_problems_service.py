@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from db import get_db
 from models import RelatedProblem, ProblemSourceMapping, UserProblemProgress, Algorithm, User, PlatformType, ProblemDifficulty, ProblemStatus
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 import requests
 import json
@@ -18,7 +19,8 @@ class RelatedProblemCreate(BaseModel):
     problem_url: str
     problem_id: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[str] = None
+    # Accept both comma-separated string or list of strings
+    tags: Optional[Union[str, List[str]]] = None
     algorithm_id: int
     source: Optional[str] = "Manual"
 
@@ -81,14 +83,76 @@ async def create_related_problem(
     if not algorithm:
         raise HTTPException(status_code=404, detail="Algorithm not found")
     
+    # Normalize tags to comma-separated string
+    tags_csv: Optional[str] = None
+    if problem.tags is not None:
+        if isinstance(problem.tags, list):
+            tags_csv = ",".join([str(t).strip() for t in problem.tags if str(t).strip()]) or None
+        else:
+            tags_csv = str(problem.tags).strip() or None
+
+    # Auto-assign problem_id if missing by parsing URL based on platform
+    def derive_problem_id(url: str, platform: PlatformType) -> Optional[str]:
+        try:
+            u = url.strip()
+            low = platform.value.lower()
+            # LeetCode: https://leetcode.com/problems/<slug>/
+            if "leetcode" in u:
+                # use slug as id
+                parts = [p for p in u.split("/") if p]
+                if "problems" in parts:
+                    i = parts.index("problems")
+                    if i + 1 < len(parts):
+                        return parts[i + 1]
+            # Codeforces: /problemset/problem/<id>/<index>
+            if "codeforces" in u:
+                parts = [p for p in u.split("/") if p]
+                if "problemset" in parts and "problem" in parts:
+                    try:
+                        i = parts.index("problem")
+                        pid = parts[i + 1]
+                        pidx = parts[i + 2] if i + 2 < len(parts) else ""
+                        return f"{pid}{pidx}"
+                    except Exception:
+                        pass
+                # also contest/<contestId>/problem/<index>
+                if "contest" in parts and "problem" in parts:
+                    try:
+                        ci = parts.index("contest")
+                        contest_id = parts[ci + 1]
+                        pi = parts.index("problem")
+                        pidx = parts[pi + 1]
+                        return f"{contest_id}{pidx}"
+                    except Exception:
+                        pass
+            # AtCoder: tasks/<taskId>
+            if "atcoder" in u:
+                parts = [p for p in u.split("/") if p]
+                if "tasks" in parts:
+                    i = parts.index("tasks")
+                    if i + 1 < len(parts):
+                        return parts[i + 1]
+            # CodeChef: /problems/<code>/
+            if "codechef" in u:
+                parts = [p for p in u.split("/") if p]
+                if "problems" in parts:
+                    i = parts.index("problems")
+                    if i + 1 < len(parts):
+                        return parts[i + 1]
+        except Exception:
+            pass
+        return None
+
+    auto_pid = problem.problem_id or derive_problem_id(problem.problem_url, problem.platform)
+    
     db_problem = RelatedProblem(
         title=problem.title,
         platform=problem.platform,
         difficulty=problem.difficulty,
         problem_url=problem.problem_url,
-        problem_id=problem.problem_id,
+        problem_id=auto_pid,
         description=problem.description,
-        tags=problem.tags,
+        tags=tags_csv,
         algorithm_id=problem.algorithm_id,
         source=problem.source,
         created_by=current_user.id,
@@ -96,7 +160,12 @@ async def create_related_problem(
     )
     
     db.add(db_problem)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # Likely unique constraint on problem_url
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Problem with this URL already exists")
     db.refresh(db_problem)
     
     return db_problem
@@ -119,7 +188,11 @@ async def update_related_problem(
         setattr(db_problem, field, value)
     
     db_problem.updated_at = datetime.utcnow()
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Problem with this URL already exists")
     db.refresh(db_problem)
     
     return db_problem

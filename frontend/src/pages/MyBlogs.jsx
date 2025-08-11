@@ -12,6 +12,7 @@ const MyBlogs = () => {
   const [blogs, setBlogs] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('approved'); // 'all' | 'approved' | 'unapproved'
   const limit = 5;
 
   useEffect(() => {
@@ -19,9 +20,13 @@ const MyBlogs = () => {
     const fetchMyBlogs = async () => {
       try {
         const token = localStorage.getItem('token');
+        const params = { skip: (page - 1) * limit, limit };
+        if (statusFilter !== 'all') {
+          params.status_filter = statusFilter;
+        }
         const response = await axios.get('http://localhost:8000/profile/my-blogs', {
           headers: { Authorization: `Bearer ${token}` },
-          params: { skip: (page - 1) * limit, limit },
+          params,
         });
         setBlogs(response.data);
         setHasMore(response.data.length === limit);
@@ -30,7 +35,7 @@ const MyBlogs = () => {
       }
     };
     fetchMyBlogs();
-  }, [isAuthenticated, page]);
+  }, [isAuthenticated, page, statusFilter]);
 
   const handlePrevPage = () => {
     if (page > 1) setPage(page - 1);
@@ -47,12 +52,40 @@ const MyBlogs = () => {
   return (
     <div className="my-blogs-container">
       <h1>My Blogs</h1>
-      <Link to="/blogs" className="cta-button secondary">
-        Back to All Blogs
-      </Link>
+      <div className="my-blogs-toolbar">
+        <Link to="/blogs" className="cta-button secondary">
+          Back to All Blogs
+        </Link>
+        <div className="segmented-buttons">
+          <button
+            className={`segmented-button ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => { setPage(1); setStatusFilter('all'); }}
+          >
+            All
+          </button>
+          <button
+            className={`segmented-button ${statusFilter === 'approved' ? 'active' : ''}`}
+            onClick={() => { setPage(1); setStatusFilter('approved'); }}
+          >
+            Approved
+          </button>
+          <button
+            className={`segmented-button ${statusFilter === 'unapproved' ? 'active' : ''}`}
+            onClick={() => { setPage(1); setStatusFilter('unapproved'); }}
+          >
+            Pending
+          </button>
+        </div>
+      </div>
       <div className="blogs-list">
         {blogs.length === 0 ? (
-          <p>You haven't created any blogs yet.</p>
+          <p>
+            {statusFilter === 'all'
+              ? "You haven't created any blogs yet."
+              : statusFilter === 'approved'
+                ? "You don't have any approved blogs."
+                : "You don't have any pending blogs."}
+          </p>
         ) : (
           blogs.map((blog) => (
             <div key={blog.id} className="blog-card">
@@ -69,6 +102,11 @@ const MyBlogs = () => {
                 Created: {new Date(blog.created_at).toLocaleDateString()} | Updated:{' '}
                 {new Date(blog.updated_at).toLocaleDateString()}
               </p>
+              {blog.status && (
+                <p className="blog-status" style={{ marginTop: '6px' }}>
+                  Status: <strong>{String(blog.status).toUpperCase()}</strong>
+                </p>
+              )}
             </div>
           ))
         )}
@@ -77,15 +115,15 @@ const MyBlogs = () => {
         <button
           onClick={handlePrevPage}
           disabled={page === 1}
-          className="cta-button secondary"
+          className="pagination-btn"
         >
           Previous
         </button>
-        <span>Page {page}</span>
+        <div className="pagination-info">Page {page}</div>
         <button
           onClick={handleNextPage}
           disabled={!hasMore}
-          className="cta-button secondary"
+          className="pagination-btn"
         >
           Next
         </button>

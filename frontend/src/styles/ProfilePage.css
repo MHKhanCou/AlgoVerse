@@ -483,6 +483,48 @@
   margin-bottom: 1.5rem;
 }
 
+/* Header with right-aligned status tabs */
+.my-blogs-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Segmented buttons (shared style) */
+.segmented-buttons {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-secondary, #f3f4f6);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segmented-button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #666);
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segmented-button:hover {
+  background: var(--bg-primary, #ffffff);
+}
+
+.segmented-button.active {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  box-shadow: var(--card-shadow);
+}
+
 .blogs-list {
   display: flex;
   flex-direction: column;

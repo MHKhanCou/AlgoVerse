@@ -179,14 +179,35 @@ def search_blogs(db: Session, query: str):
         logger.error(f"Database error searching blogs: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to search blogs")
 
-def get_user_blogs(db: Session, user_id: int, skip: int = 0, limit: int = 5):
+def get_user_blogs(db: Session, user_id: int, skip: int = 0, limit: int = 5, include_unapproved: bool = False, status_filter: str = None):
     try:
-        # Public: only return approved blogs for the given user
-        blogs = (
+        # By default, only return approved blogs (safe for public routes)
+        query = (
             db.query(Blog)
             .options(joinedload(Blog.user))
             .filter(Blog.user_id == user_id)
-            .filter(Blog.status == BlogStatus.approved)
+        )
+
+        # Apply status filtering
+        if status_filter:
+            if status_filter == "approved":
+                query = query.filter(Blog.status == BlogStatus.approved)
+            elif status_filter == "pending":
+                query = query.filter(Blog.status == BlogStatus.pending)
+            elif status_filter == "rejected":
+                query = query.filter(Blog.status == BlogStatus.rejected)
+            elif status_filter == "unapproved":
+                query = query.filter(Blog.status.in_([BlogStatus.pending, BlogStatus.rejected]))
+            elif status_filter == "all":
+                # No additional filter; return all statuses for this user
+                pass
+        else:
+            # Backward-compatible behavior using include_unapproved
+            if not include_unapproved:
+                query = query.filter(Blog.status == BlogStatus.approved)
+
+        blogs = (
+            query
             .order_by(Blog.created_at.desc())
             .offset(skip)
             .limit(limit)

@@ -7,7 +7,7 @@ from db import get_db
 from auth.oauth2 import get_current_user
 from repositories import user_repo, user_progress_repo, blog_repo
 from auth.jwt_token import create_access_token
-from typing import List
+from typing import List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -122,10 +122,19 @@ def get_my_blogs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0, description="Number of blogs to skip"),
-    limit: int = Query(5, ge=1, le=100, description="Number of blogs to return")
+    limit: int = Query(5, ge=1, le=100, description="Number of blogs to return"),
+    include_unapproved: bool = Query(False, description="Include unapproved blogs for the current user"),
+    status_filter: Optional[str] = Query(None, description="Filter by status: approved | pending | rejected | unapproved")
 ):
     try:
-        return blog_repo.get_user_blogs(db, current_user.id, skip=skip, limit=limit)
+        return blog_repo.get_user_blogs(
+            db,
+            current_user.id,
+            skip=skip,
+            limit=limit,
+            include_unapproved=include_unapproved,
+            status_filter=status_filter
+        )
     except HTTPException:
         raise
     except SQLAlchemyError as e:

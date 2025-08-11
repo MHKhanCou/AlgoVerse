@@ -196,7 +196,7 @@ class RelatedProblem(Base):
     title = Column(String(255), nullable=False)
     platform = Column(Enum(PlatformType), nullable=False)
     difficulty = Column(Enum(ProblemDifficulty), nullable=False)
-    problem_url = Column(String(500), nullable=False)
+    problem_url = Column(String(500), nullable=False, unique=True, index=True)
     problem_id = Column(String(50))  # Platform-specific problem ID
     description = Column(Text)
     tags = Column(String(500))  # Comma-separated tags

@@ -48,6 +48,7 @@ const ProfilePage = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [myBlogsStatusFilter, setMyBlogsStatusFilter] = useState('approved'); // 'all' | 'approved' | 'unapproved'
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -102,8 +103,13 @@ const ProfilePage = () => {
 
         if (isAuthenticated) {
           const token = localStorage.getItem('token');
+          const params = {};
+          if (myBlogsStatusFilter !== 'all') {
+            params.status_filter = myBlogsStatusFilter;
+          }
           const response = await axios.get('http://localhost:8000/profile/my-blogs', {
             headers: { Authorization: `Bearer ${token}` },
+            params,
           });
           setBlogs(response.data);
         }
@@ -116,7 +122,7 @@ const ProfilePage = () => {
     };
 
     fetchProfileData();
-  }, [setUser, isAuthenticated]);
+  }, [setUser, isAuthenticated, myBlogsStatusFilter]);
 
   const validateForm = () => {
     const errors = {};
@@ -433,15 +439,48 @@ const ProfilePage = () => {
 
         {activeTab === 'blogs' && (
           <section className="my-blogs-section">
-            <h2>My Blogs</h2>
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ margin: 0 }}>My Blogs</h2>
+              <div className="segmented-buttons">
+                <button
+                  className={`segmented-button ${myBlogsStatusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setMyBlogsStatusFilter('all')}
+                >
+                  All
+                </button>
+                <button
+                  className={`segmented-button ${myBlogsStatusFilter === 'approved' ? 'active' : ''}`}
+                  onClick={() => setMyBlogsStatusFilter('approved')}
+                >
+                  Approved
+                </button>
+                <button
+                  className={`segmented-button ${myBlogsStatusFilter === 'unapproved' ? 'active' : ''}`}
+                  onClick={() => setMyBlogsStatusFilter('unapproved')}
+                >
+                  Pending
+                </button>
+              </div>
+            </div>
             <div className="blogs-list">
               {blogs.length === 0 ? (
-                <p>You haven't created any blogs yet.</p>
+                <p>
+                  {myBlogsStatusFilter === 'all'
+                    ? "You haven't created any blogs yet."
+                    : myBlogsStatusFilter === 'approved'
+                      ? "You don't have any approved blogs."
+                      : "You don't have any pending blogs."}
+                </p>
               ) : (
                 blogs.map((blog) => (
                   <div key={blog.id} className="blog-card">
                     <Link to={`/blogs/${blog.id}`} className="blog-title"><h3>{blog.title}</h3></Link>
                     <p className="blog-author">By {blog.author}</p>
+                    {blog.status && (
+                      <p className="blog-status" style={{ marginTop: '6px' }}>
+                        Status: <strong>{String(blog.status).toUpperCase()}</strong>
+                      </p>
+                    )}
                   </div>
                 ))
               )}

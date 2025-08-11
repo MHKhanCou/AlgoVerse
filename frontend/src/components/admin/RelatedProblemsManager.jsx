@@ -143,14 +143,34 @@ const RelatedProblemsManager = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...formData,
-          tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+          title: formData.title,
+          platform: formData.platform,
+          difficulty: formData.difficulty,
+          problem_url: formData.problem_url,
+          problem_id: formData.problem_id || undefined,
+          description: formData.description || undefined,
+          // send CSV string; backend now also accepts list, but CSV keeps API readable
+          tags: (formData.tags || '').trim(),
+          algorithm_id: formData.algorithm_id ? Number(formData.algorithm_id) : undefined,
+          source: 'Manual'
         })
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add problem');
+        let detail = 'Failed to add problem';
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            if (Array.isArray(errorData.detail)) {
+              detail = errorData.detail.map(d => `${d.loc?.join('.')}: ${d.msg}`).join('; ');
+            } else if (typeof errorData.detail === 'string') {
+              detail = errorData.detail;
+            } else {
+              detail = JSON.stringify(errorData.detail);
+            }
+          }
+        } catch (_) {}
+        throw new Error(detail);
       }
       
       const newProblem = await response.json();
@@ -305,7 +325,18 @@ const RelatedProblemsManager = () => {
   };
 
   // Constants for filters
-  const platforms = ['LeetCode', 'Codeforces', 'HackerRank', 'AtCoder', 'CodeChef', 'Other'];
+  const platforms = [
+    'LeetCode',
+    'Codeforces',
+    'AtCoder',
+    'CodeChef',
+    'HackerRank',
+    'SPOJ',
+    'UVa',
+    'HackerEarth',
+    'TopCoder',
+    'GeeksforGeeks'
+  ];
   const difficulties = ['easy', 'medium', 'hard', 'expert'];
   const statuses = ['pending', 'approved', 'rejected'];
 
