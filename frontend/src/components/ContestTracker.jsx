@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 const DayButtons = ({ days, setDays }) => (
   <div className="segmented">
@@ -212,6 +212,9 @@ export default function ContestTracker() {
   const [error, setError] = useState('');
   const [counts, setCounts] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
+  // Client-side cache: key -> { data, counts, fetched_at }
+  const cacheRef = useRef(new Map());
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   // Remove HackerEarth for now
   const ALL_SITES = ['cf','codechef','atcoder','leetcode','topcoder'];
   // Default selected platforms: CF, CodeChef, AtCoder
@@ -274,6 +277,20 @@ export default function ContestTracker() {
       setLoading(true);
       setError('');
       const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
+      const cacheKey = JSON.stringify({ days, recentDays });
+
+      // Serve from local cache if present and fresh, unless forceRefresh
+      if (!forceRefresh) {
+        const cached = cacheRef.current.get(cacheKey);
+        if (cached && (Date.now() - cached.fetched_at) < CACHE_TTL_MS) {
+          const { data: cdata, counts: ccounts, fetched_at } = cached;
+          setData(cdata);
+          setCounts(ccounts);
+          setCacheStatus({ isCached: true, timestamp: new Date(fetched_at) });
+          setLoading(false);
+          return;
+        }
+      }
       const params = new URLSearchParams({ 
         days: String(days),
         recent_days: String(recentDays),
@@ -299,13 +316,22 @@ export default function ContestTracker() {
       const running = js.running || [];
       const upcoming = js.upcoming || [];
       const recent = js.recent || [];
-      setData({ running, upcoming, recent });
-      setCounts(js.counts || {});
+      const nextData = { running, upcoming, recent };
+      const nextCounts = js.counts || {};
+      setData(nextData);
+      setCounts(nextCounts);
       
       // Set cache status
       const isCached = js.cached === true;
       const timestamp = js.fetched_at ? new Date(js.fetched_at) : new Date();
       setCacheStatus({ isCached, timestamp });
+
+      // Save to local cache
+      cacheRef.current.set(cacheKey, {
+        data: nextData,
+        counts: nextCounts,
+        fetched_at: timestamp.getTime(),
+      });
       // Auto-pick a tab with data on first load or when current tab is empty.
       // Priority: running -> recent -> upcoming (default is 'running').
       setTimeout(() => {
