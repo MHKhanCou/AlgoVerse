@@ -965,24 +965,71 @@ cd ..
 ```
 
 #### **2. Database Setup**
-```bash
-# Create PostgreSQL database
-sudo -u postgres createdb algoverse
-sudo -u postgres createuser algoverse_user
-sudo -u postgres psql -c "ALTER USER algoverse_user WITH PASSWORD 'secure_password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE algoverse TO algoverse_user;"
+### SQLite (Development)
 
-# Update environment variables
-cat > .env << EOF
-SECRET_KEY=your-super-secure-production-key
-DATABASE_URL=postgresql://algoverse_user:secure_password@localhost/algoverse
-ALLOWED_ORIGINS=https://yourdomain.com
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-EOF
+By default, the application uses SQLite for development. The database will be created automatically when you first run the application.
 
-# Run migrations
-python run_migrations.py
-```
+### PostgreSQL (Production)
+
+For production, we recommend using PostgreSQL. Follow these steps to set it up:
+
+1. **Install PostgreSQL**
+   - Windows: Download from [PostgreSQL Downloads](https://www.postgresql.org/download/windows/)
+   - macOS: `brew install postgresql`
+   - Ubuntu: `sudo apt install postgresql postgresql-contrib`
+
+2. **Create a database and user**
+   ```sql
+   CREATE DATABASE algoverse;
+   CREATE USER algoverse_user WITH PASSWORD 'your_secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE algoverse TO algoverse_user;
+   ```
+
+3. **Update environment variables**
+   Create or update your `.env` file:
+   ```
+   # Database Configuration
+   DATABASE_URL=postgresql://algoverse_user:your_secure_password@localhost:5432/algoverse
+   AUTO_CREATE_TABLES=false
+   
+   # JWT Configuration
+   JWT_SECRET_KEY=your_jwt_secret_key_here
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   
+   # Security
+   BCRYPT_ROUNDS=12
+   ```
+
+4. **Run migrations**
+   ```bash
+   # Install required packages
+   pip install alembic psycopg2-binary
+   
+   # Run migrations
+   alembic upgrade head
+   ```
+
+5. **Verify the database connection**
+   Start the application and verify that it can connect to the database:
+   ```bash
+   python main.py
+   ```
+
+### Database Migrations
+
+When making changes to the database schema:
+
+1. Create a new migration:
+   ```bash
+   alembic revision --autogenerate -m "Description of changes"
+   ```
+
+2. Review the generated migration file in `alembic/versions/`
+
+3. Apply the migration:
+   ```bash
+   alembic upgrade head
+   ```
 
 #### **3. Process Management**
 ```bash

@@ -1,12 +1,79 @@
-# React + Vite
+# AlgoVerse Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend for AlgoVerse, built with React 18 and Vite.
 
-Currently, two official plugins are available:
+## 🚀 Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
+- Node.js 16+
+- npm or yarn
 
-## Expanding the ESLint configuration
+### Installation
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+2. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Update the API base URL if needed:
+     ```
+     VITE_API_BASE_URL=http://localhost:8000
+     ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+   The app will be available at `http://localhost:3000`
+
+## 🏗️ Project Structure
+
+```
+src/
+├── components/     # Reusable UI components
+├── contexts/      # React context providers
+├── pages/         # Page components
+├── services/      # API service functions
+└── styles/        # CSS modules and global styles
+```
+
+## 📦 Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+
+## 🔧 Development
+
+- Uses Vite for fast development with HMR
+- ESLint and Prettier for code quality
+- React Router for navigation
+- Context API for state management
+
+## 🔐 Authentication
+
+The app uses JWT for authentication. See `src/contexts/AuthContext.jsx` for implementation details.
+
+## 📝 Environment Variables
+
+Create a `.env` file in the frontend directory with:
+```
+VITE_API_BASE_URL=your_api_url_here
+```
+
+## 🔄 Deployment
+
+Build for production:
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory, ready to be served by any static file server.
