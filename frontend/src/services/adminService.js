@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { algorithmService } from './algorithmService';
 
-const API_URL = 'http://localhost:8000/admin';
+const API_URL = 'http://127.0.0.1:8000/admin';
 
 export const adminService = {
   async fetchDashboardStats() {

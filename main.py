@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from os import getenv
 import models
 from db import engine, get_db
 
@@ -27,7 +28,9 @@ app.add_middleware(
 async def root():
     return {"message": "API is running"}
 
-models.Base.metadata.create_all(bind=engine)
+AUTO_CREATE_TABLES = getenv("AUTO_CREATE_TABLES", "true").lower() in ("1", "true", "yes", "y")
+if AUTO_CREATE_TABLES:
+    models.Base.metadata.create_all(bind=engine)
 
 @app.get("/test-db")
 def test_db_connection(db: Session = Depends(get_db)):

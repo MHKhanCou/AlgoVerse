@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = getenv("JWT_SECRET_KEY")
+SECRET_KEY = getenv("JWT_SECRET_KEY") or getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))

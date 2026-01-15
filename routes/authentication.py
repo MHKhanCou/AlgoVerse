@@ -10,8 +10,11 @@ from repositories import user_repo
 from repositories.user_repo import get_user_by_email
 import schemas, models
 from datetime import datetime
+import logging
 
 router = APIRouter(tags=["Authentication"])
+
+logger = logging.getLogger(__name__)
 
 # Regular user login
 @router.post("/login", response_model=schemas.Token)
@@ -20,7 +23,12 @@ async def login(
     db: Session = Depends(get_db)
 ):
     user = get_user_by_email(db, form_data.username)
-    if not user or not verify_password(form_data.password, user.password):
+    try:
+        password_ok = bool(user) and verify_password(form_data.password, user.password)
+    except Exception as e:
+        logger.exception("Password verification failed")
+        password_ok = False
+    if not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -35,7 +43,16 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    access_token = create_access_token(data={"sub": user.email})
+    try:
+        access_token = create_access_token(data={"sub": user.email})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Token creation failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create access token",
+        )
     
     return {
         "access_token": access_token,
@@ -55,7 +72,12 @@ async def admin_login(
     db: Session = Depends(get_db)
 ):
     user = get_user_by_email(db, form_data.username)
-    if not user or not verify_password(form_data.password, user.password):
+    try:
+        password_ok = bool(user) and verify_password(form_data.password, user.password)
+    except Exception as e:
+        logger.exception("Password verification failed")
+        password_ok = False
+    if not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -76,8 +98,17 @@ async def admin_login(
             detail="Please verify your email address before logging in",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
-    access_token = create_access_token(data={"sub": user.email})
+
+    try:
+        access_token = create_access_token(data={"sub": user.email})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Token creation failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create access token",
+        )
     
     return {
         "access_token": access_token,
