@@ -25,7 +25,7 @@ const EmailVerificationPage = () => {
 
   const verifyEmail = async (verificationToken) => {
     try {
-      const response = await api.post('verify-email'), {
+      const response = await api.post('verify-email', {
         token: verificationToken
       });
 
@@ -55,7 +55,7 @@ const EmailVerificationPage = () => {
 
     setIsResending(true);
     try {
-      const response = await api.post('resend-verification'), {
+      const response = await api.post('resend-verification', {
         email: email
       });
 

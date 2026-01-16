@@ -143,7 +143,7 @@ const OTPVerificationPage = () => {
 
     setResendLoading(true);
     try {
-      const response = await api.post('resend-verification'), {
+      const response = await api.post('resend-verification', {
         email: email
       });
 
