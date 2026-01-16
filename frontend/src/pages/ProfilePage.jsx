@@ -25,6 +25,7 @@ import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import api from '../services/api';
 import CodeforcesAnalyzer from '../components/CodeforcesAnalyzer';
 import ContestTracker from '../components/ContestTracker';
 import '../styles/ProfilePage.css';
@@ -110,15 +111,11 @@ const ProfilePage = () => {
         }
 
         if (isAuthenticated) {
-          const token = localStorage.getItem('token');
           const params = {};
           if (myBlogsStatusFilter !== 'all') {
             params.status_filter = myBlogsStatusFilter;
           }
-          const response = await api.get('profile/my-blogs'), {
-            headers: { Authorization: `Bearer ${token}` },
-            params,
-          });
+          const response = await api.get('/profile/my-blogs', { params });
           setBlogs(response.data);
         }
       } catch (err) {

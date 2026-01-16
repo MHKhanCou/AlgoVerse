@@ -1,13 +1,12 @@
-import axios from 'axios';
+import api from './api';
 
-const API_URL = 'http://127.0.0.1:8000';
-const ALGORITHMS_URL = `${API_URL}/algorithms`;
+const ALGORITHMS_URL = '/algorithms';
 
 export const algorithmService = {
   async getAll(page = 1, limit = 5) {
     try {
       const skip = (page - 1) * limit;
-      const response = await axios.get(`${ALGORITHMS_URL}/`, {
+      const response = await api.get(`${ALGORITHMS_URL}/`, {
         params: { skip, limit },
       });
       return response.data;
@@ -21,7 +20,7 @@ export const algorithmService = {
 
   async getById(id) {
     try {
-      const response = await axios.get(`${ALGORITHMS_URL}/${id}`);
+      const response = await api.get(`${ALGORITHMS_URL}/${id}`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -37,7 +36,7 @@ export const algorithmService = {
   async getByType(typeId, page = 1, limit = 5) {
     try {
       const skip = (page - 1) * limit;
-      const response = await axios.get(`${ALGORITHMS_URL}/type/${typeId}`, {
+      const response = await api.get(`/algorithms/type/${typeId}`, {
         params: { skip, limit },
       });
       return response.data;
@@ -54,12 +53,7 @@ export const algorithmService = {
 
   async create(data) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${ALGORITHMS_URL}/`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post('/algorithms/', data);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -74,12 +68,7 @@ export const algorithmService = {
 
   async update(id, data) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(`${ALGORITHMS_URL}/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.put(`/algorithms/${id}`, data);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -97,12 +86,7 @@ export const algorithmService = {
 
   async delete(id) {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${ALGORITHMS_URL}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.delete(`/algorithms/${id}`);
     } catch (error) {
       if (!error.response) {
         throw new Error('Network error: Unable to reach the server.');
@@ -119,7 +103,7 @@ export const algorithmService = {
 
   async getRelatedProblems(algorithmId) {
     try {
-      const response = await axios.get(`${ALGORITHMS_URL}/${algorithmId}/related-problems`);
+      const response = await api.get(`/algorithms/${algorithmId}/related-problems`);
       return response.data;
     } catch (error) {
       if (!error.response) {
