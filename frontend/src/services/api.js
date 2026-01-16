@@ -1,22 +1,53 @@
 import axios from 'axios';
 
-// Set the production API URL explicitly
-const PRODUCTION_URL = 'https://algoverse-kpwz.onrender.com';
+// Environment-based configuration
+const getApiBaseUrl = () => {
+  // In development, use VITE_API_URL if set, otherwise default to localhost
+  if (import.meta.env.DEV) {
+    return import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  }
+  
+  // In production, use the current origin's hostname to determine the API URL
+  const hostname = window.location.hostname;
+  
+  // List of production domains and their corresponding API URLs
+  const productionMappings = {
+    'algo-verse-eight.vercel.app': 'https://algoverse-kpwz.onrender.com',
+    'algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app': 'https://algoverse-kpwz.onrender.com',
+    'algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app': 'https://algoverse-kpwz.onrender.com',
+    'localhost': 'http://127.0.0.1:8000',
+    '127.0.0.1': 'http://127.0.0.1:8000'
+  };
 
-// Use production URL in production, otherwise use environment variable or localhost
-const API_BASE_URL = import.meta.env.PROD 
-  ? PRODUCTION_URL 
-  : (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000');
+  return productionMappings[hostname] || 'https://algoverse-kpwz.onrender.com';
+};
 
-console.log('API Base URL:', API_BASE_URL);  // Debug log
+const API_BASE_URL = getApiBaseUrl();
+console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true  // Important for cookies/sessions
+  withCredentials: true,  // Important for cookies/sessions
+  timeout: 10000,  // 10 second timeout
 });
+
+// Add a response interceptor to handle 401 Unauthorized responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

@@ -10,19 +10,23 @@ from routes import admin, authentication, profile, user, algo_types, algorithm, 
 
 app = FastAPI()
 
+# List of allowed origins - must be explicit when using credentials
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://algoverse.vercel.app",
-    "*"  # Temporary - allow all origins for deployment
+    "https://algo-verse-eight.vercel.app",
+    "https://algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app",
+    "https://algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  # Ensure credentials are allowed
-    allow_methods=["*"],     # Allow all HTTP methods
-    allow_headers=["*"],     # Allow all headers
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"]  # Important for file downloads
 )
 
 # Remove duplicate root endpoint
