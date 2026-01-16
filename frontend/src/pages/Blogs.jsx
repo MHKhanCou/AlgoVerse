@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import UserLink from '../components/common/UserLink';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearch } from '../contexts/SearchContext';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'react-toastify';
 import { 
   Search, 
@@ -88,7 +88,7 @@ const Blogs = () => {
     try {
       setLoading(true);
       console.log('Fetching blogs...');
-      const response = await api.get('/blogs/');
+      const response = await api.get('/blogs');  // Removed trailing slash to match backend route
       console.log('Blogs response:', response.data);
       
       // Process blogs with search text
