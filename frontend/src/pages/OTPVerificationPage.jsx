@@ -107,7 +107,7 @@ const OTPVerificationPage = () => {
 
     setLoading(true);
     try {
-      const response = await api.post('verify-email'), {
+      const response = await api.post('verify-email', {
         token: code
       });
 
