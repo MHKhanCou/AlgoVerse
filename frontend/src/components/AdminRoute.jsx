@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useAuth } from '../contexts/authcontext';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/AdminRoute.css';
 
 const AdminRoute = ({ children }) => {
