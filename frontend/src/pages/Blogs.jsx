@@ -87,19 +87,20 @@ const Blogs = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/blogs/', {
-        params: { skip: 0, limit: 100 },
-      });
+      console.log('Fetching blogs...');
+      const response = await api.get('/blogs/');
+      console.log('Blogs response:', response.data);
       
       // Process blogs with search text
       const processedBlogs = response.data.map((blog) => ({
         ...blog,
-        searchableText: `${blog.title} ${blog.author}`.toLowerCase(),
+        searchableText: `${blog.title} ${blog.author || ''}`.toLowerCase(),
       }));
       
       setBlogs(processedBlogs);
     } catch (error) {
-      toast.error('Failed to fetch blogs');
+      console.error('Error fetching blogs:', error);
+      toast.error('Failed to fetch blogs. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -144,18 +145,14 @@ const Blogs = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:8000/blogs/',
-        { title, body },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/blogs/', { title, body });
       toast.success('Blog created successfully');
       setTitle('');
       setBody('');
       setShowCreateForm(false);
-      fetchBlogs();
+      fetchBlogs(); // Refresh the blog list
     } catch (error) {
+      console.error('Error creating blog:', error);
       toast.error(error.response?.data?.detail || 'Failed to create blog');
     }
   };
