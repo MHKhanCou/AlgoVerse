@@ -87,7 +87,7 @@ const Blogs = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8000/blogs/', {
+      const response = await api.get('/blogs/', {
         params: { skip: 0, limit: 100 },
       });
       

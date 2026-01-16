@@ -86,7 +86,7 @@ const Algorithms = () => {
       setLoading(true);
       const [algorithmsData, typesResponse] = await Promise.all([
         algorithmService.getAll(1, 100),
-        fetch('http://localhost:8000/algo-type')
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algo-type`)
       ]);
       
       if (typesResponse.ok) {

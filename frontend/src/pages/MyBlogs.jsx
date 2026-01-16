@@ -24,7 +24,7 @@ const MyBlogs = () => {
         if (statusFilter !== 'all') {
           params.status_filter = statusFilter;
         }
-        const response = await axios.get('http://localhost:8000/profile/my-blogs', {
+        const response = await api.get('profile/my-blogs'), {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });

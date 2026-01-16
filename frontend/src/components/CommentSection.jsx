@@ -29,7 +29,7 @@ const CommentSection = ({ blogId, user }) => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/comments/blog/${blogId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/blog/${blogId}`);
       if (response.ok) {
         const data = await response.json();
         setComments(data);
@@ -58,7 +58,7 @@ const CommentSection = ({ blogId, user }) => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/comments/blog/${blogId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/blog/${blogId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ const CommentSection = ({ blogId, user }) => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/comments/${commentId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/${commentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +176,7 @@ const CommentSection = ({ blogId, user }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/comments/${commentId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

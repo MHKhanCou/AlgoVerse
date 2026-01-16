@@ -107,7 +107,7 @@ const OTPVerificationPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/verify-email', {
+      const response = await api.post('verify-email'), {
         token: code
       });
 
@@ -143,7 +143,7 @@ const OTPVerificationPage = () => {
 
     setResendLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/resend-verification', {
+      const response = await api.post('resend-verification'), {
         email: email
       });
 

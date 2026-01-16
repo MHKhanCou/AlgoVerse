@@ -135,7 +135,7 @@ const OTPPasswordResetPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/reset-password', {
+      const response = await api.post('reset-password'), {
         token: verifiedOtp,
         new_password: password
       });
@@ -174,7 +174,7 @@ const OTPPasswordResetPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/forgot-password', {
+      const response = await api.post('forgot-password'), {
         email: email
       });
 

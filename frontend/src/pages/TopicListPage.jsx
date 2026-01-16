@@ -69,8 +69,8 @@ const TopicListPage = () => {
   const fetchData = async () => {
     try {
       const [algorithmsRes, typesRes] = await Promise.all([
-        fetch('http://localhost:8000/algorithms?limit=100'),
-        fetch('http://localhost:8000/algo-type')
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algorithms?limit=100`),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algo-type`)
       ]);
 
       if (algorithmsRes.ok && typesRes.ok) {

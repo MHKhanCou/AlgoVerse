@@ -73,7 +73,7 @@ const RelatedProblemsManager = () => {
         setProblems(problemsData);
         
         // Fetch algorithms
-        const algorithmsResponse = await fetch('http://localhost:8000/algorithms', {
+        const algorithmsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algorithms`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -136,7 +136,7 @@ const RelatedProblemsManager = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Authentication required');
       
-      const response = await fetch('http://localhost:8000/api/problems', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ const RelatedProblemsManager = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:8000/api/problems/${problemId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems/${problemId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -279,7 +279,7 @@ const RelatedProblemsManager = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:8000/api/problems/auto-suggest/${algorithmId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems/auto-suggest/${algorithmId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
