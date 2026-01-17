@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService'; // Fixed import path
+import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -14,20 +15,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache', // Prevent caching
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Registration failed');
-      }
+      const response = await api.post('/register', { name, email, password });
+      const data = response.data;
 
       // Don't auto-login after registration - user needs to verify email first
       // localStorage.setItem('token', data.access_token);
