@@ -7,14 +7,25 @@ export const authService = {
       formData.append('username', email);
       formData.append('password', password);
 
+      console.log('Login attempt with:', { email });
       const response = await api.post('/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
       });
 
-      localStorage.setItem('token', response.data.access_token);
-      return response.data;
+      console.log('Login response:', response.data);
+      
+      // Handle different token response formats
+      const token = response.data.access_token || response.data.accessToken || response.data.token;
+      if (!token) {
+        console.error('No token in response:', response.data);
+        throw new Error('Authentication failed: No token received');
+      }
+      
+      localStorage.setItem('token', token);
+      return { ...response.data, token };
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
         throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
@@ -30,14 +41,25 @@ export const authService = {
       formData.append('username', email);
       formData.append('password', password);
 
+      console.log('Admin login attempt with:', { email });
       const response = await api.post('/admin/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
       });
 
-      localStorage.setItem('token', response.data.access_token);
-      return response.data;
+      console.log('Admin login response:', response.data);
+      
+      // Handle different token response formats
+      const token = response.data.access_token || response.data.accessToken || response.data.token;
+      if (!token) {
+        console.error('No token in admin response:', response.data);
+        throw new Error('Admin authentication failed: No token received');
+      }
+      
+      localStorage.setItem('token', token);
+      return { ...response.data, token };
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
         throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');

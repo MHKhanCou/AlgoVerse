@@ -7,6 +7,8 @@ import models
 from db import engine, get_db
 
 from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments, algorithm_comments, contests
+from auth.oauth2 import get_current_user
+from models import User
 
 app = FastAPI()
 
@@ -17,7 +19,8 @@ origins = [
     "https://algoverse.vercel.app",
     "https://algo-verse-eight.vercel.app",
     "https://algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app",
-    "https://algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app"
+    "https://algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app",
+    "https://algo-verse-q7tt2blgw-mehedi-hasan-khans-projects.vercel.app"
 ]
 
 app.add_middleware(
@@ -45,6 +48,17 @@ def test_db_connection(db: Session = Depends(get_db)):
         return {"message": "✅ Database connection successful!"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/test-auth")
+def test_auth(current_user: User = Depends(get_current_user)):
+    return {
+        "message": "✅ Authentication successful!",
+        "user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "is_admin": current_user.is_admin
+        }
+    }
 
 app.include_router(authentication.router)
 app.include_router(profile.router)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../services/api';
 import '../styles/ResetPassword.css';
 
 const ResetPasswordPage = () => {
@@ -43,7 +43,7 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('reset-password', {
+      const response = await api.post('/reset-password', {
         token: token,
         new_password: password
       });

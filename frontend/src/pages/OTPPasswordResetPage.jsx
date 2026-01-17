@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../services/api';
 import '../styles/OTPPasswordReset.css';
 
 const OTPPasswordResetPage = () => {
@@ -135,7 +135,7 @@ const OTPPasswordResetPage = () => {
 
     setLoading(true);
     try {
-      const response = await api.post('reset-password', {
+      const response = await api.post('/reset-password', {
         token: verifiedOtp,
         new_password: password
       });
@@ -174,7 +174,7 @@ const OTPPasswordResetPage = () => {
 
     setLoading(true);
     try {
-      const response = await api.post('forgot-password', {
+      const response = await api.post('/forgot-password', {
         email: email
       });
 

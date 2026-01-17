@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../services/api';
 import '../styles/ForgotPassword.css';
 
 const ForgotPasswordPage = () => {
@@ -15,7 +15,7 @@ const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('forgot-password', {
+      const response = await api.post('/forgot-password', {
         email: email
       });
 

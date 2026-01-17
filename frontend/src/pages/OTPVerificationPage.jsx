@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../services/api';
 import '../styles/OTPVerification.css';
 
 const OTPVerificationPage = () => {
@@ -107,7 +107,7 @@ const OTPVerificationPage = () => {
 
     setLoading(true);
     try {
-      const response = await api.post('verify-email', {
+      const response = await api.post('/verify-email', {
         token: code
       });
 
@@ -143,7 +143,7 @@ const OTPVerificationPage = () => {
 
     setResendLoading(true);
     try {
-      const response = await api.post('resend-verification', {
+      const response = await api.post('/resend-verification', {
         email: email
       });
 

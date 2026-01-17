@@ -6,8 +6,16 @@ from repositories.user_repo import get_user_by_email
 import schemas
 from jose import JWTError, jwt
 from .jwt_token import SECRET_KEY, ALGORITHM, verify_access_token
+from os import getenv
+from dotenv import load_dotenv
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+load_dotenv()
+
+# Get the base URL from environment
+BASE_URL = getenv("BASE_URL", "")
+# Use relative path if BASE_URL is not set, otherwise use full URL
+token_url = f"{BASE_URL}/login" if BASE_URL else "/login"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=token_url)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
