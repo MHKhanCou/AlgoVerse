@@ -5,12 +5,13 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from os import getenv
 from datetime import datetime
+
 import logging
 import time
 
 from db import get_db, engine
 import models
-from routes import authentication, algorithm, user_progress, blogs, admin, profile, user, algo_types, blog, related_problems, comments, algorithm_comments, contests
+from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments, algorithm_comments, contests
 from auth.oauth2 import get_current_user
 from models import User
 

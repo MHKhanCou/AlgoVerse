@@ -188,14 +188,11 @@ async def register(request: schemas.RegisterUser, db: Session = Depends(get_db),
     db.refresh(user)
     
     # Add email sending to background tasks (non-blocking)
-    try:
-        background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
-        email_status = "sent"
-        email_message = f"A 6-digit verification code has been sent to {user.email}."
-    except Exception as e:
-        email_status = "failed"
-        email_message = "Verification email could not be sent. You can verify your email later from profile settings."
-        logger.error(f"Failed to send verification email to {user.email}: {e}")
+    background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
+    email_status = "sent"
+    email_message = f"A 6-digit verification code has been sent to {user.email}."
+    
+    # Note: If email sending fails in background, user can still verify later from profile
     
     # Return success immediately, don't wait for email
     return {
