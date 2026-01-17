@@ -1,12 +1,15 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from os import getenv
-import models
-from db import engine, get_db
+from datetime import datetime
+import logging
+import time
 
-from routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments, algorithm_comments, contests
+from db import get_db, engine
+from routes import authentication, algorithms, user_progress, blogs, admin
 from auth.oauth2 import get_current_user
 from models import User
 
@@ -72,4 +75,45 @@ app.include_router(blog.router)
 app.include_router(related_problems.router)
 app.include_router(comments.router)
 app.include_router(algorithm_comments.router)
-app.include_router(contests.router, prefix="/api")
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring and load balancers"""
+    start_time = getattr(app, 'start_time', time.time())
+    uptime = int(time.time() - start_time)
+    
+    # Check database connectivity
+    db_status = "connected"
+    try:
+        db = next(get_db())
+        db.execute(text("SELECT 1"))
+        db.close()
+    except Exception as e:
+        db_status = f"error: {str(e)[:50]}"
+        logging.error(f"Health check - DB error: {e}")
+    
+    # Check SMTP connectivity (non-blocking)
+    smtp_status = "reachable"
+    try:
+        from auth.email_utils import SMTP_HOST, SMTP_PORT, DISABLE_EMAIL
+        if DISABLE_EMAIL:
+            smtp_status = "disabled"
+        else:
+            import smtplib
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=5)
+            server.quit()
+    except Exception as e:
+        smtp_status = f"error: {str(e)[:50]}"
+        logging.error(f"Health check - SMTP error: {e}")
+    
+    return {
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat(),
+        "uptime_seconds": uptime,
+        "database": db_status,
+        "smtp": smtp_status,
+        "version": "1.0.0"
+    }
+
+# Store app start time for uptime calculation
+app.start_time = time.time()

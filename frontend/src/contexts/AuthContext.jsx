@@ -104,6 +104,15 @@ export const AuthProvider = ({ children }) => {
       }
       return res;
     } catch (error) {
+      // Check if error is about unverified email
+      if (error.message && error.message.includes('verify your email')) {
+        // Store email for verification page
+        sessionStorage.setItem('unverifiedEmail', email);
+        // Redirect to verification page instead of showing error
+        navigate('/verify-email');
+        throw new Error('Please verify your email address');
+      }
+      
       if (error.message.includes('Network error')) {
         toast.error(error.message, {
           position: "top-right",
@@ -129,6 +138,15 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(true); // Admin login automatically sets admin status
       return res;
     } catch (error) {
+      // Check if error is about unverified email
+      if (error.message && error.message.includes('verify your email')) {
+        // Store email for verification page
+        sessionStorage.setItem('unverifiedEmail', email);
+        // Redirect to verification page instead of showing error
+        navigate('/verify-email');
+        throw new Error('Please verify your email address');
+      }
+      
       if (error.message.includes('Network error')) {
         toast.error(error.message, {
           position: "top-right",

@@ -15,6 +15,13 @@ const EmailVerificationPage = () => {
   const token = searchParams.get('token');
 
   useEffect(() => {
+    // Get email from sessionStorage (set by login when user is unverified)
+    const unverifiedEmail = sessionStorage.getItem('unverifiedEmail');
+    if (unverifiedEmail) {
+      setEmail(unverifiedEmail);
+      sessionStorage.removeItem('unverifiedEmail'); // Clear after using
+    }
+    
     if (token) {
       verifyEmail(token);
     } else {
@@ -34,10 +41,13 @@ const EmailVerificationPage = () => {
         setMessage(response.data.message);
         toast.success('Email verified successfully!');
         
-        // Redirect to login after 3 seconds
+        // Clear any stored unverified email
+        sessionStorage.removeItem('unverifiedEmail');
+        
+        // Redirect to home page after successful verification
         setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+          navigate('/');
+        }, 2000);
       }
     } catch (error) {
       setStatus('error');

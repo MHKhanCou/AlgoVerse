@@ -18,7 +18,7 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME", "your-email@gmail.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "your-app-password")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "AlgoVerse <your-email@gmail.com>")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-DISABLE_EMAIL = os.getenv("DISABLE_EMAIL", "False").lower() == "true"
+DISABLE_EMAIL = os.getenv("DISABLE_EMAIL", "False").lower() == "true"  # Default to False
 
 def generate_token(length: int = 32) -> str:
     """Generate a secure random token (legacy for internal use)"""

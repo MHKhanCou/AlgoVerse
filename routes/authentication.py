@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from db import get_db  
-from auth.password_utils import hash_password, verify_password
-from auth.jwt_token import create_access_token  
+from pydantic import EmailStr
 from auth.email_utils import generate_token, generate_otp, send_verification_email, send_verification_otp_email, send_password_reset_email, send_password_reset_otp_email, get_token_expiry_time, is_token_expired
 from auth.cleanup_users import cleanup_expired_unverified_users, cleanup_expired_otps, get_unverified_user_stats
 from repositories import user_repo
 from repositories.user_repo import get_user_by_email
 import schemas, models
+from db import get_db  
+from auth.password_utils import hash_password, verify_password
+from auth.jwt_token import create_access_token  
 from datetime import datetime
 import logging
 
@@ -56,7 +57,7 @@ async def login(
         logger.warning(f"User email not verified: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Please verify your email address before logging in",
+            detail="Please verify your email address before logging in. Check your email for the verification code or click 'Resend Verification'.",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
@@ -113,7 +114,7 @@ async def admin_login(
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Please verify your email address before logging in",
+            detail="Please verify your email address before logging in. Check your email for the verification code or click 'Resend Verification'.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -140,11 +141,11 @@ async def admin_login(
     }
 
 @router.post("/register", response_model=schemas.APIResponse)
-def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
+async def register(request: schemas.RegisterUser, db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
     # Check if user already exists
     existing_user = get_user_by_email(db, request.email)
     if existing_user:
-        # If the user exists and is not verified, we can resend the OTP
+        # If user exists and is not verified, we can resend OTP
         if not existing_user.is_verified:
             # Generate a new OTP and update expiry
             new_otp = generate_otp(6)
@@ -152,22 +153,19 @@ def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
             existing_user.reset_token_expires = get_token_expiry_time(10) # 10-minute expiry
             db.commit()
 
-            # Resend OTP email
-            if send_verification_otp_email(existing_user.email, existing_user.name, new_otp):
-                return {
-                    "success": True,
-                    "message": f"This email is already registered but not verified. A new verification code has been sent to {existing_user.email}.",
-                    "data": {
-                        "user_id": existing_user.id,
-                        "email": existing_user.email,
-                        "otp_expires_in": 10
-                    }
+            # Add email sending to background tasks
+            background_tasks.add_task(send_verification_otp_email, existing_user.email, existing_user.name, new_otp)
+            
+            return {
+                "success": True,
+                "email_sent": True,
+                "message": f"This email is already registered but not verified. A new verification code has been sent to {existing_user.email}.",
+                "data": {
+                    "user_id": existing_user.id,
+                    "email": existing_user.email,
+                    "otp_expires_in": 10
                 }
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to resend verification email. Please try again later."
-                )
+            }
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -184,7 +182,7 @@ def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
         name=request.name,
         email=request.email,
         password=hashed_password,
-        verification_token=verification_otp,  # Store OTP in the same field
+        verification_token=verification_otp,  # Store OTP in same field
         reset_token_expires=otp_expires,  # Use this field for OTP expiry
         is_verified=False
     )
@@ -193,24 +191,20 @@ def register(request: schemas.RegisterUser, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     
-    # Send verification email with OTP
-    if send_verification_otp_email(user.email, user.name, verification_otp):
-        return {
-            "success": True,
-            "message": f"Registration successful! A 6-digit verification code has been sent to {user.email}. The code will expire in 10 minutes.",
-            "data": {
-                "user_id": user.id,
-                "email": user.email,
-                "otp_expires_in": 10  # minutes
-            }
+    # Add email sending to background tasks (non-blocking)
+    background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
+    
+    # Return success immediately, don't wait for email
+    return {
+        "success": True,
+        "email_sent": True,
+        "message": f"Registration successful! A 6-digit verification code has been sent to {user.email}. The code will expire in 10 minutes.",
+        "data": {
+            "user_id": user.id,
+            "email": user.email,
+            "otp_expires_in": 10  # minutes
         }
-    else:
-        # If email sending fails, we should ideally roll back the user creation or handle it
-        # For now, we'll raise an error to indicate the failure.
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration successful, but failed to send verification email. Please try again later."
-        )
+    }
 
 
 # Email verification endpoint (now handles OTP)
