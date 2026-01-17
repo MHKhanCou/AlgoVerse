@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import UserLink from '../components/common/UserLink';
-
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'react-toastify';
 import '../styles/MyBlogs.css';
+import UserLink from '../components/common/UserLink';
 
 const MyBlogs = () => {
   const { isAuthenticated, user } = useAuth();
@@ -24,10 +23,7 @@ const MyBlogs = () => {
         if (statusFilter !== 'all') {
           params.status_filter = statusFilter;
         }
-        const response = await api.get('profile/my-blogs', {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        });
+        const response = await api.get('/profile/my-blogs', { params });
         setBlogs(response.data);
         setHasMore(response.data.length === limit);
       } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { userService } from '../services/userService';
 import '../styles/UserPublicPage.css';
 import { useAuth } from '../contexts/AuthContext';

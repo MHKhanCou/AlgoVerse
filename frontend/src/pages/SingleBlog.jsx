@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'react-toastify';
 import CommentSection from '../components/CommentSection';
 import UserLink from '../components/common/UserLink';
@@ -19,7 +19,7 @@ const SingleBlog = () => {
   useEffect(() => {
     const fetchBlog = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/blogs/${id}`);
+        const response = await api.get(`/blogs/${id}`);
         setBlog(response.data);
         setTitle(response.data.title);
         setBody(response.data.body);
@@ -35,9 +35,7 @@ const SingleBlog = () => {
     if (!window.confirm('Are you sure you want to delete this blog?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/blogs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/blogs/${id}`);
       toast.success('Blog deleted successfully', { theme: 'dark' });
       navigate('/blogs');
     } catch (error) {
@@ -57,10 +55,9 @@ const SingleBlog = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `http://localhost:8000/blogs/${id}`,
-        { title, body },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.put(
+        `/blogs/${id}`,
+        { title, body }
       );
       setBlog(response.data);
       setIsEditing(false);

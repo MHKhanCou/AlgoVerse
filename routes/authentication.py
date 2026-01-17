@@ -22,13 +22,29 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    logger.info(f"Login attempt for email: {form_data.username}")
+    
     user = get_user_by_email(db, form_data.username)
+    
+    if not user:
+        logger.warning(f"User not found: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    logger.info(f"User found: {user.email}, verified: {user.is_verified}")
+    
     try:
-        password_ok = bool(user) and verify_password(form_data.password, user.password)
+        password_ok = verify_password(form_data.password, user.password)
+        logger.info(f"Password verification result: {password_ok}")
     except Exception as e:
         logger.exception("Password verification failed")
         password_ok = False
+    
     if not password_ok:
+        logger.warning(f"Password verification failed for: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -37,6 +53,7 @@ async def login(
     
     # Check if email is verified
     if not user.is_verified:
+        logger.warning(f"User email not verified: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Please verify your email address before logging in",
@@ -45,6 +62,7 @@ async def login(
         
     try:
         access_token = create_access_token(data={"sub": user.email})
+        logger.info(f"Token created successfully for: {form_data.username}")
     except HTTPException:
         raise
     except Exception as e:

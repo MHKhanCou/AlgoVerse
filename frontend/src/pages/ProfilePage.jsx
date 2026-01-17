@@ -1,23 +1,4 @@
-  // Local relative time formatter (no API changes)
-  const formatRelativeTime = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date)) return '';
-    const now = new Date();
-    const diffMs = now - date;
-    const sec = Math.floor(diffMs / 1000);
-    if (sec < 5) return 'just now';
-    if (sec < 60) return `${sec}s ago`;
-    const min = Math.floor(sec / 60);
-    if (min < 60) return `${min}m ago`;
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}h ago`;
-    const day = Math.floor(hr / 24);
-    if (day < 7) return `${day}d ago`;
-    // Fallback to date + time for older entries
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
 import { authService } from '../services/authService';
@@ -29,6 +10,26 @@ import api from '../services/api';
 import CodeforcesAnalyzer from '../components/CodeforcesAnalyzer';
 import ContestTracker from '../components/ContestTracker';
 import '../styles/ProfilePage.css';
+
+// Local relative time formatter (no API changes)
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date)) return '';
+  const now = new Date();
+  const diffMs = now - date;
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  // Fallback to date + time for older entries
+  return date.toLocaleDateString();
+};
 
 const ProfilePage = () => {
   const { user, setUser, logout, isAuthenticated } = useAuth();

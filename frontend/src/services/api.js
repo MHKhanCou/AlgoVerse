@@ -1,36 +1,9 @@
 import axios from 'axios';
 
-// Environment-based configuration
-const getApiBaseUrl = () => {
-  // Check for override from environment variables first
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // In development, default to localhost
-  if (import.meta.env.DEV) {
-    return 'http://127.0.0.1:8000';
-  }
-  
-  // In production, use the current origin's hostname to determine the API URL
-  const hostname = window.location.hostname;
-  
-  // List of production domains and their corresponding API URLs
-  const productionMappings = {
-    'algo-verse-eight.vercel.app': 'https://algoverse-kpwz.onrender.com',
-    'algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app': 'https://algoverse-kpwz.onrender.com',
-    'algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app': 'https://algoverse-kpwz.onrender.com',
-    'algo-verse-q7tt2blgw-mehedi-hasan-khans-projects.vercel.app': 'https://algoverse-kpwz.onrender.com',
-    'localhost': 'http://127.0.0.1:8000',
-    '127.0.0.1': 'http://127.0.0.1:8000',
-    'algoverse-kpwz.onrender.com': 'https://algoverse-kpwz.onrender.com'
-  };
+// Use VITE_API_BASE_URL environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-  return productionMappings[hostname] || `https://${hostname}`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
-console.log('API Base URL:', API_BASE_URL);
+console.log('API base ->', import.meta.env.VITE_API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
