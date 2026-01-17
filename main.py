@@ -17,7 +17,8 @@ origins = [
     "https://algoverse.vercel.app",
     "https://algo-verse-eight.vercel.app",
     "https://algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app",
-    "https://algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app"
+    "https://algo-verse-a9e9uoryp-mehedi-hasan-khans-projects.vercel.app",
+    "https://algo-verse-q7tt2blgw-mehedi-hasan-khans-projects.vercel.app"
 ]
 
 app.add_middleware(
