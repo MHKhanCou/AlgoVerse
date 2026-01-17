@@ -9,7 +9,8 @@ import logging
 import time
 
 from db import get_db, engine
-from routes import authentication, algorithms, user_progress, blogs, admin
+import models
+from routes import authentication, algorithm, user_progress, blogs, admin, profile, user, algo_types, blog, related_problems, comments, algorithm_comments, contests
 from auth.oauth2 import get_current_user
 from models import User
 
@@ -75,6 +76,7 @@ app.include_router(blog.router)
 app.include_router(related_problems.router)
 app.include_router(comments.router)
 app.include_router(algorithm_comments.router)
+app.include_router(contests.router, prefix="/api")
 # Health check endpoint
 @app.get("/health")
 async def health_check():
