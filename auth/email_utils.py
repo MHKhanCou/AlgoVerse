@@ -54,8 +54,8 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: Optional[
         html_part = MIMEText(html_body, "html")
         msg.attach(html_part)
 
-        # Create SMTP session
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        # Create SMTP session with timeout
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
         server.starttls()  # Enable security
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         
