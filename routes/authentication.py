@@ -52,14 +52,9 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Check if email is verified
-    if not user.is_verified:
-        logger.warning(f"User email not verified: {form_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Please verify your email address before logging in. Check your email for the verification code or click 'Resend Verification'.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Allow unverified users to login (they can browse the site)
+    # Email verification is optional for basic access
+    logger.info(f"User login successful: {form_data.username}, verified: {user.is_verified}")
         
     try:
         access_token = create_access_token(data={"sub": user.email})
@@ -80,7 +75,8 @@ async def login(
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "is_admin": user.is_admin
+            "is_admin": user.is_admin,
+            "is_verified": user.is_verified  # Include verification status
         }
     }
 
@@ -110,11 +106,11 @@ async def admin_login(
             detail="Access denied. Admin privileges required."
         )
     
-    # Check if email is verified
+    # Admins must have verified email
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Please verify your email address before logging in. Check your email for the verification code or click 'Resend Verification'.",
+            detail="Admins must verify their email address before logging in. Check your email for the verification code.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -192,17 +188,25 @@ async def register(request: schemas.RegisterUser, db: Session = Depends(get_db),
     db.refresh(user)
     
     # Add email sending to background tasks (non-blocking)
-    background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
+    try:
+        background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
+        email_status = "sent"
+        email_message = f"A 6-digit verification code has been sent to {user.email}."
+    except Exception as e:
+        email_status = "failed"
+        email_message = "Verification email could not be sent. You can verify your email later from profile settings."
+        logger.error(f"Failed to send verification email to {user.email}: {e}")
     
     # Return success immediately, don't wait for email
     return {
         "success": True,
-        "email_sent": True,
-        "message": f"Registration successful! A 6-digit verification code has been sent to {user.email}. The code will expire in 10 minutes.",
+        "email_sent": email_status == "sent",
+        "message": f"Registration successful! {email_message} The code will expire in 10 minutes.",
         "data": {
             "user_id": user.id,
             "email": user.email,
-            "otp_expires_in": 10  # minutes
+            "otp_expires_in": 10,  # minutes
+            "requires_verification": False  # Allow browsing without verification
         }
     }
 

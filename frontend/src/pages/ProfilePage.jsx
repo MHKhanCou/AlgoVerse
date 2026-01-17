@@ -277,7 +277,36 @@ const ProfilePage = () => {
       <div className="profile-header">
         <div className="profile-info">
           <h1>{user?.name || 'User'}</h1>
-          <p className="email">{user?.email}</p>
+          <div className="email-section">
+            <p className="email">{user?.email}</p>
+            {user?.is_verified === false && (
+              <div className="verification-warning">
+                <span className="warning-icon">⚠️</span>
+                <span className="warning-text">Email not verified</span>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.post('/resend-verification', { email: user?.email });
+                      toast.success('Verification email sent! Please check your inbox.');
+                      sessionStorage.setItem('registeredEmail', user?.email);
+                      navigate('/verify-otp');
+                    } catch (error) {
+                      toast.error(error.response?.data?.detail || 'Failed to resend verification email');
+                    }
+                  }}
+                  className="resend-verification-btn"
+                >
+                  Resend Verification Email
+                </button>
+              </div>
+            )}
+            {user?.is_verified === true && (
+              <div className="verification-success">
+                <span className="success-icon">✅</span>
+                <span className="success-text">Email verified</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

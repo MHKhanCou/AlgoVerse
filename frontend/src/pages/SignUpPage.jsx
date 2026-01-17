@@ -65,14 +65,27 @@ const SignUpPage = () => {
       
       if (res.success) {
         toast.success('🎉 Registration successful!');
-        // Show detailed instructions about email verification
-        toast.info('📧 Please check your email for a 6-digit verification code.', {
-          autoClose: 6000
-        });
-        // Store email for OTP verification page
-        sessionStorage.setItem('registeredEmail', formData.email);
-        // Navigate to OTP verification page
-        navigate('/verify-otp');
+        
+        if (res.email_sent) {
+          toast.info('📧 A verification code has been sent to your email.', {
+            autoClose: 6000
+          });
+        } else {
+          toast.warning('⚠️ Verification email could not be sent. You can verify your email later from profile settings.', {
+            autoClose: 6000
+          });
+        }
+        
+        // Log the user in immediately (allow browsing without verification)
+        try {
+          const loginRes = await authService.login(formData.email, formData.password);
+          localStorage.setItem('token', loginRes.access_token);
+          window.location.href = '/'; // Redirect to home
+        } catch (loginError) {
+          // If login fails, redirect to login page
+          toast.info('You can now log in with your credentials');
+          navigate('/login');
+        }
       }
     } catch (err) {
       console.error('Registration error:', err);

@@ -94,25 +94,15 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', res.access_token);
       setIsAuthenticated(true);
       setUser(res.user || null);
+      // Check if user is admin
       try {
         await authService.getCurrentAdmin();
-        console.log("Admin check after login: success");
         setIsAdmin(true);
-      } catch (error) {
-        console.log("Not an admin after login:", error.message);
+      } catch {
         setIsAdmin(false);
       }
       return res;
     } catch (error) {
-      // Check if error is about unverified email
-      if (error.message && error.message.includes('verify your email')) {
-        // Store email for verification page
-        sessionStorage.setItem('unverifiedEmail', email);
-        // Redirect to verification page instead of showing error
-        navigate('/verify-email');
-        throw new Error('Please verify your email address');
-      }
-      
       if (error.message.includes('Network error')) {
         toast.error(error.message, {
           position: "top-right",

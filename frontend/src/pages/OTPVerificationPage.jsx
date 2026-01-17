@@ -243,6 +243,17 @@ const OTPVerificationPage = () => {
                 canResend ? 'Resend Code' : `Resend in ${formatTime(timeLeft)}`
               )}
             </button>
+
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('registeredEmail');
+                navigate('/');
+                toast.info('You can verify your email later from your profile settings');
+              }}
+              className="skip-btn"
+            >
+              Skip for now
+            </button>
           </div>
 
           <div className="help-section">
