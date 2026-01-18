@@ -1,7 +1,12 @@
+
 """
 Main entry point for AlgoVerse Backend
-Imports the FastAPI app from the app module
 """
+
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.main import app
 

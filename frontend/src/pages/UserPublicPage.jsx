@@ -73,7 +73,7 @@ export default function UserPublicPage() {
     let active = true;
     (async () => {
       try {
-        const resp = await axios.get(`http://localhost:8000/blogs/user/${id}`, { params: { skip: 0, limit: 5 } });
+        const resp = await api.get(`/blogs/user/${id}`, { params: { skip: 0, limit: 5 } });
         if (!active) return;
         const items = Array.isArray(resp.data) ? resp.data : [];
         setBlogs(items);
@@ -89,7 +89,7 @@ export default function UserPublicPage() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const resp = await axios.get(`http://localhost:8000/blogs/user/${id}`, { params: { skip: pageSkip, limit: 10 } });
+      const resp = await api.get(`/blogs/user/${id}`, { params: { skip: pageSkip, limit: 10 } });
       const items = Array.isArray(resp.data) ? resp.data : [];
       setAllBlogs((prev) => [...prev, ...items]);
       setHasMore(items.length === 10);
@@ -109,7 +109,7 @@ export default function UserPublicPage() {
       setHasMore(true);
       (async () => {
         try {
-          const resp = await axios.get(`http://localhost:8000/blogs/user/${id}`, { params: { skip: 0, limit: 10 } });
+          const resp = await api.get(`/blogs/user/${id}`, { params: { skip: 0, limit: 10 } });
           const items = Array.isArray(resp.data) ? resp.data : [];
           setAllBlogs(items);
           setHasMore(items.length === 10);

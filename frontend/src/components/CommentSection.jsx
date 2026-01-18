@@ -12,6 +12,7 @@ import {
 import { toast } from 'react-toastify';
 import '../styles/CommentSection.css';
 import UserLink from './common/UserLink';
+import api from '../services/api';
 
 const CommentSection = ({ blogId, user }) => {
   const [comments, setComments] = useState([]);
@@ -29,13 +30,9 @@ const CommentSection = ({ blogId, user }) => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/blog/${blogId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data);
-      } else {
-        throw new Error('Failed to fetch comments');
-      }
+      const response = await api.get(`/comments/blog/${blogId}`);
+      const data = response.data;
+      setComments(data);
     } catch (error) {
       console.error('Error fetching comments:', error);
       toast.error('Failed to load comments');
@@ -58,38 +55,26 @@ const CommentSection = ({ blogId, user }) => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/blog/${blogId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: content.trim(),
-          parent_id: parentId
-        })
+      const response = await api.post(`/comments/blog/${blogId}`, {
+        content: content.trim(),
+        parent_id: parentId
       });
 
-      if (response.ok) {
-        const newCommentData = await response.json();
+      const newCommentData = response.data;
         
-        if (parentId) {
-          // Add reply to existing comment
-          setComments(prevComments => 
-            updateCommentsWithReply(prevComments, parentId, newCommentData)
-          );
-          setReplyingTo(null);
-        } else {
-          // Add new top-level comment
-          setComments(prevComments => [newCommentData, ...prevComments]);
-          setNewComment('');
-        }
+      if (parentId) {
+        // Add reply to existing comment
+        setComments(prevComments => 
+          updateCommentsWithReply(prevComments, parentId, newCommentData)
+        );
+        setReplyingTo(null);
+      } else {
+        // Add new top-level comment
+        setComments(prevComments => [...prevComments, newCommentData]);
+        setNewComment('');
+      }
         
         toast.success('Comment posted successfully!');
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to post comment');
-      }
     } catch (error) {
       console.error('Error posting comment:', error);
       toast.error(error.message || 'Failed to post comment');
@@ -124,19 +109,12 @@ const CommentSection = ({ blogId, user }) => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/${commentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: content.trim()
-        })
+      const response = await api.put(`/comments/${commentId}`, {
+        content: content.trim()
       });
 
       if (response.ok) {
-        const updatedComment = await response.json();
+        const updatedComment = response.data;
         setComments(prevComments => 
           updateCommentInList(prevComments, commentId, updatedComment)
         );
@@ -176,22 +154,12 @@ const CommentSection = ({ blogId, user }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.delete(`/comments/${commentId}`);
 
-      if (response.ok) {
-        setComments(prevComments => 
-          removeCommentFromList(prevComments, commentId)
-        );
-        toast.success('Comment deleted successfully!');
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete comment');
-      }
+      setComments(prevComments => 
+        removeCommentFromList(prevComments, commentId)
+      );
+      toast.success('Comment deleted successfully!');
     } catch (error) {
       console.error('Error deleting comment:', error);
       toast.error(error.message || 'Failed to delete comment');

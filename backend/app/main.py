@@ -1,3 +1,5 @@
+
+
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -78,6 +80,7 @@ app.include_router(related_problems.router)
 app.include_router(comments.router)
 app.include_router(algorithm_comments.router)
 app.include_router(contests.router, prefix="/api")
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -98,7 +101,7 @@ async def health_check():
     # Check SMTP connectivity (non-blocking)
     smtp_status = "reachable"
     try:
-        from auth.email_utils import SMTP_HOST, SMTP_PORT, DISABLE_EMAIL
+        from .auth.email_utils import SMTP_HOST, SMTP_PORT, DISABLE_EMAIL
         if DISABLE_EMAIL:
             smtp_status = "disabled"
         else:

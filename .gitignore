@@ -144,6 +144,10 @@ Thumbs.db
 .qodo/
 .trae/
 
+# Documentation files to exclude
+DEVELOPMENT_PLAN.md
+PRODUCTION_RULES.md
+
 # Documentation
 site/
 
