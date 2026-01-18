@@ -1,144 +1,136 @@
-# AlgoVerse - Learn Algorithms Visually
+# AlgoVerse — Interactive Algorithm Learning Platform
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-[![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg)](https://reactjs.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-009688.svg)](https://fastapi.tiangolo.com)
+AlgoVerse is a full-stack web application for algorithm learning and competitive programming. It combines interactive visualizations, practice tracking, and competitive analytics into a single platform.
 
-> A modern web application for learning algorithms through interactive visualizations and practice problems.
+**Live Demo**: https://algo-verse-eight.vercel.app
 
-## ✨ Features
+## Features
 
-- **Interactive Algorithm Visualizer** - Step-by-step visualization of sorting and searching algorithms
-- **Practice Problems** - Curated problems with multiple difficulty levels
-- **Progress Tracking** - Monitor your learning journey
-- **Responsive Design** - Works on desktop and mobile devices
-- **Dark/Light Theme** - Choose your preferred color scheme
+### Learning
+- Interactive algorithm visualizations
+- Comprehensive algorithm library
+- Practice problems with progress tracking
 
-## 💻 Tech Stack
+### Competitive Programming
+- Codeforces profile analyzer
+- Contest tracker for major platforms
 
-**Frontend**
-- React 18 with Hooks
-- React Router for navigation
-- Context API for state management
-- Custom CSS for styling
+### User Management
+- Email verification and OTP
+- JWT authentication and authorization
+- Profile CRUD and settings
+- Password reset
 
-**Backend**
-- FastAPI (Python)
-- SQLAlchemy ORM
-- SQLite (development) / PostgreSQL (production)
+### Community
+- Blog system
+- Commenting
+- Admin dashboard with role-based access
+
+## Technologies
+
+### Backend
+- FastAPI
+- SQLAlchemy
+- PostgreSQL (production) / SQLite (development)
 - JWT Authentication
+- Alembic migrations
 
-## Getting Started
+### Frontend
+- React 18 (Vite)
+- React Router
+- Context API
+- Axios
 
-### Prerequisites
-- Python 3.8+
-- Node.js 16+
-- npm or yarn
-- PostgreSQL (for production)
+## Quick Start
 
-### Installation
+### Backend
+```bash
+# Clone repository
+git clone https://github.com/MHKhanCou/AlgoVerse.git
+cd AlgoVerse
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/MHKhanCou/AlgoVerse.git
-   cd AlgoVerse
-   ```
+# Setup environment
+python -m venv venv
+source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate     # Windows
 
-2. Set up the backend:
-   ```bash
-   # Create and activate virtual environment
-   python -m venv myenv
-   myenv\Scripts\activate  # Windows
-   # source myenv/bin/activate  # Mac/Linux
+# Install dependencies
+pip install -r backend/requirements.txt
 
-   # Install dependencies
-   pip install -r requirements.txt
+# Setup environment
+cp backend/.env.example backend/.env
+# Edit backend/.env with your configuration
 
-   # Set up environment variables
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+# Run migrations
+cd backend
+alembic upgrade head
 
-3. Set up the database:
-   ```bash
-   # For development (SQLite - default)
-   # The database will be created automatically on first run
+# Start server
+uvicorn app.main:app --reload --port 8000
+```
 
-   # For production (PostgreSQL)
-   # 1. Create a PostgreSQL database
-   # 2. Update DATABASE_URL in .env (use your actual credentials):
-   #    # Example configuration (replace with your actual values):
-   #    DATABASE_URL=postgresql://username:password@localhost:5432/algoverse
-   #    
-   #    # Important: Never commit real credentials to version control!
-   #    # This is just an example format.
-   #
-   # 3. Run migrations:
-   #    alembic upgrade head
-   ```
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-4. Start the server:
-   ```bash
-   uvicorn main:app --reload
-   ```
+## Local Access
 
-5. Set up the frontend:
-   ```bash
-   cd frontend
-   npm install
-   npm start
-   ```
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+## Production URLs
+
+- Main application: https://algo-verse-eight.vercel.app
+- Backend API: https://algoverse-kpwz.onrender.com
+- API documentation: https://algoverse-kpwz.onrender.com/docs
 
 ## Project Structure
-
 ```
-algoverse/
-├── frontend/          # React frontend
-│   ├── public/        # Static files
-│   └── src/           # Source code
-│       ├── components/ # Reusable UI components
-│       ├── contexts/   # React context providers
-│       └── services/   # API service functions
-├── backend/           # FastAPI backend
-│   ├── auth/          # Authentication logic
-│   ├── models/        # Database models
-│   ├── routes/        # API endpoints
-│   └── db/            # Database configuration
-├── .env               # Environment variables
-└── requirements.txt   # Python dependencies
+AlgoVerse/
+├── backend/                    # FastAPI application
+│   ├── app/
+│   │   ├── main.py            # FastAPI entry point
+│   │   ├── models/            # Database models
+│   │   ├── routes/            # API endpoints
+│   │   ├── auth/              # Authentication logic
+│   │   ├── repositories/      # Data access layer
+│   │   ├── services/          # Business logic
+│   │   └── middleware/        # Custom middleware
+│   ├── alembic/               # Database migrations
+│   ├── requirements.txt       # Python dependencies
+│   └── .env                   # Environment variables
+├── frontend/                  # React application
+├── docs/                      # Documentation
+│   ├── README.md             # Detailed setup guide
+│   ├── SETUP_GUIDE.md        # Comprehensive setup
+│   └── SYSTEM_ANALYSIS.md    # Technical analysis
+└── README.md                  # This file
 ```
 
-## Project Overview
+## Environment Variables
 
-This project demonstrates a full-stack web application for learning algorithms through interactive visualizations. It serves as a practical implementation of modern web development practices, combining:
+### Backend Required Variables
+- `DATABASE_URL` - Database connection string
+- `SECRET_KEY` - JWT secret key
+- `SMTP_HOST` - Email server host
+- `SMTP_USER` - Email username
+- `SMTP_PASSWORD` - Email password
 
-- **Backend**: FastAPI for high-performance API development
-- **Frontend**: React with functional components and hooks
-- **Database**: SQLAlchemy ORM with support for both SQLite and PostgreSQL
+### Frontend Required Variables
+- `VITE_API_BASE_URL` - Backend API URL
 
-Built with scalability and maintainability in mind, this project follows best practices in code organization and architecture.
+## Documentation
 
-## PostgreSQL Setup (Production)
+- [Setup Guide](docs/SETUP_GUIDE.md) - Detailed setup instructions
+- [System Analysis](docs/SYSTEM_ANALYSIS.md) - Technical architecture
+- [API Documentation](https://algoverse-kpwz.onrender.com/docs) - Interactive API docs
 
-For production deployment, we recommend using PostgreSQL. Here's how to set it up:
+## Connect
 
-1. Install PostgreSQL on your server
-2. Create a new database and user:
-   ```sql
-   CREATE DATABASE algoverse;
-   CREATE USER algoverse_user WITH PASSWORD 'your_secure_password';
-   GRANT ALL PRIVILEGES ON DATABASE algoverse TO algoverse_user;
-   ```
-3. Update your `.env` file:
-   ```
-   DATABASE_URL=postgresql://algoverse_user:your_secure_password@localhost:5432/algoverse
-   AUTO_CREATE_TABLES=false
-   ```
-4. Run migrations:
-   ```bash
-   alembic upgrade head
-   ```
-
-For questions or contributions, please open an issue in the repository.
+- **LinkedIn**: https://www.linkedin.com/in/mhkhancou
+- **Live Demo**: https://algo-verse-eight.vercel.app

@@ -251,8 +251,9 @@ const CodeforcesAnalyzer = () => {
         throw new Error('Failed to update handle');
       }
 
-      await updateUser({ ...user, codeforces_handle: handle.trim() });
+      const updatedUser = await updateUser({ ...user, codeforces_handle: handle.trim() });
       await fetchCodeforcesData(handle.trim());
+      setUserInfo(updatedUser);  
       setIsEditing(false);
       toast.success('Codeforces handle saved successfully!');
     } catch (err) {

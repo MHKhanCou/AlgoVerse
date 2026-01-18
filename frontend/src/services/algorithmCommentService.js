@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8000';
+import api from './api';
 
 export const algorithmCommentService = {
   /**
@@ -8,11 +8,8 @@ export const algorithmCommentService = {
    */
   async getComments(algorithmId) {
     try {
-      const response = await fetch(`${API_BASE}/comments/algorithm/${algorithmId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+      const response = await api.get(`/comments/algorithm/${algorithmId}`);
+      return response.data;
     } catch (error) {
       console.error('Error fetching algorithm comments:', error);
       throw new Error('Failed to fetch comments');
@@ -28,29 +25,11 @@ export const algorithmCommentService = {
    */
   async createComment(algorithmId, content, parentId = null) {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch(`${API_BASE}/comments/algorithm/${algorithmId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: content.trim(),
-          parent_id: parentId
-        })
+      const response = await api.post(`/comments/algorithm/${algorithmId}`, {
+        content: content.trim(),
+        parent_id: parentId
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return response.data;
     } catch (error) {
       console.error('Error creating algorithm comment:', error);
       throw error;
@@ -65,28 +44,10 @@ export const algorithmCommentService = {
    */
   async updateComment(commentId, content) {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch(`${API_BASE}/comments/algorithm/${commentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: content.trim()
-        })
+      const response = await api.put(`/comments/algorithm/${commentId}`, {
+        content: content.trim()
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return response.data;
     } catch (error) {
       console.error('Error updating algorithm comment:', error);
       throw error;
@@ -100,22 +61,7 @@ export const algorithmCommentService = {
    */
   async deleteComment(commentId) {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch(`${API_BASE}/comments/algorithm/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-      }
+      await api.delete(`/comments/algorithm/${commentId}`);
     } catch (error) {
       console.error('Error deleting algorithm comment:', error);
       throw error;

@@ -220,6 +220,12 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []); // Removed navigate from deps to avoid re-running
 
+  const updateUser = async (updatedUser) => {
+    // Update local state; optionally you could persist to backend elsewhere
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -232,6 +238,7 @@ export const AuthProvider = ({ children }) => {
         adminLogin,
         logout,
         register,
+        updateUser,
       }}
     >
       {children}

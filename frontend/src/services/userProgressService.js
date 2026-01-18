@@ -1,15 +1,11 @@
-import axios from 'axios';
+import api from './api';
 
-const API_URL = 'http://127.0.0.1:8000';
-const PROGRESS_URL = `${API_URL}/user_progress`;
+const PROGRESS_URL = '/user_progress';
 
 export const userProgressService = {
   async getAllProgress() {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${PROGRESS_URL}/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`${PROGRESS_URL}/user`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -21,10 +17,7 @@ export const userProgressService = {
 
   async getEntry(algoId) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${PROGRESS_URL}/entry/${algoId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`${PROGRESS_URL}/entry/${algoId}`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -39,14 +32,10 @@ export const userProgressService = {
 
   async createProgress(algoId, status) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        PROGRESS_URL,
-        { algo_id: Number(algoId), status }, // Ensure algo_id is a number
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.post(PROGRESS_URL, {
+        algo_id: Number(algoId),
+        status
+      });
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -59,7 +48,6 @@ export const userProgressService = {
         throw new Error('Progress already exists for this algorithm');
       }
       if (error.response?.status === 422) {
-        // Include detailed error message from backend
         const detail = error.response?.data?.detail;
         throw new Error(
           typeof detail === 'string' ? detail : detail?.[0]?.msg || 'Invalid data for creating progress'
@@ -74,14 +62,9 @@ export const userProgressService = {
 
   async updateProgress(progressId, status) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${PROGRESS_URL}/${progressId}`,
-        { status },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.put(`${PROGRESS_URL}/${progressId}`, {
+        status
+      });
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -99,14 +82,7 @@ export const userProgressService = {
 
   async updateLastAccessed(algoId) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${PROGRESS_URL}/update-access/${algoId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.post(`${PROGRESS_URL}/update-access/${algoId}`, {});
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -121,10 +97,7 @@ export const userProgressService = {
 
   async getLastAccessed() {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${PROGRESS_URL}/last-accessed`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`${PROGRESS_URL}/last-accessed`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -139,10 +112,7 @@ export const userProgressService = {
 
   async getStats() {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${PROGRESS_URL}/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`${PROGRESS_URL}/stats`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -154,10 +124,7 @@ export const userProgressService = {
 
   async getDetailedStats() {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${PROGRESS_URL}/detailed-stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`${PROGRESS_URL}/detailed-stats`);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -169,10 +136,8 @@ export const userProgressService = {
 
   async deleteProgress(progressId) {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${PROGRESS_URL}/${progressId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`${PROGRESS_URL}/${progressId}`);
+      return { success: true };
     } catch (error) {
       if (!error.response) {
         throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
@@ -191,16 +156,12 @@ export const userProgressService = {
     if (!algorithmIds || algorithmIds.length === 0) return [];
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${PROGRESS_URL}/batch`,
-        { algorithm_ids: algorithmIds },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data || [];
+      const response = await api.get(`${PROGRESS_URL}/batch`, {
+        params: { ids: algorithmIds.join(',') }
+      });
+      return response.data;
     } catch (error) {
       console.error('Error fetching batch progress:', error);
-      // Return empty array instead of throwing to prevent breaking the UI
       return [];
     }
   },
