@@ -148,6 +148,9 @@ Thumbs.db
 DEVELOPMENT_PLAN.md
 PRODUCTION_RULES.md
 
+# Documentation folder (exclude from GitHub)
+docs/
+
 # Documentation
 site/
 

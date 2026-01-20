@@ -4,6 +4,8 @@ AlgoVerse is a full-stack web application for algorithm learning and competitive
 
 **Live Demo**: https://algo-verse-eight.vercel.app
 
+---
+
 ## Features
 
 ### Learning
@@ -26,6 +28,8 @@ AlgoVerse is a full-stack web application for algorithm learning and competitive
 - Commenting
 - Admin dashboard with role-based access
 
+---
+
 ## Technologies
 
 ### Backend
@@ -35,102 +39,129 @@ AlgoVerse is a full-stack web application for algorithm learning and competitive
 - JWT Authentication
 - Alembic migrations
 
+The API is versioned under `/api` where applicable.
+
 ### Frontend
 - React 18 (Vite)
 - React Router
 - Context API
 - Axios
 
+---
+
 ## Quick Start
 
 ### Backend
+
 ```bash
 # Clone repository
 git clone https://github.com/MHKhanCou/AlgoVerse.git
 cd AlgoVerse
 
-# Setup environment
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Mac/Linux
-venv\Scripts\activate     # Windows
+source venv/bin/activate    # macOS / Linux
+venv\Scripts\activate       # Windows
 
 # Install dependencies
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
-# Setup environment
+# Setup environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env with your configuration
+# Edit backend/.env as needed
 
-# Run migrations
+# Run database migrations
 cd backend
 alembic upgrade head
+```
 
-# Start server
+Alembic is used for schema migrations in both development and production.
+
+# Start backend server
 uvicorn app.main:app --reload --port 8000
 ```
 
+> Note: The root `main.py` exists only for deployment convenience.
+> All application logic lives in `backend/app/main.py`.
+
+---
+
 ### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
+---
+
 ## Local Access
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-- Health Check: http://localhost:8000/health
+* Frontend: [http://localhost:5173](http://localhost:5173)
+* Backend API: [http://localhost:8000](http://localhost:8000)
+* API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+* Health Check: [http://localhost:8000/health](http://localhost:8000/health)
+
+---
 
 ## Production URLs
 
-- Main application: https://algo-verse-eight.vercel.app
-- Backend API: https://algoverse-kpwz.onrender.com
-- API documentation: https://algoverse-kpwz.onrender.com/docs
+* Main application: [https://algo-verse-eight.vercel.app](https://algo-verse-eight.vercel.app)
+* Backend API: [https://algoverse-kpwz.onrender.com](https://algoverse-kpwz.onrender.com)
+* API documentation: [https://algoverse-kpwz.onrender.com/docs](https://algoverse-kpwz.onrender.com/docs)
+
+---
 
 ## Project Structure
+
 ```
 AlgoVerse/
-├── backend/                    # FastAPI application
+├── backend/                    # FastAPI backend
 │   ├── app/
-│   │   ├── main.py            # FastAPI entry point
-│   │   ├── models/            # Database models
+│   │   ├── main.py            # Application entry point
+│   │   ├── models.py          # SQLAlchemy models
+│   │   ├── schemas.py         # Pydantic schemas
 │   │   ├── routes/            # API endpoints
-│   │   ├── auth/              # Authentication logic
+│   │   ├── auth/              # Authentication utilities
 │   │   ├── repositories/      # Data access layer
 │   │   ├── services/          # Business logic
 │   │   └── middleware/        # Custom middleware
-│   ├── alembic/               # Database migrations
-│   ├── requirements.txt       # Python dependencies
-│   └── .env                   # Environment variables
+│   ├── alembic.ini
+│   ├── alembic_migrations/    # Database migrations
+│   └── .env.example
 ├── frontend/                  # React application
-├── docs/                      # Documentation
-│   ├── README.md             # Detailed setup guide
-│   ├── SETUP_GUIDE.md        # Comprehensive setup
-│   └── SYSTEM_ANALYSIS.md    # Technical analysis
+├── requirements.txt           # Backend dependencies
 └── README.md                  # This file
 ```
 
+---
+
 ## Environment Variables
 
-### Backend Required Variables
-- `DATABASE_URL` - Database connection string
-- `SECRET_KEY` - JWT secret key
-- `SMTP_HOST` - Email server host
-- `SMTP_USER` - Email username
-- `SMTP_PASSWORD` - Email password
+### Backend
 
-### Frontend Required Variables
-- `VITE_API_BASE_URL` - Backend API URL
+* `DATABASE_URL` — Database connection string
+* `SECRET_KEY` — JWT secret key
+* `SMTP_HOST` — Email server host
+* `SMTP_USER` — Email username
+* `SMTP_PASSWORD` — Email password
+
+The database backend is selected via `DATABASE_URL` (SQLite for development, PostgreSQL for production).
+
+### Frontend
+
+* `VITE_API_BASE_URL` — Backend API base URL
+
+---
 
 ## Documentation
 
-- [Setup Guide](docs/SETUP_GUIDE.md) - Detailed setup instructions
-- [System Analysis](docs/SYSTEM_ANALYSIS.md) - Technical architecture
-- [API Documentation](https://algoverse-kpwz.onrender.com/docs) - Interactive API docs
+* [API Docs](https://algoverse-kpwz.onrender.com/docs)
+
+---
 
 ## Connect
 
-- **LinkedIn**: https://www.linkedin.com/in/mhkhancou
-- **Live Demo**: https://algo-verse-eight.vercel.app
+* **LinkedIn**: [https://www.linkedin.com/in/mhkhancou](https://www.linkedin.com/in/mhkhancou)
+* **Live Demo**: [https://algo-verse-eight.vercel.app](https://algo-verse-eight.vercel.app)
