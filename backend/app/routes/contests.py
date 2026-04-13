@@ -165,7 +165,7 @@ def fetch_hackerearth() -> List[Dict]:
                 if r.status_code != 200:
                     # Some sub-paths may be 404/redirect in some regions; try next
                     continue
-                soup = BeautifulSoup(r.text, "lxml")
+                soup = BeautifulSoup(r.text, "html.parser")
                 script = soup.find("script", id="__NEXT_DATA__")
                 if script and script.string:
                     try:
@@ -183,7 +183,7 @@ def fetch_hackerearth() -> List[Dict]:
                 # Try main challenges page explicitly
                 r = requests.get(base + "/challenges/", timeout=12, headers=headers)
                 if r.status_code == 200:
-                    soup2 = BeautifulSoup(r.text, "lxml")
+                    soup2 = BeautifulSoup(r.text, "html.parser")
                     json_nodes = soup2.find_all("script", attrs={"type": "application/ld+json"})
                     ld_objs = []
                     for node in json_nodes:
@@ -441,7 +441,7 @@ def fetch_atcoder_html() -> List[Dict]:
             "Accept-Language": "en-US,en;q=0.9"
         })
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "lxml")
+        soup = BeautifulSoup(r.text, "html.parser")
 
         norm: List[Dict] = []
         now = datetime.now(timezone.utc)
@@ -608,7 +608,7 @@ def fetch_topcoder_html() -> List[Dict]:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         })
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "lxml")
+        soup = BeautifulSoup(r.text, "html.parser")
         script = soup.find("script", id="__NEXT_DATA__")
         if not script or not script.string:
             return []
