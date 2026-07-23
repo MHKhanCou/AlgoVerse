@@ -14,12 +14,13 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Database URLs
+    DATABASE_URL: str = ""  # Render sets this; overrides DEV/PROD when present
     DEV_DATABASE_URL: str = "sqlite:///./algoverse.db"
     PROD_DATABASE_URL: str = ""
 
     # CORS Origins
     DEV_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174"
-    PROD_CORS_ORIGINS: str = ""
+    PROD_CORS_ORIGINS: str = "https://algo-verse-eight.vercel.app,https://algo-verse-mehedi-hasan-khans-projects.vercel.app,https://algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app,https://algo-verse-la484m77d-mehedi-hasan-khans-projects.vercel.app,https://algoverse.vercel.app"
 
     # Frontend URLs
     DEV_FRONTEND_URL: str = "http://localhost:5173"
@@ -58,12 +59,22 @@ class Settings(BaseSettings):
     # Properties for automatic switching
     @property
     def is_production(self) -> bool:
-        """Check if running in production mode"""
-        return self.ENVIRONMENT.lower() == "production"
+        """Auto-detect production: explicit ENVIRONMENT=production OR DATABASE_URL is PostgreSQL"""
+        if self.ENVIRONMENT.lower() == "production":
+            return True
+        # If DATABASE_URL is set to PostgreSQL, treat as production
+        if self.DATABASE_URL and self.DATABASE_URL.startswith("postgresql"):
+            return True
+        if self.PROD_DATABASE_URL and self.PROD_DATABASE_URL.startswith("postgresql"):
+            return True
+        return False
     
     @property
     def database_url(self) -> str:
-        """Get appropriate database URL based on environment"""
+        """Get appropriate database URL: DATABASE_URL > PROD/DEV based on environment"""
+        # DATABASE_URL from env takes priority (Render sets this)
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return self.PROD_DATABASE_URL if self.is_production else self.DEV_DATABASE_URL
     
     @property
