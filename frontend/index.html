@@ -8,6 +8,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Polyfill process for browser — some dependencies reference process.env
+      if (typeof window.process === 'undefined') {
+        window.process = { env: {}, version: '', versions: {}, platform: 'browser' };
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

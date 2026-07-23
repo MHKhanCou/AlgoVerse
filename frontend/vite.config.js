@@ -10,6 +10,8 @@ export default defineConfig(({ command, mode }) => {
     plugins: [react()],
     define: {
       __APP_ENV__: JSON.stringify(env.APP_ENV),
+      'process.env': {},
+      'process': {},
     },
     server: {
       port: 5173,

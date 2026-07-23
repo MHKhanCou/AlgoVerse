@@ -1,6 +1,6 @@
 import smtplib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -9,16 +9,18 @@ import os
 from typing import Optional
 import logging
 
+from ..core.config import settings
+
 logger = logging.getLogger(__name__)
 
-# Email configuration - you should set these as environment variables
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "your-email@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "your-app-password")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "AlgoVerse <your-email@gmail.com>")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-DISABLE_EMAIL = os.getenv("DISABLE_EMAIL", "False").lower() == "true"  # Default to False
+# Email configuration from Settings
+SMTP_HOST = settings.SMTP_HOST
+SMTP_PORT = settings.SMTP_PORT
+SMTP_USERNAME = settings.SMTP_USERNAME
+SMTP_PASSWORD = settings.SMTP_PASSWORD
+FROM_EMAIL = settings.FROM_EMAIL
+FRONTEND_URL = settings.frontend_url
+DISABLE_EMAIL = settings.DISABLE_EMAIL
 
 def generate_token(length: int = 32) -> str:
     """Generate a secure random token (legacy for internal use)"""

@@ -35,6 +35,57 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
   const dragNodeRef = useRef(null);
   const connectingRef = useRef(false);
   const connectFromRef = useRef(null);
+  const nodesRef = useRef(nodes);
+  const pathNodesRef = useRef(pathNodes);
+  const colorsRef = useRef({
+    nodeDefault: '#4a6ee0',
+    nodeCurrent: '#ff5252',
+    nodeStart: '#2196f3',
+    nodeEnd: '#9c27b0',
+    nodePath: '#4caf50',
+    nodeVisited: '#ffca28',
+    nodeSelected: '#ff9800',
+    nodeBorder: '#333',
+    nodeBorderSelected: '#ff5722',
+    edgeDefault: '#aaa',
+    edgePath: '#4caf50',
+    textOnNode: '#fff',
+    textWeight: '#333',
+    textWeightBg: 'rgba(255, 255, 255, 0.8)',
+  });
+  
+  // Sync refs with state
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { pathNodesRef.current = pathNodes; }, [pathNodes]);
+  
+  // Read CSS variables for dark mode support
+  useEffect(() => {
+    const readColors = () => {
+      const style = getComputedStyle(document.documentElement);
+      const get = (name, fallback) => style.getPropertyValue(name).trim() || fallback;
+      colorsRef.current = {
+        nodeDefault: get('--graph-node-default', '#4a6ee0'),
+        nodeCurrent: get('--graph-node-current', '#ff5252'),
+        nodeStart: get('--graph-node-start', '#2196f3'),
+        nodeEnd: get('--graph-node-end', '#9c27b0'),
+        nodePath: get('--graph-node-path', '#4caf50'),
+        nodeVisited: get('--graph-node-visited', '#ffca28'),
+        nodeSelected: get('--graph-node-selected', '#ff9800'),
+        nodeBorder: get('--graph-node-border', '#333'),
+        nodeBorderSelected: get('--graph-node-border-selected', '#ff5722'),
+        edgeDefault: get('--graph-edge-default', '#aaa'),
+        edgePath: get('--graph-edge-path', '#4caf50'),
+        textOnNode: get('--graph-text-on-node', '#fff'),
+        textWeight: get('--graph-text-weight', '#333'),
+        textWeightBg: get('--graph-text-weight-bg', 'rgba(255, 255, 255, 0.8)'),
+      };
+    };
+    readColors();
+    // Re-read when theme changes
+    const observer = new MutationObserver(readColors);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
   
   // Clear all animation timeouts
   const clearTimeouts = () => {
@@ -302,7 +353,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
         const mouseY = e.clientY - rect.top;
         
         // Check if a node was clicked
-        const clickedNode = nodes.find(node => {
+        const clickedNode = nodesRef.current.find(node => {
           const dx = mouseX - node.x;
           const dy = mouseY - node.y;
           return Math.sqrt(dx * dx + dy * dy) <= node.radius;
@@ -341,7 +392,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
         const mouseY = e.clientY - rect.top;
         
         // Check if clicking on empty space
-        const clickedNode = nodes.find(node => {
+        const clickedNode = nodesRef.current.find(node => {
           const dx = mouseX - node.x;
           const dy = mouseY - node.y;
           return Math.sqrt(dx * dx + dy * dy) <= node.radius;
@@ -414,6 +465,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
     
     const ctx = canvasRef.current.getContext('2d');
     const canvas = canvasRef.current;
+    const colors = colorsRef.current;
     
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -429,10 +481,10 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
         // Set edge color based on path
         if (pathNodes.includes(edge.source) && pathNodes.includes(edge.target) &&
             pathNodes.indexOf(edge.target) === pathNodes.indexOf(edge.source) + 1) {
-          ctx.strokeStyle = '#4caf50'; // Green for path
+          ctx.strokeStyle = colors.edgePath;
           ctx.lineWidth = 3;
         } else {
-          ctx.strokeStyle = '#aaa';
+          ctx.strokeStyle = colors.edgeDefault;
           ctx.lineWidth = 1;
         }
         
@@ -466,7 +518,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
         if (showWeights) {
           const midX = (sourceNode.x + targetNode.x) / 2;
           const midY = (sourceNode.y + targetNode.y) / 2;
-          ctx.fillStyle = '#333';
+          ctx.fillStyle = colors.textWeight;
           ctx.font = 'bold 12px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -475,7 +527,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
           const text = edge.weight.toString();
           const textMetrics = ctx.measureText(text);
           const padding = 4;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.fillStyle = colors.textWeightBg;
           ctx.fillRect(
             midX - textMetrics.width / 2 - padding,
             midY - 8,
@@ -483,7 +535,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
             16
           );
           
-          ctx.fillStyle = '#333';
+          ctx.fillStyle = colors.textWeight;
           ctx.fillText(text, midX, midY);
         }
       }
@@ -495,32 +547,32 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
       
       // Set node color based on state
       if (node.id === currentNode) {
-        ctx.fillStyle = '#ff5252'; // Red for current node
+        ctx.fillStyle = colors.nodeCurrent;
       } else if (node.id === startNode) {
-        ctx.fillStyle = '#2196f3'; // Blue for start node
+        ctx.fillStyle = colors.nodeStart;
       } else if (node.id === endNode) {
-        ctx.fillStyle = '#9c27b0'; // Purple for end node
+        ctx.fillStyle = colors.nodeEnd;
       } else if (pathNodes.includes(node.id)) {
-        ctx.fillStyle = '#4caf50'; // Green for path nodes
+        ctx.fillStyle = colors.nodePath;
       } else if (visitedNodes.includes(node.id)) {
-        ctx.fillStyle = '#ffca28'; // Yellow for visited nodes
+        ctx.fillStyle = colors.nodeVisited;
       } else if (graphEditorMode && node.id === selectedNode) {
-        ctx.fillStyle = '#ff9800'; // Orange for selected node in editor
+        ctx.fillStyle = colors.nodeSelected;
       } else {
-        ctx.fillStyle = '#4a6ee0'; // Default color
+        ctx.fillStyle = colors.nodeDefault;
       }
       
       ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
       ctx.fill();
       
       // Draw node border
-      ctx.strokeStyle = graphEditorMode && node.id === selectedNode ? '#ff5722' : '#333';
+      ctx.strokeStyle = graphEditorMode && node.id === selectedNode ? colors.nodeBorderSelected : colors.nodeBorder;
       ctx.lineWidth = graphEditorMode && node.id === selectedNode ? 3 : 2;
       ctx.stroke();
       
       // Draw node label if enabled
       if (showLabels) {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = colors.textOnNode;
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -666,6 +718,7 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
           setCurrentNode(animation.nodeId);
         } else if (animation.type === 'path') {
           setPathNodes(animation.path);
+          pathNodesRef.current = animation.path;
         }
         
         drawGraph();
@@ -677,19 +730,19 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
             setIsAnimating(false);
             setCompleted(true);
             
-            if (selectedAlgorithm === 'dijkstra' && pathNodes.length > 0) {
+            if (selectedAlgorithm === 'dijkstra' && pathNodesRef.current.length > 0) {
               // Calculate total path weight
               let totalWeight = 0;
-              for (let i = 0; i < pathNodes.length - 1; i++) {
+              for (let i = 0; i < pathNodesRef.current.length - 1; i++) {
                 const edge = edges.find(
-                  e => e.source === pathNodes[i] && e.target === pathNodes[i + 1]
+                  e => e.source === pathNodesRef.current[i] && e.target === pathNodesRef.current[i + 1]
                 );
                 if (edge) totalWeight += edge.weight;
               }
               setMessage(`Shortest path found! Total weight: ${totalWeight}`);
-            } else if (selectedAlgorithm === 'bfs' && endNode !== null && pathNodes.includes(endNode)) {
+            } else if (selectedAlgorithm === 'bfs' && endNode !== null && pathNodesRef.current.includes(endNode)) {
               setMessage('Path found!');
-            } else if (selectedAlgorithm === 'dijkstra' && endNode !== null && !pathNodes.includes(endNode)) {
+            } else if (selectedAlgorithm === 'dijkstra' && endNode !== null && !pathNodesRef.current.includes(endNode)) {
               setMessage('No path exists to the target node.');
             }
           }, animationSpeed);
@@ -710,6 +763,15 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
         break;
       case 'dijkstra':
         dijkstra();
+        break;
+      case 'dfs':
+        setMessage('DFS visualization coming soon');
+        break;
+      case 'prim':
+        setMessage('Prim\'s algorithm visualization coming soon');
+        break;
+      case 'kruskal':
+        setMessage('Kruskal\'s algorithm visualization coming soon');
         break;
       default:
         bfs();
@@ -756,7 +818,10 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
               disabled={isAnimating}
             >
               <option value="bfs">Breadth-First Search</option>
+              <option value="dfs">Depth-First Search</option>
               <option value="dijkstra">Dijkstra's Algorithm</option>
+              <option value="prim">Prim's Algorithm</option>
+              <option value="kruskal">Kruskal's Algorithm</option>
             </select>
           </div>
         </div>
@@ -1008,17 +1073,46 @@ const GraphVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onCo
       </div>
       
       <div className="algorithm-info">
-        <h4>{selectedAlgorithm === 'bfs' ? 'Breadth-First Search' : 'Dijkstra\'s Algorithm'}</h4>
+        <h4>{
+          selectedAlgorithm === 'bfs' ? 'Breadth-First Search' :
+          selectedAlgorithm === 'dfs' ? 'Depth-First Search' :
+          selectedAlgorithm === 'dijkstra' ? 'Dijkstra\'s Algorithm' :
+          selectedAlgorithm === 'prim' ? 'Prim\'s Algorithm' :
+          selectedAlgorithm === 'kruskal' ? 'Kruskal\'s Algorithm' :
+          'Graph Algorithm'
+        }</h4>
         <p>
-          <strong>Time Complexity:</strong> {selectedAlgorithm === 'bfs' ? 'O(V + E)' : 'O((V + E) log V)'}
+          <strong>Time Complexity:</strong> {
+            selectedAlgorithm === 'bfs' ? 'O(V + E)' :
+            selectedAlgorithm === 'dfs' ? 'O(V + E)' :
+            selectedAlgorithm === 'dijkstra' ? 'O((V + E) log V)' :
+            selectedAlgorithm === 'prim' ? 'O(E log V)' :
+            selectedAlgorithm === 'kruskal' ? 'O(E log E)' :
+            'O(V + E)'
+          }
         </p>
         <p>
-          <strong>Space Complexity:</strong> {selectedAlgorithm === 'bfs' ? 'O(V)' : 'O(V)'}
+          <strong>Space Complexity:</strong> {
+            selectedAlgorithm === 'bfs' ? 'O(V)' :
+            selectedAlgorithm === 'dfs' ? 'O(V)' :
+            selectedAlgorithm === 'dijkstra' ? 'O(V)' :
+            selectedAlgorithm === 'prim' ? 'O(V)' :
+            selectedAlgorithm === 'kruskal' ? 'O(V + E)' :
+            'O(V)'
+          }
         </p>
         <p>
           {selectedAlgorithm === 'bfs' 
             ? 'BFS explores all neighbor nodes at the present depth before moving to nodes at the next depth level.'
-            : 'Dijkstra\'s algorithm finds the shortest path between nodes in a graph with non-negative edge weights.'}
+            : selectedAlgorithm === 'dfs'
+            ? 'DFS explores as far as possible along each branch before backtracking.'
+            : selectedAlgorithm === 'dijkstra'
+            ? 'Dijkstra\'s algorithm finds the shortest path between nodes in a graph with non-negative edge weights.'
+            : selectedAlgorithm === 'prim'
+            ? 'Prim\'s algorithm finds a minimum spanning tree for a weighted undirected graph.'
+            : selectedAlgorithm === 'kruskal'
+            ? 'Kruskal\'s algorithm finds a minimum spanning tree by sorting edges and adding them if they don\'t form a cycle.'
+            : 'Graph traversal algorithm.'}
         </p>
       </div>
       

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import SortingVisualizer from './SortingVisualizer';
 import SearchVisualizer from './SearchVisualizer';
 import GraphVisualizer from './GraphVisualizer';
@@ -10,9 +10,6 @@ import './AlgorithmVisualizer.css';
 const AlgorithmVisualizer = ({ algorithm }) => {
   const [loading, setLoading] = useState(true);
   const [visualizerType, setVisualizerType] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [speed, setSpeed] = useState(100); // milliseconds per step
   const [inputData, setInputData] = useState(null);
   const [complexity, setComplexity] = useState({
     time: 'O(1)',
@@ -26,7 +23,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
     swaps: 0,
     timeTaken: 0
   });
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!algorithm) {
@@ -105,42 +101,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
     // Performance tracking will be handled by individual visualizers
   }, [algorithm]);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    if (isPlaying) {
-      clearInterval(intervalRef.current);
-    } else if (visualizerType && currentStep < 100) {
-      intervalRef.current = setInterval(() => {
-        setCurrentStep(prev => {
-          if (prev >= 99) {
-            clearInterval(intervalRef.current);
-            return 99;
-          }
-          return prev + 1;
-        });
-      }, speed);
-    }
-  };
-
-  const handleSpeedChange = (newSpeed) => {
-    setSpeed(newSpeed);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      handlePlayPause();
-    }
-  };
-
-  const handleInputData = (data) => {
-    setInputData(data);
-    setCurrentStep(0);
-    setPerformanceMetrics({
-      operations: 0,
-      comparisons: 0,
-      swaps: 0,
-      timeTaken: 0
-    });
-  };
-
   return (
     <div className="algorithm-visualizer-container">
       {loading ? (
@@ -153,7 +113,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
             {visualizerType === 'sorting' && (
               <SortingVisualizer 
                 algorithm={algorithm} 
-                step={currentStep}
                 inputData={inputData}
                 onPerformanceUpdate={setPerformanceMetrics}
                 onComplexityUpdate={setComplexity}
@@ -162,7 +121,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
             {visualizerType === 'search' && (
               <SearchVisualizer 
                 algorithm={algorithm} 
-                step={currentStep}
                 inputData={inputData}
                 onPerformanceUpdate={setPerformanceMetrics}
                 onComplexityUpdate={setComplexity}
@@ -171,7 +129,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
             {visualizerType === 'graph' && (
               <GraphVisualizer 
                 algorithm={algorithm} 
-                step={currentStep}
                 inputData={inputData}
                 onPerformanceUpdate={setPerformanceMetrics}
                 onComplexityUpdate={setComplexity}
@@ -180,7 +137,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
             {visualizerType === 'recursion' && (
               <RecursionVisualizer 
                 algorithm={algorithm} 
-                step={currentStep}
                 inputData={inputData}
                 onPerformanceUpdate={setPerformanceMetrics}
                 onComplexityUpdate={setComplexity}
@@ -189,7 +145,6 @@ const AlgorithmVisualizer = ({ algorithm }) => {
             {visualizerType === 'dp' && (
               <DPVisualizer 
                 algorithm={algorithm} 
-                step={currentStep}
                 inputData={inputData}
                 onPerformanceUpdate={setPerformanceMetrics}
                 onComplexityUpdate={setComplexity}

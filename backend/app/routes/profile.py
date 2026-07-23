@@ -65,33 +65,6 @@ def change_password(
         logger.error(f"Unexpected error updating password for user {current_user.id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/update-email", response_model=Token)
-def change_email(
-    email_data: UpdateEmail,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    try:
-        # Prevent no-op updates
-        if email_data.email == current_user.email:
-            raise HTTPException(status_code=400, detail="New email is the same as current email")
-        updated_user = user_repo.update_email(db, current_user.id, email_data)
-        access_token = create_access_token(data={"sub": updated_user.email})
-        return {
-            "access_token": access_token,
-            "token_type": "bearer"
-        }
-    except HTTPException:
-        raise
-    except SQLAlchemyError as e:
-        db.rollback()
-        logger.error(f"Database error updating email for user {current_user.id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to update email")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Unexpected error updating email for user {current_user.id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
 # --- OTP-based Email Change Flow ---
 @router.post("/request-email-otp", response_model=dict)
 def request_email_otp(

@@ -88,7 +88,9 @@ function AppRoutes() {
           
           <Route path="/algorithms/:id" element={<SingleAlgorithm />} />
           <Route path="/algorithms/type/:typeId" element={<AlgorithmTypePage />} />
-          <Route path="/my-progress" element={<MyProgressPage />} />
+          <Route path="/my-progress" element={
+            isAuthenticated ? <MyProgressPage /> : <Navigate to="/login" replace />
+          } />
           <Route path="/admin/*" element={
             <AdminRoute>
               <AdminDashboard />
@@ -96,9 +98,10 @@ function AppRoutes() {
           } />
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:id" element={<SingleBlog />} />
-          <Route path="/my-blogs" element={<MyBlogs />} />
+          <Route path="/my-blogs" element={
+            isAuthenticated ? <MyBlogs /> : <Navigate to="/login" replace />
+          } />
           <Route path="/users/:id" element={<UserPublicPage />} />
-          <Route path="/codeforces-analyzer" element={<CodeforcesAnalytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

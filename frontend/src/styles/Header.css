@@ -129,7 +129,7 @@
 }
 
 [data-theme='dark'] .nav-link:hover {
-  color: #ffffff;
+  color: var(--header-text-hover, #ffffff);
   background-color: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);

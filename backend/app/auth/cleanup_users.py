@@ -32,7 +32,7 @@ def cleanup_expired_unverified_users(db: Session, max_age_hours: int = 24) -> Di
         unverified_users = db.query(models.User).filter(
             and_(
                 models.User.is_verified == False,
-                models.User.created_at < cutoff_time,
+                models.User.joined_at < cutoff_time,
                 # Either no expiry time set or expiry time has passed
                 models.User.reset_token_expires < datetime.utcnow()
             )
@@ -43,7 +43,7 @@ def cleanup_expired_unverified_users(db: Session, max_age_hours: int = 24) -> Di
         
         for user in unverified_users:
             deleted_emails.append(user.email)
-            logger.info(f"Cleaning up unverified user: {user.email} (created: {user.created_at})")
+            logger.info(f"Cleaning up unverified user: {user.email} (joined: {user.joined_at})")
             
             # Delete the user
             db.delete(user)
@@ -160,7 +160,7 @@ def get_unverified_user_stats(db: Session) -> Dict[str, int]:
         old_unverified = db.query(models.User).filter(
             and_(
                 models.User.is_verified == False,
-                models.User.created_at < cutoff_24h
+                models.User.joined_at < cutoff_24h
             )
         ).count()
         

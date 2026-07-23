@@ -20,11 +20,22 @@ export const userProgressService = {
       const response = await api.get(`${PROGRESS_URL}/entry/${algoId}`);
       return response.data;
     } catch (error) {
+      console.error('UserProgressService.getEntry error:', {
+        algoId,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
       if (!error.response) {
         throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
       }
       if (error.response?.status === 404) {
         return null;
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Please log in to track progress');
       }
       throw new Error(error.response?.data?.detail || 'Failed to fetch progress entry');
     }

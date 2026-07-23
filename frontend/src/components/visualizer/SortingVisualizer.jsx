@@ -551,7 +551,7 @@ const SortingVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, on
           </button>
           
           {sorting && (
-            <button onClick={() => setSorting(false)} className="stop-btn">
+            <button onClick={() => { clearTimeouts(); setSorting(false); setCompleted(true); }} className="stop-btn">
               Stop
             </button>
           )}

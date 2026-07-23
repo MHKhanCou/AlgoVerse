@@ -3,7 +3,6 @@ fastapi
 sqlalchemy
 alembic
 pydantic[email]
-passlib[bcrypt]
 bcrypt
 psycopg2-binary
 python-jose[cryptography]
@@ -12,3 +11,4 @@ python-multipart
 beautifulsoup4==4.12.2
 requests==2.31.0
 redis==4.5.1
+slowapi

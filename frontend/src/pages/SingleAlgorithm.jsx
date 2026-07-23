@@ -51,6 +51,7 @@ const SingleAlgorithm = () => {
 
         // Handle progress for logged-in users
         if (user) {
+          console.log('User is logged in:', user);
           try {
             console.log('Fetching user progress for algorithm:', algoId);
             const entry = await userProgressService.getEntry(algoId);
@@ -69,8 +70,16 @@ const SingleAlgorithm = () => {
             }
           } catch (progressError) {
             console.error('Error handling progress (non-fatal):', progressError);
+            console.error('Error details:', {
+              status: progressError.response?.status,
+              statusText: progressError.response?.statusText,
+              data: progressError.response?.data,
+              message: progressError.message
+            });
             // Don't fail the whole page load for progress errors
           }
+        } else {
+          console.log('User is not logged in, skipping progress tracking');
         }
       } catch (err) {
         const errorMsg = `Error loading algorithm: ${err.message}`;

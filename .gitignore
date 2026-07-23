@@ -233,6 +233,12 @@ RESTRUCTURE_*.md
 IMPORT_CHECK_*.md
 CLEANUP_*.md
 
+# Secrets (NEVER commit)
+SECRETS.md
+
+# MiMoCode memory
+.mimocode/
+
 # Analysis and guide files (temporary)
 *ANALYSIS.md
 *GUIDE.md

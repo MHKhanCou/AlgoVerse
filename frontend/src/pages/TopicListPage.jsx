@@ -12,6 +12,8 @@ import {
   
 } from 'lucide-react';
 
+import api from '../services/api';
+import { algorithmService } from '../services/algorithmService';
 import '../styles/TopicListPage.css';
 
 const TopicListPage = () => {
@@ -68,41 +70,36 @@ const TopicListPage = () => {
 
   const fetchData = async () => {
     try {
-      const [algorithmsRes, typesRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algorithms?limit=100`),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algo-type`)
+      const [algorithmsData, typesData] = await Promise.all([
+        algorithmService.getAll(1, 100),
+        api.get('/algo-type')
       ]);
 
-      if (algorithmsRes.ok && typesRes.ok) {
-        const algorithmsData = await algorithmsRes.json();
-        const typesData = await typesRes.json();
-        
-        // Process algorithms with search text
-        const processedAlgorithms = algorithmsData.map((algo) => ({
-          ...algo,
-          searchableText: `${algo.name} ${algo.description} ${algo.type_name || ''}`.toLowerCase(),
-        }));
+      // Process algorithms with search text
+      const processedAlgorithms = algorithmsData.map((algo) => ({
+        ...algo,
+        searchableText: `${algo.name} ${algo.description} ${algo.type_name || ''}`.toLowerCase(),
+      }));
 
-        setAlgorithms(processedAlgorithms);
-        setAlgoTypes(typesData);
+      setAlgorithms(processedAlgorithms);
+      setAlgoTypes(typesData.data);
 
-        // Default category to 'Sorting' if none selected via URL
-        const params = new URLSearchParams(location.search);
-        const categoryFromURL = params.get('category');
-        if (!categoryFromURL) {
-          const sortingType = typesData.find(
-            (t) => t.name && t.name.toLowerCase() === 'sorting'
-          );
-          if (sortingType) {
-            setSelectedCategory(sortingType.id.toString());
-            updateURL({
-              search: searchTerm,
-              category: sortingType.id.toString(),
-              difficulty: selectedDifficulty,
-              sort: sortBy,
-              view: viewMode,
-            });
-          }
+      // Default category to 'Sorting' if none selected via URL
+      const params = new URLSearchParams(location.search);
+      const categoryFromURL = params.get('category');
+      if (!categoryFromURL) {
+        const sortingType = typesData.data.find(
+          (t) => t.name && t.name.toLowerCase() === 'sorting'
+        );
+        if (sortingType) {
+          setSelectedCategory(sortingType.id.toString());
+          updateURL({
+            search: searchTerm,
+            category: sortingType.id.toString(),
+            difficulty: selectedDifficulty,
+            sort: sortBy,
+            view: viewMode,
+          });
         }
       }
     } catch (error) {

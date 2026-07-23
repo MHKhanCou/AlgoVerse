@@ -7,10 +7,11 @@ import '../styles/EmailVerification.css';
 const EmailVerificationPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('verifying'); // verifying, success, error
+  const [status, setStatus] = useState('verifying'); // verifying, success, error, resend
   const [message, setMessage] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [email, setEmail] = useState('');
+  const [showOptions, setShowOptions] = useState(false);
 
   const token = searchParams.get('token');
 
@@ -51,34 +52,49 @@ const EmailVerificationPage = () => {
       }
     } catch (error) {
       setStatus('error');
-      const errorMessage = error.response?.data?.detail || 'Email verification failed. The link may have expired.';
-      setMessage(errorMessage);
-      toast.error(errorMessage);
+      setMessage(error.response?.data?.detail || 'Verification failed. The link may have expired.');
+      setShowOptions(true);
     }
   };
 
-  const resendVerification = async () => {
+  const handleResendEmail = async () => {
     if (!email) {
-      toast.error('Please enter your email address');
+      toast.error('No email address found. Please try logging in again.');
       return;
     }
 
     setIsResending(true);
     try {
-      const response = await api.post('/resend-verification', {
-        email: email
-      });
-
+      const response = await api.post('/resend-verification', { email });
+      
       if (response.data.success) {
-        toast.success(response.data.message);
+        setStatus('resend');
         setMessage('New verification email sent! Please check your inbox.');
+        toast.success('Verification email resent successfully!');
+        
+        // Store email for OTP verification page
+        sessionStorage.setItem('registeredEmail', email);
+        
+        // Redirect to OTP verification after a delay
+        setTimeout(() => {
+          navigate('/verify-otp');
+        }, 2000);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Failed to resend verification email';
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.detail || 'Failed to resend verification email');
     } finally {
       setIsResending(false);
     }
+  };
+
+  const handleVerifyWithCode = () => {
+    if (!email) {
+      toast.error('No email address found. Please try logging in again.');
+      return;
+    }
+    
+    sessionStorage.setItem('registeredEmail', email);
+    navigate('/verify-otp');
   };
 
   const renderContent = () => {
@@ -120,32 +136,43 @@ const EmailVerificationPage = () => {
             <h2>Verification Failed</h2>
             <p>{message}</p>
             
-            <div className="resend-section">
-              <h3>Need a new verification link?</h3>
-              <div className="resend-form">
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="email-input"
-                />
-                <button 
-                  onClick={resendVerification}
-                  disabled={isResending}
-                  className="btn-secondary"
-                >
-                  {isResending ? (
-                    <>
-                      <span className="spinner"></span>
-                      Sending...
-                    </>
-                  ) : (
-                    'Resend Verification Email'
-                  )}
-                </button>
+            {showOptions && (
+              <div className="verification-options">
+                <h3>Need a new verification?</h3>
+                <div className="options-grid">
+                  <button 
+                    onClick={handleResendEmail}
+                    disabled={isResending}
+                    className="option-btn resend-btn"
+                  >
+                    {isResending ? (
+                      <>
+                        <span className="spinner-small"></span>
+                        Sending...
+                      </>
+                    ) : (
+                      'Resend Verification Email'
+                    )}
+                  </button>
+                  
+                  <button 
+                    onClick={handleVerifyWithCode}
+                    className="option-btn code-btn"
+                  >
+                    Verify with Code
+                  </button>
+                </div>
+                
+                <div className="help-text">
+                  <p><strong>Options:</strong></p>
+                  <ul>
+                    <li>Get a new verification link sent to your email</li>
+                    <li>Use a 6-digit verification code instead</li>
+                    <li>Check your spam folder for missing emails</li>
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="action-buttons">
               <Link to="/signup" className="btn-secondary">

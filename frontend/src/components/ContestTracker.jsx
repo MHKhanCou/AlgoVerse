@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import api from '../services/api';
 
 const DayButtons = ({ days, setDays }) => (
   <div className="segmented">
@@ -326,7 +327,6 @@ export default function ContestTracker() {
 
       setLoading(true);
       setError('');
-      const base = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
       const params = new URLSearchParams({ 
         days: String(days),
         recent_days: String(recentDays),
@@ -334,20 +334,8 @@ export default function ContestTracker() {
         include_recent: 'true',
         refresh: forceRefresh ? 'true' : 'false'
       });
-      const url = `${base}/api/contests?${params.toString()}`;
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      const ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status}: ${txt?.slice(0, 200) || res.statusText}`);
-      }
-      let js;
-      if (ct.includes('application/json')) {
-        js = await res.json();
-      } else {
-        const txt = await res.text();
-        throw new Error(`Unexpected response type: ${ct || 'unknown'}; Body: ${txt?.slice(0, 200)}`);
-      }
+      const res = await api.get(`/api/contests?${params.toString()}`, { timeout: 60000 });
+      const js = res.data;
       if (js.status !== 'success') throw new Error(js.message || 'Failed to fetch contests');
       const running = js.running || [];
       const upcoming = js.upcoming || [];

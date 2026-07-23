@@ -38,32 +38,40 @@ export default function UserLink({ userId, to, className = '', showDetails = tru
   }, [userId]);
 
   const content = (
-    <div className={`flex items-start gap-2 ${className}`}>
-      <div className="flex flex-col">
-        <div className="font-semibold text-primary-600">
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }} className={className}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
           {loading ? 'Loading…' : error ? 'Unknown User' : data?.name}
         </div>
         {showDetails && !loading && !error && (
-          <div className="text-sm text-gray-600">
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {data?.codeforces_handle && (
               <div>
-                CF: <span className="font-mono">{data.codeforces_handle}</span>
+                CF: <span style={{ fontFamily: 'monospace' }}>{data.codeforces_handle}</span>
               </div>
             )}
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
               {(data?.topics_covered || []).slice(0, 4).map((t) => (
                 <span
                   key={t}
-                  className="px-2 py-0.5 text-xs rounded-full bg-gray-100 border border-gray-200"
+                  style={{
+                    padding: '0.125rem 0.5rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '9999px',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                  }}
                 >
                   {t}
                 </span>
               ))}
               {data?.topics_covered?.length > 4 && (
-                <span className="text-xs text-gray-500">+{data.topics_covered.length - 4} more</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  +{data.topics_covered.length - 4} more
+                </span>
               )}
             </div>
-            <div className="mt-1 text-xs text-gray-500">
+            <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Enrolled: {data?.total_algorithms_enrolled ?? 0} · Completed: {data?.total_algorithms_completed ?? 0}
             </div>
           </div>
@@ -74,7 +82,7 @@ export default function UserLink({ userId, to, className = '', showDetails = tru
 
   if (to && !loading && !error) {
     return (
-      <a href={to} className="hover:underline">
+      <a href={to} style={{ textDecoration: 'none' }}>
         {content}
       </a>
     );

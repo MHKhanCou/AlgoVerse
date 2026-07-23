@@ -283,21 +283,58 @@ const ProfilePage = () => {
               <div className="verification-warning">
                 <span className="warning-icon">⚠️</span>
                 <span className="warning-text">Email not verified</span>
-                <button
-                  onClick={async () => {
-                    try {
-                      await api.post('/resend-verification', { email: user?.email });
-                      toast.success('Verification email sent! Please check your inbox.');
+                <div className="verification-actions">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post('/resend-verification', { email: user?.email });
+                        toast.success('Verification email sent! Please check your inbox.');
+                        sessionStorage.setItem('registeredEmail', user?.email);
+                        navigate('/verify-otp');
+                      } catch (error) {
+                        toast.error(error.response?.data?.detail || 'Failed to resend verification email');
+                      }
+                    }}
+                    className="resend-verification-btn"
+                  >
+                    Resend Verification Email
+                  </button>
+                  <button
+                    onClick={() => {
                       sessionStorage.setItem('registeredEmail', user?.email);
                       navigate('/verify-otp');
-                    } catch (error) {
-                      toast.error(error.response?.data?.detail || 'Failed to resend verification email');
-                    }
-                  }}
-                  className="resend-verification-btn"
-                >
-                  Resend Verification Email
-                </button>
+                    }}
+                    className="verify-with-code-btn"
+                  >
+                    Verify with Code
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await api.post('/resend-verification', { email: user?.email });
+                        if (response.data.success) {
+                          toast.success('New verification link sent! Please check your email.');
+                        }
+                      } catch (error) {
+                        toast.error(error.response?.data?.detail || 'Failed to send verification link');
+                      }
+                    }}
+                    className="send-link-btn"
+                  >
+                    Send Verification Link
+                  </button>
+                </div>
+                <div className="verification-info">
+                  <p className="info-text">
+                    <strong>Why verify your email?</strong>
+                  </p>
+                  <ul className="benefits-list">
+                    <li>Access all features and content</li>
+                    <li>Receive important notifications</li>
+                    <li>Secure your account with email recovery</li>
+                    <li>Participate in contests and challenges</li>
+                  </ul>
+                </div>
               </div>
             )}
             {user?.is_verified === true && (

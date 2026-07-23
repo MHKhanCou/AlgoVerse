@@ -1,4 +1,141 @@
-/* Add these styles to the existing ProfilePage.css */
+/* Email Verification Styles */
+.verification-warning {
+  background: linear-gradient(135deg, #fff3cd, #fef5e7);
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.15);
+  animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { border-color: #ffc107; }
+  50% { border-color: #ffb300; }
+}
+
+.verification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.resend-verification-btn,
+.verify-with-code-btn,
+.send-link-btn {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-width: 200px;
+}
+
+.resend-verification-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.resend-verification-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.verify-with-code-btn {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+  color: white;
+}
+
+.verify-with-code-btn:hover {
+  background: linear-gradient(135deg, #1e7e34, #155724);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.send-link-btn {
+  background: linear-gradient(135deg, #6f42c1, #5a32a3);
+  color: white;
+}
+
+.send-link-btn:hover {
+  background: linear-gradient(135deg, #5a32a3, #4c1d95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+.verification-info {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.info-text {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.benefits-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+.benefits-list li {
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.benefits-list li::before {
+  content: "✓";
+  color: #28a745;
+  font-weight: bold;
+  position: absolute;
+  left: -1.25rem;
+}
+
+.warning-icon {
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+.warning-text {
+  font-weight: 600;
+  color: #856404;
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .verification-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .resend-verification-btn,
+  .verify-with-code-btn,
+  .send-link-btn {
+    min-width: 100%;
+    padding: 1rem;
+  }
+  
+  .verification-warning {
+    padding: 1rem;
+  }
+  
+  .benefits-list {
+    font-size: 0.9rem;
+  }
+}
 
 /* Stats Section Header */
 .stats-header {

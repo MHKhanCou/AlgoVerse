@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, 
+  Users,
   Trophy, 
   TrendingUp, 
   Calendar, 
@@ -9,19 +10,20 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Star,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  ExternalLink,
   Save,
   Edit3,
-  Users,
   Plus,
   X,
-  ArrowUpDown
+  AlertCircle,
+  ArrowUpDown,
+  Star,
+  ExternalLink,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+import { userService } from '../services/userService';
 import { toast } from 'react-toastify';
 import '../styles/CodeforcesAnalyzer.css';
 
@@ -236,22 +238,12 @@ const CodeforcesAnalyzer = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/profile/update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          codeforces_handle: handle.trim()
-        })
+      // Use the correct method to update profile
+      const response = await api.put('/profile/update', {
+        codeforces_handle: handle.trim()
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update handle');
-      }
-
-      const updatedUser = await updateUser({ ...user, codeforces_handle: handle.trim() });
+      
+      const updatedUser = { ...user, codeforces_handle: handle.trim() };
       await fetchCodeforcesData(handle.trim());
       setUserInfo(updatedUser);  
       setIsEditing(false);

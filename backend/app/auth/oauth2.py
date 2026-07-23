@@ -6,13 +6,10 @@ from ..repositories.user_repo import get_user_by_email
 from .. import schemas
 from jose import JWTError, jwt
 from .jwt_token import SECRET_KEY, ALGORITHM, verify_access_token
-from os import getenv
-from dotenv import load_dotenv
+from ..core.config import settings
 
-load_dotenv()
-
-# Get the base URL from environment
-BASE_URL = getenv("BASE_URL", "")
+# Get the base URL from settings
+BASE_URL = settings.backend_url if settings.is_production else ""
 # Use relative path if BASE_URL is not set, otherwise use full URL
 token_url = f"{BASE_URL}/login" if BASE_URL else "/login"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=token_url)
@@ -34,6 +31,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         
     user = get_user_by_email(db, token_data.email)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        # Return 401 instead of 404 to avoid user enumeration
+        raise credentials_exception
     return user
     

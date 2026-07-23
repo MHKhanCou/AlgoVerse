@@ -16,6 +16,7 @@ import {
   Code,
   Globe
 } from 'lucide-react';
+import api from '../../services/api';
 import '../../styles/admin/RelatedProblemsManager.css';
 
 const RelatedProblemsManager = () => {
@@ -54,39 +55,15 @@ const RelatedProblemsManager = () => {
         
         // Fetch problems based on view mode
         const endpoint = viewMode === 'pending' 
-          ? 'http://localhost:8000/api/problems/pending'
-          : 'http://localhost:8000/api/problems/all';
+          ? '/api/problems/pending'
+          : '/api/problems/all';
           
-        const problemsResponse = await fetch(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!problemsResponse.ok) {
-          const errorData = await problemsResponse.json();
-          throw new Error(errorData.detail || 'Failed to fetch problems');
-        }
-        
-        const problemsData = await problemsResponse.json();
-        setProblems(problemsData);
+        const problemsResponse = await api.get(endpoint);
+        setProblems(problemsResponse.data);
         
         // Fetch algorithms
-        const algorithmsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algorithms`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!algorithmsResponse.ok) {
-          const errorData = await algorithmsResponse.json();
-          throw new Error(errorData.detail || 'Failed to fetch algorithms');
-        }
-        
-        const algorithmsData = await algorithmsResponse.json();
-        setAlgorithms(algorithmsData);
+        const algorithmsResponse = await api.get('/algorithms');
+        setAlgorithms(algorithmsResponse.data);
         
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -133,48 +110,22 @@ const RelatedProblemsManager = () => {
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Authentication required');
+      if (!localStorage.getItem('token')) throw new Error('Authentication required');
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          platform: formData.platform,
-          difficulty: formData.difficulty,
-          problem_url: formData.problem_url,
-          problem_id: formData.problem_id || undefined,
-          description: formData.description || undefined,
-          // send CSV string; backend now also accepts list, but CSV keeps API readable
-          tags: (formData.tags || '').trim(),
-          algorithm_id: formData.algorithm_id ? Number(formData.algorithm_id) : undefined,
-          source: 'Manual'
-        })
+      const response = await api.post('/api/problems', {
+        title: formData.title,
+        platform: formData.platform,
+        difficulty: formData.difficulty,
+        problem_url: formData.problem_url,
+        problem_id: formData.problem_id || undefined,
+        description: formData.description || undefined,
+        // send CSV string; backend now also accepts list, but CSV keeps API readable
+        tags: (formData.tags || '').trim(),
+        algorithm_id: formData.algorithm_id ? Number(formData.algorithm_id) : undefined,
+        source: 'Manual'
       });
       
-      if (!response.ok) {
-        let detail = 'Failed to add problem';
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            if (Array.isArray(errorData.detail)) {
-              detail = errorData.detail.map(d => `${d.loc?.join('.')}: ${d.msg}`).join('; ');
-            } else if (typeof errorData.detail === 'string') {
-              detail = errorData.detail;
-            } else {
-              detail = JSON.stringify(errorData.detail);
-            }
-          }
-        } catch (_) {}
-        throw new Error(detail);
-      }
-      
-      const newProblem = await response.json();
-      setProblems(prev => [newProblem, ...prev]);
+      setProblems(prev => [response.data, ...prev]);
       setShowInlineForm(false);
       setFormData({
         title: '',
@@ -199,21 +150,8 @@ const RelatedProblemsManager = () => {
   const handleStatusUpdate = async (problemId, newStatus) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems/${problemId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update problem status');
-      }
+      const response = await api.patch(`/api/problems/${problemId}/status`, { status: newStatus });
       
       // Update the problem status in the UI
       const updatedProblems = problems.map(problem => 
@@ -277,44 +215,18 @@ const RelatedProblemsManager = () => {
   const handleAutoSuggest = async (algorithmId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/problems/auto-suggest/${algorithmId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to auto-suggest problems');
-      }
-      
-      const suggestedProblems = await response.json();
+      const response = await api.post(`/api/problems/auto-suggest/${algorithmId}`);
+      const suggestedProblems = response.data;
       toast.success(`Auto-suggested ${suggestedProblems.length} problems`);
       
       // Refresh the problems list
-      const fetchData = async () => {
-        const endpoint = viewMode === 'pending' 
-          ? 'http://localhost:8000/api/problems/pending'
-          : 'http://localhost:8000/api/problems/all';
+      const endpoint = viewMode === 'pending' 
+        ? '/api/problems/pending'
+        : '/api/problems/all';
           
-        const problemsResponse = await fetch(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (problemsResponse.ok) {
-          const problemsData = await problemsResponse.json();
-          setProblems(problemsData);
-        }
-      };
-      
-      await fetchData();
+      const problemsResponse = await api.get(endpoint);
+      setProblems(problemsResponse.data);
       
     } catch (error) {
       console.error('Error auto-suggesting problems:', error);

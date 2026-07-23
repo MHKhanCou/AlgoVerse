@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './DPVisualizer.css';
 
 const DPVisualizer = ({ algorithm, container, step, inputData, onPerformanceUpdate, onComplexityUpdate }) => {
+  const [localStep, setLocalStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [speed, setSpeed] = useState(50); // Animation speed (ms)
@@ -359,7 +360,7 @@ const DPVisualizer = ({ algorithm, container, step, inputData, onPerformanceUpda
   // Handle DP table update
   const updateDpTable = (table) => {
     setDpTable(table);
-    setStep(prev => prev + 1);
+    setLocalStep(prev => prev + 1);
     setOperations(prev => prev + 1);
   };
   

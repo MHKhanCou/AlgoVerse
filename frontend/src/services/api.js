@@ -37,6 +37,9 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 Adding auth token to request:', config.url);
+    } else {
+      console.log('⚠️ No auth token found for request:', config.url);
     }
     return config;
   },
@@ -47,14 +50,18 @@ api.interceptors.request.use(
 
 // Response interceptor - handle common errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response successful:', response.config.url, response.status);
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/signin';
-    }
+    console.error('❌ API Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
     return Promise.reject(error);
   }
 );

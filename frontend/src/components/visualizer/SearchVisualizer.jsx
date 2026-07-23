@@ -558,7 +558,7 @@ const SearchVisualizer = ({ algorithm, step, inputData, onPerformanceUpdate, onC
           </button>
           
           {searching && (
-            <button onClick={() => setSearching(false)} className="stop-btn">
+            <button onClick={() => { clearTimeouts(); setSearching(false); setCompleted(true); }} className="stop-btn">
               Stop
             </button>
           )}

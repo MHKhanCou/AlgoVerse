@@ -41,53 +41,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-      const checkAuthAndAdmin = async () => {
-        try {
-          const userProfile = await authService.getCurrentUser();
-          console.log("User profile:", userProfile);
-          setUser(userProfile);
-          try {
-            const adminResponse = await authService.getCurrentAdmin();
-            console.log("Admin check:", adminResponse);
-            setIsAdmin(true);
-          } catch (error) {
-            console.log("Not an admin:", error.message);
-            setIsAdmin(false);
-          }
-        } catch (error) {
-          console.log("Auth check error:", error.message);
-          if (
-            error.message.includes("Token expired") ||
-            error.message.includes("invalid") ||
-            error.message.includes("No token found")
-          ) {
-            logout();
-            navigate('/signin');
-          } else if (error.message.includes('Network error')) {
-            toast.error(error.message, {
-              position: "top-right",
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              theme: "dark",
-            });
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-      checkAuthAndAdmin();
-    } else {
-      setLoading(false);
-    }
-  }, [navigate]);
-
   const login = async (email, password) => {
     try {
       const res = await authService.login(email, password);

@@ -1,11 +1,8 @@
-from os import getenv
-from dotenv import load_dotenv
 import bcrypt
 from .. import models
+from ..core.config import settings
 
-load_dotenv()
-
-BCRYPT_ROUNDS = int(getenv("BCRYPT_ROUNDS", 12))
+BCRYPT_ROUNDS = settings.BCRYPT_ROUNDS
 
 def validate_password(password: str) -> bool:
     if len(password) < 8:

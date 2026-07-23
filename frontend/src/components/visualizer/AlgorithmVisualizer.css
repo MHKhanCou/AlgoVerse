@@ -70,7 +70,7 @@
 .visualizer-controls button {
   padding: 8px 16px;
   background: var(--primary);
-  color: #ffffff;
+  color: var(--button-text, #ffffff);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;

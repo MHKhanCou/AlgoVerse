@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
@@ -9,7 +9,9 @@ from ..repositories.user_repo import get_user_by_email
 from .. import schemas, models
 from ..db import get_db  
 from ..auth.password_utils import hash_password, verify_password
-from ..auth.jwt_token import create_access_token  
+from ..auth.jwt_token import create_access_token
+from ..middleware.admin_dependencies import get_current_admin
+from ..middleware.rate_limit import limiter
 from datetime import datetime
 import logging
 
@@ -19,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 # Regular user login
 @router.post("/login", response_model=schemas.Token)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -82,7 +86,9 @@ async def login(
 
 # Admin login  
 @router.post("/admin/login", response_model=schemas.Token)
+@limiter.limit("5/minute")
 async def admin_login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -137,9 +143,10 @@ async def admin_login(
     }
 
 @router.post("/register", response_model=schemas.APIResponse)
-async def register(request: schemas.RegisterUser, db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
+@limiter.limit("3/minute")
+async def register(request: Request, user_data: schemas.RegisterUser, db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
     # Check if user already exists
-    existing_user = get_user_by_email(db, request.email)
+    existing_user = get_user_by_email(db, user_data.email)
     if existing_user:
         # If user exists and is not verified, we can resend OTP
         if not existing_user.is_verified:
@@ -173,10 +180,10 @@ async def register(request: schemas.RegisterUser, db: Session = Depends(get_db),
     otp_expires = get_token_expiry_time(10)  # 10 minutes expiry for OTP
     
     # Create user with verification OTP
-    hashed_password = hash_password(request.password)
+    hashed_password = hash_password(user_data.password)
     user = models.User(
-        name=request.name,
-        email=request.email,
+        name=user_data.name,
+        email=user_data.email,
         password=hashed_password,
         verification_token=verification_otp,  # Store OTP in same field
         reset_token_expires=otp_expires,  # Use this field for OTP expiry
@@ -210,9 +217,10 @@ async def register(request: schemas.RegisterUser, db: Session = Depends(get_db),
 
 # Email verification endpoint (now handles OTP)
 @router.post("/verify-email", response_model=schemas.APIResponse)
-def verify_email(request: schemas.EmailVerification, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def verify_email(request: Request, verification_data: schemas.EmailVerification, db: Session = Depends(get_db)):
     # Find user with the verification token (now OTP)
-    user = db.query(models.User).filter(models.User.verification_token == request.token).first()
+    user = db.query(models.User).filter(models.User.verification_token == verification_data.token).first()
     
     if not user:
         raise HTTPException(
@@ -256,8 +264,9 @@ def verify_email(request: schemas.EmailVerification, db: Session = Depends(get_d
 
 # Resend verification OTP
 @router.post("/resend-verification", response_model=schemas.APIResponse)
-def resend_verification(request: schemas.ResendVerification, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, request.email)
+@limiter.limit("3/minute")
+def resend_verification(request: Request, verification_data: schemas.ResendVerification, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, verification_data.email)
     
     if not user:
         raise HTTPException(
@@ -297,8 +306,9 @@ def resend_verification(request: schemas.ResendVerification, db: Session = Depen
 
 # Forgot password endpoint (now uses OTP)
 @router.post("/forgot-password", response_model=schemas.APIResponse)
-def forgot_password(request: schemas.ForgotPassword, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, request.email)
+@limiter.limit("5/minute")
+def forgot_password(request: Request, password_data: schemas.ForgotPassword, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, password_data.email)
     
     if not user:
         # Don't reveal that the user doesn't exist for security reasons
@@ -334,9 +344,10 @@ def forgot_password(request: schemas.ForgotPassword, db: Session = Depends(get_d
 
 # Reset password endpoint
 @router.post("/reset-password", response_model=schemas.APIResponse)
-def reset_password(request: schemas.ResetPassword, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, password_data: schemas.ResetPassword, db: Session = Depends(get_db)):
     # Find user with the reset token
-    user = db.query(models.User).filter(models.User.reset_token == request.token).first()
+    user = db.query(models.User).filter(models.User.reset_token == password_data.token).first()
     
     if not user or not user.reset_token_expires:
         raise HTTPException(
@@ -357,7 +368,7 @@ def reset_password(request: schemas.ResetPassword, db: Session = Depends(get_db)
         )
     
     # Update password and clear reset token
-    user.password = hash_password(request.new_password)
+    user.password = hash_password(password_data.new_password)
     user.reset_token = None
     user.reset_token_expires = None
     
@@ -379,7 +390,7 @@ def reset_password(request: schemas.ResetPassword, db: Session = Depends(get_db)
 
 # Admin endpoint - Get user statistics
 @router.get("/admin/user-stats", response_model=schemas.APIResponse)
-def get_user_statistics(db: Session = Depends(get_db)):
+def get_user_statistics(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Get statistics about verified and unverified users (Admin only)"""
     try:
         stats = get_unverified_user_stats(db)
@@ -405,7 +416,7 @@ def get_user_statistics(db: Session = Depends(get_db)):
 
 # Admin endpoint - Clean expired OTPs
 @router.post("/admin/cleanup-otps", response_model=schemas.APIResponse)
-def cleanup_otps(db: Session = Depends(get_db)):
+def cleanup_otps(db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Clean up expired OTP codes without deleting users (Admin only)"""
     try:
         result = cleanup_expired_otps(db)
@@ -429,7 +440,7 @@ def cleanup_otps(db: Session = Depends(get_db)):
 
 # Admin endpoint - Clean unverified users
 @router.post("/admin/cleanup-users", response_model=schemas.APIResponse)
-def cleanup_users(max_age_hours: int = 24, db: Session = Depends(get_db)):
+def cleanup_users(max_age_hours: int = 24, db: Session = Depends(get_db), admin: models.User = Depends(get_current_admin)):
     """Clean up unverified users older than specified hours (Admin only)"""
     try:
         result = cleanup_expired_unverified_users(db, max_age_hours)

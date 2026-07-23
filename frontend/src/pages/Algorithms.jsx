@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSearch } from '../contexts/SearchContext';
 import { algorithmService } from '../services/algorithmService';
+import api from '../services/api';
 import { 
   Search, 
   BookOpen, 
@@ -86,13 +87,10 @@ const Algorithms = () => {
       setLoading(true);
       const [algorithmsData, typesResponse] = await Promise.all([
         algorithmService.getAll(1, 100),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/algo-type`)
+        api.get('/algo-type')
       ]);
       
-      if (typesResponse.ok) {
-        const typesData = await typesResponse.json();
-        setAlgoTypes(typesData);
-      }
+      setAlgoTypes(typesResponse.data);
       
       // Process algorithms with search text
       const processedAlgorithms = algorithmsData.map((algo) => ({
