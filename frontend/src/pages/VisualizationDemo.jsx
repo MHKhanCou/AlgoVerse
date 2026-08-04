@@ -11,6 +11,9 @@ import { fibonacci, factorial, towerOfHanoi } from '../engine/algorithms/recursi
 import { kmp } from '../engine/algorithms/string';
 import ArrayRenderer from '../components/renderers/ArrayRenderer';
 import GraphRenderer, { graphTemplates } from '../components/renderers/GraphRenderer';
+import DPTableRenderer from '../components/renderers/DPTableRenderer';
+import RecursionRenderer from '../components/renderers/RecursionRenderer';
+import StringRenderer from '../components/renderers/StringRenderer';
 import PlaybackControls from '../components/engine/PlaybackControls';
 import StepDescription from '../components/engine/StepDescription';
 import StatsPanel from '../components/engine/StatsPanel';
@@ -189,7 +192,7 @@ const VisualizationDemo = () => {
   const [graphStartNode, setGraphStartNode] = useState('A');
   const [code, setCode] = useState('');
 
-  const { steps, metadata } = useVisualizationStore();
+  const { metadata } = useVisualizationStore();
   const engine = useMemo(() => new PlaybackEngine(), []);
 
   // Keyboard shortcuts
@@ -248,6 +251,21 @@ const VisualizationDemo = () => {
       result = currentAlgo.fn(sorted, targetValue);
     } else if (currentAlgo.type === 'graph') {
       result = currentAlgo.fn(graphData, graphStartNode);
+    } else if (currentAlgo.type === 'dp') {
+      // Each DP algorithm takes a different shape of input.
+      if (selectedAlgo === 'knapsack') {
+        result = currentAlgo.fn([2, 3, 4, 5], [3, 4, 5, 6], 10);
+      } else if (selectedAlgo === 'lcs') {
+        result = currentAlgo.fn('ABCBDAB', 'BDCABA');
+      } else if (selectedAlgo === 'coinChange') {
+        result = currentAlgo.fn([1, 5, 10, 25], 30);
+      } else {
+        result = currentAlgo.fn(10);
+      }
+    } else if (currentAlgo.type === 'recursion') {
+      result = currentAlgo.fn(selectedAlgo === 'towerOfHanoi' ? 3 : 6);
+    } else if (currentAlgo.type === 'string') {
+      result = currentAlgo.fn('ABABDABACDABABCABAB', 'ABABCABAB');
     }
 
     if (!result) return;
@@ -258,7 +276,7 @@ const VisualizationDemo = () => {
       onComplete: () => useVisualizationStore.getState().complete(),
     });
     engine.play();
-  }, [currentAlgo, inputArray, targetValue, graphData, engine]);
+  }, [currentAlgo, selectedAlgo, inputArray, targetValue, graphData, graphStartNode, engine]);
 
   // Update code
   useEffect(() => {
@@ -279,6 +297,30 @@ const VisualizationDemo = () => {
               }
             }}
           />
+        </div>
+      );
+    }
+
+    if (currentAlgo?.type === 'dp') {
+      return (
+        <div className="viz-demo-viz-area">
+          <DPTableRenderer data={[]} rows={1} cols={11} />
+        </div>
+      );
+    }
+
+    if (currentAlgo?.type === 'recursion') {
+      return (
+        <div className="viz-demo-viz-area">
+          <RecursionRenderer algorithmName={currentAlgo.name} />
+        </div>
+      );
+    }
+
+    if (currentAlgo?.type === 'string') {
+      return (
+        <div className="viz-demo-viz-area">
+          <StringRenderer algorithmName={currentAlgo.name} />
         </div>
       );
     }

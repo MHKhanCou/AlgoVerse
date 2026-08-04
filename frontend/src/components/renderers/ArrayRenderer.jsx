@@ -38,6 +38,11 @@ const ArrayRenderer = memo(({
 
     for (let i = 0; i <= currentStep && i < steps.length; i++) {
       const s = steps[i];
+      // Steps from non-array algorithms (DP uses [row, col] pairs, graph uses
+      // nodeIds) can reach here if a caller pairs the wrong renderer with the
+      // wrong algorithm. Skip them rather than throwing and blanking the page.
+      if (!Array.isArray(s.indices)) continue;
+      if (s.indices.some(idx => typeof idx !== 'number')) continue;
       if (s.type === 'swap' && s.indices && s.values) {
         s.indices.forEach((idx, j) => {
           if (s.values[j] !== undefined) arr[idx] = s.values[j];
@@ -68,32 +73,38 @@ const ArrayRenderer = memo(({
       }
     }
 
-    // Apply current step colors (overwrite previous)
+    // Apply current-step colours. Guarded the same way as the replay loop
+    // above: a step from another algorithm family must not throw.
+    const stepIndices = Array.isArray(step?.indices)
+      && step.indices.every(idx => typeof idx === 'number')
+      ? step.indices
+      : [];
+
     if (step) {
       // Highlight partition range (for merge/quick sort)
-      if (step.partitionRange) {
+      if (Array.isArray(step.partitionRange)) {
         const [lo, hi] = step.partitionRange;
         for (let i = lo; i <= hi; i++) {
           if (colors[i] === 'default') colors[i] = 'partition';
         }
       }
       if (step.type === 'compare') {
-        step.indices.forEach(idx => { colors[idx] = 'comparing'; });
+        stepIndices.forEach(idx => { colors[idx] = 'comparing'; });
       }
       if (step.type === 'swap' || step.type === 'set') {
-        step.indices.forEach(idx => { colors[idx] = 'swapping'; });
+        stepIndices.forEach(idx => { colors[idx] = 'swapping'; });
       }
       if (step.type === 'visit') {
-        step.indices.forEach(idx => { colors[idx] = 'visiting'; });
+        stepIndices.forEach(idx => { colors[idx] = 'visiting'; });
       }
       if (step.type === 'sorted') {
-        step.indices.forEach(idx => { colors[idx] = 'sorted'; });
+        stepIndices.forEach(idx => { colors[idx] = 'sorted'; });
       }
       if (step.type === 'found') {
-        step.indices.forEach(idx => { colors[idx] = 'found'; });
+        stepIndices.forEach(idx => { colors[idx] = 'found'; });
       }
       // Mark sorted indices from sortedIndices set
-      if (step.sortedIndices) {
+      if (Array.isArray(step.sortedIndices)) {
         step.sortedIndices.forEach(idx => { colors[idx] = 'sorted'; });
       }
     }
