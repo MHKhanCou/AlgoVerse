@@ -29,6 +29,7 @@ const RelatedProblemsManager = () => {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showInlineForm, setShowInlineForm] = useState(false);
+  // eslint-disable-next-line no-unused-vars -- edit UI not built yet
   const [editingProblem, setEditingProblem] = useState(null);
   const [viewMode, setViewMode] = useState('all'); // 'all' or 'pending'
   const inlineFormContentRef = useRef(null);
@@ -147,6 +148,9 @@ const RelatedProblemsManager = () => {
   };
 
   // Handle status update
+  // NOTE: implemented but not yet wired to any control. Kept because it is
+  // complete and working; it needs approve/reject buttons in the list.
+  // eslint-disable-next-line no-unused-vars
   const handleStatusUpdate = async (problemId, newStatus) => {
     try {
       setLoading(true);
@@ -212,6 +216,9 @@ const RelatedProblemsManager = () => {
   };
 
   // Handle auto-suggest problems for an algorithm
+  // NOTE: implemented but not yet wired to any control. Kept because it is
+  // complete and working; it needs an "Auto-suggest" button in the UI.
+  // eslint-disable-next-line no-unused-vars
   const handleAutoSuggest = async (algorithmId) => {
     try {
       setLoading(true);

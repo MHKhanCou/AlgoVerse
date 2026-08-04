@@ -163,9 +163,10 @@ const TopicListPage = () => {
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'difficulty':
+        case 'difficulty': {
           const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
           return (difficultyOrder[a.difficulty] || 2) - (difficultyOrder[b.difficulty] || 2);
+        }
         case 'type':
           return (a.type_name || '').localeCompare(b.type_name || '');
         case 'name':

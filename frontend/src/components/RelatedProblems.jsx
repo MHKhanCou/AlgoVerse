@@ -401,9 +401,15 @@ const RelatedProblems = ({ algorithm, user }) => {
 
   const handleUpdateProgress = async (algoId, newStatus) => {
     if (!user) return;
-    
+
+    // Captured outside the try so the catch block can restore it. This was
+    // previously declared with const inside the try, so the error handler
+    // referenced an out-of-scope binding and threw ReferenceError while
+    // reverting the optimistic update, turning a recoverable API failure
+    // into a crash.
+    const existingProgress = progressMap[algoId];
+
     try {
-      const existingProgress = progressMap[algoId];
       const isNew = !existingProgress;
       
       // Update local state optimistically

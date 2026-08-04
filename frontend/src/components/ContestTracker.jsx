@@ -417,7 +417,9 @@ export default function ContestTracker() {
         if (diffH <= 24) buckets.h24.push(c);
         else if (diffH <= 24 * 7) buckets.d7.push(c);
         else buckets.d30.push(c);
-      } catch (_) {}
+      } catch {
+        // Skip contests with an unparseable start_time.
+      }
     });
     return buckets;
   };
