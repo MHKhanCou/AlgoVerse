@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
  * shows its "not found" branch. That is still worth asserting: it must
  * degrade cleanly rather than throwing.
  */
-const BASE = 'http://localhost:5190';
+const BASE = process.env.E2E_BASE ?? 'http://localhost:5190';
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -102,9 +102,11 @@ if (tabClicked) {
 
 check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | ') || 'none');
 
-await page.screenshot({ path: 'detail-page.png' });
+await page.screenshot({ path: 'e2e-output/detail.png' });
 await browser.close();
 
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 process.exit(failed.length === 0 ? 0 : 1);
+
+

@@ -42,3 +42,21 @@ jobs:
       # is a no-op until dist/ exists, so re-run it after the build.
       - name: Re-check deploy config against the built output
         run: npx vitest run src/engine/__tests__/deploy-config.test.js
+
+      # Real-browser checks against the production build. jsdom cannot see
+      # canvas painting, real layout, or runtime errors in minified code; this
+      # layer is what caught the /demo DP tab crashing the page.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e suites
+        run: npm run e2e
+
+      - name: Upload e2e screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: frontend/e2e-output/
+          if-no-files-found: ignore
+          retention-days: 7

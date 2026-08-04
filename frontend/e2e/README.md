@@ -4,33 +4,36 @@ Real-Chromium smoke tests that run against the **production build**. They
 catch what jsdom structurally cannot: actual canvas painting, real layout,
 CSS application, runtime errors in minified code, and failed asset requests.
 
-These found two bugs the 109-test jsdom suite missed:
+These found two bugs the jsdom suite missed:
 
 - The `/demo` DP tab crashed the page with
   `Cannot read properties of undefined (reading 'forEach')`, because
   `VisualizationDemo` never implemented DP/recursion/string execution and fed
-  2D DP step indices to `ArrayRenderer`.
+  2D DP step indices to `ArrayRenderer`. That also made the Recursion and
+  String tabs unreachable.
 - `/vite.svg` (the favicon) was served as HTML by the SPA rewrite.
 
 ## Running
 
-Playwright is intentionally **not** a project dependency, to keep `npm ci`
-lean. Install it on demand:
-
 ```bash
-npm install -g playwright        # or: npx playwright@latest
-npx playwright install chromium
-
+npx playwright install chromium   # one-time: fetch the browser binary
 npm run build
-npx vite preview --port 5190 --strictPort &
-
-node e2e/smoke.mjs   # page load, favicon, canvas pixels, playback
-node e2e/tabs.mjs    # all 6 algorithm categories + dark mode
-node e2e/detail.mjs  # /algorithms/:id route, sanitization, playback
+npm run e2e
 ```
 
-Both exit non-zero on failure, so they can be wired into CI once a
-Playwright-provisioned runner is available.
+`npm run e2e` starts `vite preview`, waits for it to answer, runs all three
+suites, and always tears the server down. It exits non-zero if any suite
+fails, and CI gates on it (see `.github/workflows/frontend.yml`).
+
+Screenshots are written to `e2e-output/` (gitignored). CI uploads them as an
+artifact when a run fails, so failures are diagnosable without reproducing
+locally.
+
+To run one suite against an already-running server:
+
+```bash
+E2E_BASE=http://localhost:5190 node e2e/tabs.mjs
+```
 
 ## What each covers
 
@@ -52,4 +55,3 @@ Playwright-provisioned runner is available.
 - Hostile `explanation` HTML is sanitized: no `onerror` survives and no
   script executes
 - The Visualize tab paints a canvas and playback advances
-

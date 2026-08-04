@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
  * console errors from minified code, or failed network requests for assets.
  * This drives a real Chromium against `vite preview`.
  */
-const BASE = 'http://localhost:5190';
+const BASE = process.env.E2E_BASE ?? 'http://localhost:5190';
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -118,9 +118,11 @@ const realErrors = consoleErrors.filter(
 check('no failed asset requests', realFailures.length === 0, realFailures.join(' | ') || 'none');
 check('no unexpected console errors', realErrors.length === 0, realErrors.slice(0, 3).join(' | ') || 'none');
 
-await page.screenshot({ path: 'browser-check.png', fullPage: false });
+await page.screenshot({ path: 'e2e-output/smoke.png', fullPage: false });
 await browser.close();
 
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 process.exit(failed.length === 0 ? 0 : 1);
+
+

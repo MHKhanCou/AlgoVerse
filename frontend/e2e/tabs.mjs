@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
  * The category tabs mount different renderers (canvas, React Flow, DOM grid,
  * SVG), so this is where a runtime crash would actually surface.
  */
-const BASE = 'http://localhost:5190';
+const BASE = process.env.E2E_BASE ?? 'http://localhost:5190';
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -116,7 +116,7 @@ check('dark mode: canvas still paints', darkPainted > 0, `${darkPainted} px`);
 const darkErrors = consoleErrors.filter(e => !e.includes('Failed to load resource'));
 check('dark mode: no runtime errors', darkErrors.length === 0, darkErrors.slice(0, 2).join(' | ') || 'none');
 
-await page.screenshot({ path: 'browser-tabs.png' });
+await page.screenshot({ path: 'e2e-output/tabs.png' });
 await browser.close();
 
 const failed = results.filter(r => !r.ok);
@@ -126,3 +126,5 @@ if (failed.length) {
   for (const f of failed) console.log(` - ${f.name} :: ${f.detail}`);
 }
 process.exit(failed.length === 0 ? 0 : 1);
+
+
