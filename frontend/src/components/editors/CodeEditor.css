@@ -1,0 +1,96 @@
+.code-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  background: #0f172a;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+.code-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #333;
+}
+
+.code-editor-lang {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b5cf6;
+  text-transform: uppercase;
+}
+
+.code-editor-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.code-editor-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.code-editor-btn:hover {
+  background: #333;
+  color: #f8fafc;
+}
+
+.code-editor-btn.active {
+  background: #8b5cf6;
+  color: white;
+}
+
+.code-editor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: var(--text-muted, #64748b);
+  font-size: 13px;
+}
+
+/* Line highlight for current step */
+.code-line-highlight {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  border-left: 3px solid #8b5cf6 !important;
+}
+
+/* Override Monaco scrollbar for cleaner look */
+.code-editor .monaco-editor .scrollbar {
+  opacity: 0.3;
+}
+
+.code-editor .monaco-editor .scrollbar:hover {
+  opacity: 0.8;
+}
+
+/* Loading spinner */
+.code-editor-loading .loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-primary, #334155);
+  border-top-color: var(--primary, #8b5cf6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

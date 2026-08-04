@@ -12,7 +12,7 @@ const TreeRenderer = memo(({ treeData = null }) => {
   const svgRef = useRef(null);
   const [theme, setTheme] = React.useState(() => document.documentElement.getAttribute('data-theme') || 'light');
 
-  const { currentStep, steps, status } = useVisualizationStore();
+  const { currentStep, steps } = useVisualizationStore();
   const step = currentStep >= 0 ? steps[currentStep] : null;
 
   // Use treeData from step if available, otherwise fall back to prop
@@ -160,7 +160,7 @@ const TreeRenderer = memo(({ treeData = null }) => {
       text.textContent = node.value;
       svg.appendChild(text);
     });
-  }, [buildTreeNodes]);
+  }, [buildTreeNodes, theme]);
 
   return (
     <div className="tree-renderer">

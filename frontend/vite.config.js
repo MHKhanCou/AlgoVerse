@@ -34,6 +34,14 @@ export default defineConfig(({ command, mode }) => {
           manualChunks: {
             react: ['react', 'react-dom', 'react-router-dom'],
             vendor: ['axios', 'react-toastify'],
+            monaco: ['@monaco-editor/react'],
+            graphflow: ['@xyflow/react'],
+            // Heavy, route-specific libraries. Without these they all landed
+            // in the main entry chunk (~577 kB), so every visitor downloaded
+            // charting and animation code just to see the home page.
+            charts: ['chart.js', 'react-chartjs-2'],
+            animation: ['gsap', 'framer-motion'],
+            syntax: ['react-syntax-highlighter'],
           },
         },
       },

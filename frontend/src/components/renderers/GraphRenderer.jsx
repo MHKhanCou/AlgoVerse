@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -58,7 +58,6 @@ const GraphRenderer = ({
   onGraphChange,
 }) => {
   const { currentStep, steps } = useVisualizationStore();
-  const step = currentStep >= 0 ? steps[currentStep] : null;
 
   // Build node and edge states from steps up to currentStep
   const getNodeStates = useCallback(() => {
@@ -107,7 +106,7 @@ const GraphRenderer = ({
     }
 
     return { nodeStates, edgeStates };
-  }, [graph, currentStep, steps, step]);
+  }, [graph, currentStep, steps]);
 
   const { nodeStates, edgeStates } = getNodeStates();
 

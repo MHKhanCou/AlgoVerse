@@ -1,0 +1,63 @@
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tab-panel-header {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 10px;
+  border: 1px solid var(--border-primary, #334155);
+  margin-bottom: 16px;
+}
+
+.tab-panel-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tab-panel-tab:hover {
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #f8fafc);
+}
+
+.tab-panel-tab.active {
+  background: var(--primary, #8b5cf6);
+  color: white;
+}
+
+.tab-panel-tab-icon {
+  display: flex;
+  align-items: center;
+}
+
+.tab-panel-content {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-panel-content > div {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

@@ -1,0 +1,61 @@
+.state-panel {
+  padding: 10px 14px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary, #334155);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.state-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.state-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.state-panel-algo {
+  font-size: 11px;
+  color: var(--primary, #8b5cf6);
+  font-weight: 500;
+}
+
+.state-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.state-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.state-label {
+  font-size: 10px;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+}
+
+.state-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+}
+
+.state-value-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}

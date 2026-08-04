@@ -1,0 +1,58 @@
+.prerequisites-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prerequisites-group {
+  padding: 16px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary, #334155);
+}
+
+.prerequisites-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 10px;
+}
+
+.prerequisites-title svg {
+  color: var(--primary, #8b5cf6);
+}
+
+.prerequisites-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prerequisite-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary, #334155);
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+  transition: all 0.15s ease;
+}
+
+.prerequisite-link:hover {
+  background: var(--primary, #8b5cf6);
+  color: white;
+}
+
+.prerequisite-link:hover svg {
+  color: white;
+}
+
+.prerequisite-name {
+  font-weight: 500;
+}

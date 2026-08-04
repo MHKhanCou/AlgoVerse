@@ -23,8 +23,7 @@ const GridRenderer = memo(({
   const [end, setEnd] = useState(endNode);
   const [mode, setMode] = useState('wall'); // 'wall' | 'start' | 'end' | 'eraser'
 
-  const { currentStep, steps, status } = useVisualizationStore();
-  const step = currentStep >= 0 ? steps[currentStep] : null;
+  const { currentStep, steps } = useVisualizationStore();
 
   // Watch for theme changes
   useEffect(() => {

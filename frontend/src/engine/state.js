@@ -50,7 +50,6 @@ export const useVisualizationStore = create((set, get) => ({
 
   /** Go to the first step */
   reset: () => {
-    const { steps } = get();
     set({
       currentStep: -1,
       status: 'idle',

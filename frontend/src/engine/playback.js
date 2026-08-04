@@ -25,9 +25,6 @@ export class PlaybackEngine {
   init(steps, { baseDuration = 0.5, onStep, onComplete } = {}) {
     this.dispose();
 
-    const store = useVisualizationStore.getState();
-    const speed = store.speed;
-
     // Create GSAP timeline
     this.timeline = gsap.timeline({
       paused: true,

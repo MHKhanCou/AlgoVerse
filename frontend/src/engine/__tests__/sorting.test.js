@@ -57,9 +57,10 @@ describe('Sorting Algorithms', () => {
             });
           }
         });
-        // After all steps, array should be sorted
-        const sorted = [...arr].sort((a, b) => a - b);
-        expect(arr).toEqual(sorted);
+        // After all steps, the array must equal the known-sorted expectation.
+        // (Previously this compared `arr` against `[...arr].sort()`, which is
+        // a tautology that passes for any output whatsoever.)
+        expect(arr).toEqual(sortedArray);
       });
     });
   });

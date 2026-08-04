@@ -6,6 +6,61 @@
  */
 
 /**
+ * Binary min-heap ordered by `keyFn`.
+ *
+ * Dijkstra advertises O((V + E) log V) and A* likewise, so the priority queue
+ * must actually be logarithmic. Re-sorting an array on every pop would make it
+ * O(V^2 log V) and teach the wrong thing to anyone reading the source
+ * alongside the animation.
+ */
+class MinHeap {
+  constructor(keyFn = (item) => item.dist) {
+    this.items = [];
+    this.keyFn = keyFn;
+  }
+
+  get size() {
+    return this.items.length;
+  }
+
+  push(item) {
+    const items = this.items;
+    const key = this.keyFn;
+    items.push(item);
+    let i = items.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (key(items[parent]) <= key(items[i])) break;
+      [items[parent], items[i]] = [items[i], items[parent]];
+      i = parent;
+    }
+  }
+
+  pop() {
+    const items = this.items;
+    const key = this.keyFn;
+    if (items.length === 0) return undefined;
+    const top = items[0];
+    const last = items.pop();
+    if (items.length > 0) {
+      items[0] = last;
+      let i = 0;
+      for (;;) {
+        const left = 2 * i + 1;
+        const right = left + 1;
+        let smallest = i;
+        if (left < items.length && key(items[left]) < key(items[smallest])) smallest = left;
+        if (right < items.length && key(items[right]) < key(items[smallest])) smallest = right;
+        if (smallest === i) break;
+        [items[smallest], items[i]] = [items[i], items[smallest]];
+        i = smallest;
+      }
+    }
+    return top;
+  }
+}
+
+/**
  * BFS step generator.
  * @param {{ nodes: Array, edges: Array }} graph
  * @param {string|number} startId
@@ -204,13 +259,11 @@ export function dijkstra(graph, startId) {
     timestamp: 0,
   });
 
-  // Simple priority queue (array-based for clarity)
-  const pq = [{ id: startId, dist: 0 }];
+  const pq = new MinHeap();
+  pq.push({ id: startId, dist: 0 });
 
-  while (pq.length > 0) {
-    // Get min distance node
-    pq.sort((a, b) => a.dist - b.dist);
-    const { id: current } = pq.shift();
+  while (pq.size > 0) {
+    const { id: current } = pq.pop();
 
     if (visited.has(current)) continue;
     visited.add(current);
@@ -622,11 +675,11 @@ export function aStar(graph, startId, endId) {
     timestamp: 0,
   });
 
-  const openSet = [{ id: startId, f: fScore[startId] }];
+  const openSet = new MinHeap((item) => item.f);
+  openSet.push({ id: startId, f: fScore[startId] });
 
-  while (openSet.length > 0) {
-    openSet.sort((a, b) => a.f - b.f);
-    const { id: current } = openSet.shift();
+  while (openSet.size > 0) {
+    const { id: current } = openSet.pop();
 
     if (current === endId) {
       // Reconstruct path

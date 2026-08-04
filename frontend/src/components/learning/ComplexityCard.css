@@ -1,0 +1,62 @@
+.complexity-card {
+  padding: 16px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary, #334155);
+}
+
+.complexity-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 12px;
+}
+
+.complexity-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.complexity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.complexity-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-muted, #64748b);
+  flex-shrink: 0;
+}
+
+.complexity-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.complexity-label {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+}
+
+.complexity-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.complexity-excellent { color: var(--success, #10b981); }
+.complexity-good { color: var(--success, #10b981); }
+.complexity-fair { color: var(--warning, #f59e0b); }
+.complexity-poor { color: var(--error, #ef4444); }
+.complexity-bad { color: var(--error, #ef4444); }
+.complexity-unknown { color: var(--text-muted, #64748b); }

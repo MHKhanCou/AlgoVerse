@@ -1,0 +1,68 @@
+.step-timeline {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary, #334155);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  min-height: 36px;
+}
+
+.step-timeline-empty {
+  justify-content: center;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.step-timeline-marker {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.step-timeline-marker:hover {
+  transform: scale(1.5);
+  opacity: 0.8;
+}
+
+.step-timeline-marker.current {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  transform: scale(1.2);
+  box-shadow: 0 0 8px currentColor;
+}
+
+.step-timeline-marker.past {
+  opacity: 0.6;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .step-timeline {
+    padding: 6px 8px;
+    gap: 1px;
+  }
+
+  .step-timeline-marker {
+    width: 6px;
+    height: 6px;
+    min-width: 6px;
+  }
+
+  .step-timeline-marker.current {
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+  }
+}

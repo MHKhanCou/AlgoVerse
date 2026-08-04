@@ -8,7 +8,8 @@ import './StringRenderer.css';
  * Renders text and pattern as character cells with highlighting.
  * Supports KMP and Rabin-Karp visualization.
  */
-const StringRenderer = memo(({ data = [], algorithmName = '' }) => {
+// Reads its content from the current step, not from props.
+const StringRenderer = memo(({ algorithmName = '' }) => {
   const { currentStep, steps } = useVisualizationStore();
   const step = currentStep >= 0 ? steps[currentStep] : null;
 

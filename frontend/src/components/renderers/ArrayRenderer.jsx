@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState, memo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState, memo } from 'react';
 import useVisualizationStore from '../../engine/state';
 
 /**
@@ -12,13 +12,11 @@ const ArrayRenderer = memo(({
   style = 'bars', // 'bars' | 'dots' | 'lines'
   showValues = true,
   maxBarHeight = 300,
-  onArrayChange,
 }) => {
   const canvasRef = useRef(null);
-  const animFrameRef = useRef(null);
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
 
-  const { currentStep, steps, status } = useVisualizationStore();
+  const { currentStep, steps } = useVisualizationStore();
   const step = currentStep >= 0 ? steps[currentStep] : null;
 
   // Watch for theme changes
@@ -103,6 +101,40 @@ const ArrayRenderer = memo(({
     return arr.map((val, i) => ({ value: val, color: colors[i], index: i }));
   }, [data, currentStep, steps, step]);
 
+  // Resolve CSS-variable colors once per theme change, not once per frame.
+  // getComputedStyle forces style recalc and was previously called on every
+  // animation frame.
+  const resolvedColors = useMemo(() => {
+    const colorMap = {
+      default: 'var(--text-primary, #64748b)',
+      comparing: 'var(--warning, #f59e0b)',
+      swapping: 'var(--error, #ef4444)',
+      visiting: 'var(--info, #3b82f6)',
+      highlight: 'var(--primary, #8b5cf6)',
+      sorted: 'var(--success, #10b981)',
+      found: 'var(--success, #10b981)',
+      partition: 'rgba(139, 92, 246, 0.25)',
+    };
+    const computed = getComputedStyle(document.documentElement);
+    const out = {};
+    Object.entries(colorMap).forEach(([key, cssVar]) => {
+      if (cssVar.startsWith('var(')) {
+        const varName = cssVar.match(/var\((--[^,)]+)/)?.[1];
+        const fallback = cssVar.match(/,\s*([^)]+)\)/)?.[1]?.trim() || cssVar;
+        out[key] = varName
+          ? computed.getPropertyValue(varName).trim() || fallback
+          : fallback;
+      } else {
+        out[key] = cssVar;
+      }
+    });
+    return out;
+    // `theme` is intentionally a dependency even though it is not referenced
+    // in the body: it is the signal that the CSS custom properties on <html>
+    // changed and must be re-read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
+
   // Draw on canvas
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -112,9 +144,17 @@ const ArrayRenderer = memo(({
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    // Only reallocate the backing store when the size actually changes.
+    // Assigning canvas.width/height clears the canvas and resets the
+    // transform, so doing it every frame thrashes during playback.
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    // setTransform (not scale) so repeated draws don't compound the scale.
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const width = rect.width;
     const height = rect.height;
@@ -128,29 +168,6 @@ const ArrayRenderer = memo(({
     const padding = 20;
     const availWidth = width - padding * 2;
     const availHeight = height - padding * 2;
-
-    const colorMap = {
-      default: 'var(--text-primary, #64748b)',
-      comparing: 'var(--warning, #f59e0b)',
-      swapping: 'var(--error, #ef4444)',
-      visiting: 'var(--info, #3b82f6)',
-      highlight: 'var(--primary, #8b5cf6)',
-      sorted: 'var(--success, #10b981)',
-      found: 'var(--success, #10b981)',
-      partition: 'rgba(139, 92, 246, 0.25)',
-    };
-
-    // Resolve CSS variables for canvas
-    const resolvedColors = {};
-    const computedStyle = getComputedStyle(document.documentElement);
-    Object.entries(colorMap).forEach(([key, cssVar]) => {
-      if (cssVar.startsWith('var(')) {
-        const varName = cssVar.match(/var\((--[^,)]+)/)?.[1];
-        resolvedColors[key] = varName ? computedStyle.getPropertyValue(varName).trim() || cssVar : cssVar;
-      } else {
-        resolvedColors[key] = cssVar;
-      }
-    });
 
     if (style === 'bars') {
       const barWidth = Math.max(2, (availWidth / arrayState.length) - 2);
@@ -218,31 +235,30 @@ const ArrayRenderer = memo(({
         ctx.fill();
       });
     }
-  }, [getArrayState, showValues, style, theme]);
+  }, [getArrayState, showValues, style, resolvedColors]);
 
-  // Animation loop
+  // Redraw whenever the rendered state changes. `draw` is a pure function of
+  // the current step, so a requestAnimationFrame loop would just re-paint
+  // identical frames; the store subscription already re-renders on each step.
   useEffect(() => {
-    const render = () => {
-      draw();
-      if (status === 'playing') {
-        animFrameRef.current = requestAnimationFrame(render);
-      }
-    };
+    draw();
+  }, [draw]);
 
-    render();
-
-    return () => {
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
-    };
-  }, [draw, status]);
-
-  // Resize handler
+  // Resize handler (coalesced to one redraw per frame)
   useEffect(() => {
-    const handleResize = () => draw();
+    let frame = null;
+    const handleResize = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        draw();
+      });
+    };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [draw]);
 
   return (

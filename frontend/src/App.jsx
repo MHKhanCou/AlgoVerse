@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SearchProvider } from './contexts/SearchContext';
@@ -15,12 +15,18 @@ import Footer from './components/Footer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Import MyProgressPage
+// Lazy load heavy components
+const VisualizationDemo = lazy(() => import('./pages/VisualizationDemo'));
+const AlgorithmDetailV2 = lazy(() => import('./pages/AlgorithmDetailV2'));
+// Chart-heavy and admin-only routes: keeps chart.js and the admin bundle out
+// of the initial download for the average visitor.
+const CodeforcesAnalytics = lazy(() => import('./pages/CodeforcesAnalytics'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
+// Import other pages
 import MyProgressPage from './pages/MyProgressPage';
-import SingleAlgorithm from './pages/SingleAlgorithm';
 import AlgorithmTypePage from './pages/AlgorithmTypePage';
 import AdminRoute from './components/AdminRoute';
-import AdminDashboard from './pages/AdminDashboard';
 
 // Import Blogs and SingleBlog components
 import Blogs from './pages/Blogs';
@@ -35,9 +41,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import OTPPasswordResetPage from './pages/OTPPasswordResetPage';
 
-// Import TopicListPage and CodeforcesAnalytics
 import TopicListPage from './pages/TopicListPage';
-import CodeforcesAnalytics from './pages/CodeforcesAnalytics';
 import UserPublicPage from './pages/UserPublicPage';
 
 function AppRoutes() {
@@ -66,6 +70,7 @@ function AppRoutes() {
         isLoggedIn={isAuthenticated} 
       />
       <main className="main-content">
+        <Suspense fallback={<div className="loading">Loading...</div>}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/topics" element={<TopicListPage />} />
@@ -86,7 +91,7 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/reset-password-otp" element={<OTPPasswordResetPage />} />
           
-          <Route path="/algorithms/:id" element={<SingleAlgorithm />} />
+          <Route path="/algorithms/:id" element={<AlgorithmDetailV2 />} />
           <Route path="/algorithms/type/:typeId" element={<AlgorithmTypePage />} />
           <Route path="/my-progress" element={
             isAuthenticated ? <MyProgressPage /> : <Navigate to="/login" replace />
@@ -102,8 +107,10 @@ function AppRoutes() {
             isAuthenticated ? <MyBlogs /> : <Navigate to="/login" replace />
           } />
           <Route path="/users/:id" element={<UserPublicPage />} />
+          <Route path="/demo" element={<VisualizationDemo />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

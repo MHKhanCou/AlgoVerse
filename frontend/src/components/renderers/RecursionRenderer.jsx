@@ -11,7 +11,8 @@ import './RecursionRenderer.css';
  * - Tower of Hanoi pegs (special mode)
  */
 
-const RecursionRenderer = memo(({ data = [], algorithmName = '' }) => {
+// Reads its tree from the current step, not from props.
+const RecursionRenderer = memo(({ algorithmName = '' }) => {
   const { currentStep, steps } = useVisualizationStore();
   const step = currentStep >= 0 ? steps[currentStep] : null;
 
@@ -69,7 +70,6 @@ const RecursionRenderer = memo(({ data = [], algorithmName = '' }) => {
     // Find root (parentId === null)
     const root = treeNodes.find(n => n.parentId === null || n.parentId === undefined);
     if (root) {
-      const rootWidth = getSubtreeWidth(root.id);
       positionNode(root.id, MIN_X, 20);
     }
 
