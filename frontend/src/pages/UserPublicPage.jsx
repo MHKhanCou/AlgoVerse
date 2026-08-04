@@ -60,7 +60,7 @@ export default function UserPublicPage() {
         } else {
           setCf(null);
         }
-      } catch (e) {
+      } catch {
         // Silent fail; CF API may be rate limited
         setCf(null);
       }
@@ -77,7 +77,7 @@ export default function UserPublicPage() {
         if (!active) return;
         const items = Array.isArray(resp.data) ? resp.data : [];
         setBlogs(items);
-      } catch (e) {
+      } catch {
         setBlogs([]);
       }
     })();
@@ -94,7 +94,7 @@ export default function UserPublicPage() {
       setAllBlogs((prev) => [...prev, ...items]);
       setHasMore(items.length === 10);
       setPageSkip((prev) => prev + items.length);
-    } catch (e) {
+    } catch {
       setHasMore(false);
     } finally {
       setLoadingMore(false);
@@ -114,7 +114,7 @@ export default function UserPublicPage() {
           setAllBlogs(items);
           setHasMore(items.length === 10);
           setPageSkip(items.length);
-        } catch (e) {
+        } catch {
           setAllBlogs([]);
           setHasMore(false);
         }

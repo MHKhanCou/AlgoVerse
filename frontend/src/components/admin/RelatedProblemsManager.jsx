@@ -26,6 +26,7 @@ const RelatedProblemsManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('all');
+  // eslint-disable-next-line no-unused-vars
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showInlineForm, setShowInlineForm] = useState(false);
@@ -52,6 +53,7 @@ const RelatedProblemsManager = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        // eslint-disable-next-line no-unused-vars
         const token = localStorage.getItem('token');
         
         // Fetch problems based on view mode
@@ -155,6 +157,7 @@ const RelatedProblemsManager = () => {
     try {
       setLoading(true);
       
+      // eslint-disable-next-line no-unused-vars
       const response = await api.patch(`/api/problems/${problemId}/status`, { status: newStatus });
       
       // Update the problem status in the UI

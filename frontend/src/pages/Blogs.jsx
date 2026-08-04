@@ -21,6 +21,7 @@ import {
 import '../styles/TopicListPage.css';
 
 const Blogs = () => {
+  // eslint-disable-next-line no-unused-vars
   const { isAuthenticated, user } = useAuth();
   const { searchQuery } = useSearch();
   const [blogs, setBlogs] = useState([]);

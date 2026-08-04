@@ -122,7 +122,7 @@ export const adminService = {
         ...algo,
         type_name: algo.type_name || 'Unknown' // Ensure type_name is included
       }));
-    } catch (error) {
+    } catch {
       throw new Error('Failed to fetch algorithms');
     }
   },

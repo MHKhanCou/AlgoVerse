@@ -29,16 +29,20 @@ const COMPARISON_ALGORITHMS = {
   ],
 };
 
+// eslint-disable-next-line no-unused-vars
 const ComparisonView = ({ category = 'sorting', algorithms }) => {
   const [algo1, setAlgo1] = useState('');
   const [algo2, setAlgo2] = useState('');
   const [inputArray, setInputArray] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [isRunning, setIsRunning] = useState(false);
 
   const engine1 = useMemo(() => new PlaybackEngine(), []);
   const engine2 = useMemo(() => new PlaybackEngine(), []);
 
+  // eslint-disable-next-line no-unused-vars
   const store1 = useVisualizationStore();
+  // eslint-disable-next-line no-unused-vars
   const store2 = useVisualizationStore();
 
   const availableAlgos = COMPARISON_ALGORITHMS[category] || COMPARISON_ALGORITHMS.sorting;

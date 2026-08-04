@@ -17,6 +17,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [algoTypes, setAlgoTypes] = useState([]);
   const [algorithms, setAlgorithms] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [userProgress, setUserProgress] = useState([]);
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(false);

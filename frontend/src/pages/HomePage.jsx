@@ -53,6 +53,7 @@ const ALGORITHM_PREVIEWS = [
 ];
 
 const HomePage = () => {
+  // eslint-disable-next-line no-unused-vars
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {

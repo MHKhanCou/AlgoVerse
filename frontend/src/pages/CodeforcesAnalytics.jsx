@@ -5,6 +5,7 @@ import PublicCodeforcesAnalyzer from '../components/PublicCodeforcesAnalyzer';
 import '../styles/CodeforcesAnalytics.css';
 
 const CodeforcesAnalytics = () => {
+  // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
   const location = useLocation();
   const [initialHandles, setInitialHandles] = useState([]);

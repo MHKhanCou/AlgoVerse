@@ -111,12 +111,37 @@ await page.goto(`${BASE}/demo`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(800);
 
 // ---- 7. No console errors, no failed asset requests ----
-const realFailures = failedRequests.filter(u => !u.includes('/api/') && !u.includes('onrender.com'));
-const realErrors = consoleErrors.filter(
-  e => !e.includes('Failed to load resource') && !e.toLowerCase().includes('api') && !e.includes('onrender.com')
+// Requests to our own origin must all succeed. Third-party origins are
+// reported separately: Monaco is loaded from jsdelivr by @monaco-editor/react,
+// and a CDN rate-limit or outage there is not an app regression. (Self-hosting
+// Monaco was evaluated and rejected: it bundles ~13 MB of language workers for
+// TypeScript/CSS/HTML/JSON that this app, which only displays Python, never
+// uses.)
+const isThirdParty = url => !url.includes('localhost') && !url.includes('127.0.0.1');
+
+const ownOriginFailures = failedRequests.filter(
+  u => !isThirdParty(u) && !u.includes('/api/') && !u.includes('onrender.com')
 );
-check('no failed asset requests', realFailures.length === 0, realFailures.join(' | ') || 'none');
+const thirdPartyFailures = failedRequests.filter(isThirdParty);
+
+const realErrors = consoleErrors.filter(
+  e =>
+    !e.includes('Failed to load resource') &&
+    !e.toLowerCase().includes('api') &&
+    !e.includes('onrender.com') &&
+    // Monaco reports its own CDN failure through this path.
+    !(thirdPartyFailures.length > 0 && e.includes('Monaco'))
+);
+
+check('no failed same-origin asset requests', ownOriginFailures.length === 0, ownOriginFailures.join(' | ') || 'none');
 check('no unexpected console errors', realErrors.length === 0, realErrors.slice(0, 3).join(' | ') || 'none');
+
+if (thirdPartyFailures.length > 0) {
+  console.log(
+    `NOTE  ${thirdPartyFailures.length} third-party request(s) failed (not gated): ` +
+    thirdPartyFailures.slice(0, 2).join(' | ')
+  );
+}
 
 await page.screenshot({ path: 'e2e-output/smoke.png', fullPage: false });
 await browser.close();

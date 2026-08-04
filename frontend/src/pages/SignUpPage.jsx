@@ -82,7 +82,7 @@ const SignUpPage = () => {
           const loginRes = await authService.login(formData.email, formData.password);
           localStorage.setItem('token', loginRes.access_token);
           window.location.href = '/'; // Redirect to home
-        } catch (loginError) {
+        } catch {
           // If login fails, redirect to login page
           toast.info('You can now log in with your credentials');
           navigate('/login');

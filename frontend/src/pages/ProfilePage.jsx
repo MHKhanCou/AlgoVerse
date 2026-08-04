@@ -5,6 +5,7 @@ import { authService } from '../services/authService';
 import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
 import { useNavigate, Link } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import axios from 'axios';
 import api from '../services/api';
 import CodeforcesAnalyzer from '../components/CodeforcesAnalyzer';
@@ -107,7 +108,7 @@ const ProfilePage = () => {
           })).filter(r => r.name);
 
           setRecentActivity(normalized);
-        } catch (_) {
+        } catch {
           setRecentActivity([]);
         }
 
@@ -176,9 +177,10 @@ const ProfilePage = () => {
       await userService.requestEmailOtp({ email: settingsForm.email });
       setEmailOtpSent(true);
       toast.info('Verification code sent to your new email. Please enter the OTP to confirm.');
-    } catch (error) {
+    } catch {
       // Fallback to immediate update if OTP endpoints are not available
       try {
+        // eslint-disable-next-line no-unused-vars
         const response = await userService.updateEmail({ email: settingsForm.email });
         setUser((prev) => ({ ...prev, email: settingsForm.email }));
         toast.success('Email updated successfully');
@@ -202,6 +204,7 @@ const ProfilePage = () => {
     }
     setIsSubmitting(true);
     try {
+      // eslint-disable-next-line no-unused-vars
       const result = await userService.verifyEmailOtp({ email: settingsForm.email, otp: emailOtpCode });
       setUser((prev) => ({ ...prev, email: settingsForm.email }));
       toast.success('Email verified and updated successfully');

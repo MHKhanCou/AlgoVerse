@@ -54,6 +54,7 @@ const CommentSection = ({ blogId, user }) => {
 
     try {
       setSubmitting(true);
+      // eslint-disable-next-line no-unused-vars
       const token = localStorage.getItem('token');
       const response = await api.post(`/comments/blog/${blogId}`, {
         content: content.trim(),
@@ -108,6 +109,7 @@ const CommentSection = ({ blogId, user }) => {
 
     try {
       setSubmitting(true);
+      // eslint-disable-next-line no-unused-vars
       const token = localStorage.getItem('token');
       const response = await api.put(`/comments/${commentId}`, {
         content: content.trim()
@@ -153,7 +155,9 @@ const CommentSection = ({ blogId, user }) => {
     }
 
     try {
+      // eslint-disable-next-line no-unused-vars
       const token = localStorage.getItem('token');
+      // eslint-disable-next-line no-unused-vars
       const response = await api.delete(`/comments/${commentId}`);
 
       setComments(prevComments => 

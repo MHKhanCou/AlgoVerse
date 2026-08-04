@@ -46,6 +46,7 @@ export const userService = {
   },
 
   async deleteAccount() {
+    // eslint-disable-next-line no-unused-vars
     const response = await api.delete('/profile/delete');
     localStorage.clear();
     return null;

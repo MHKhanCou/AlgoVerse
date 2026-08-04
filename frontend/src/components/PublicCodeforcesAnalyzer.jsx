@@ -203,7 +203,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
         }
       }
       setComparisonData(results);
-    } catch (err) {
+    } catch {
       toast.error('Failed to fetch comparison data');
     } finally {
       setComparisonLoading(false);

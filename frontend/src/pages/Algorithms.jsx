@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSearch } from '../contexts/SearchContext';
 import { algorithmService } from '../services/algorithmService';
 import api from '../services/api';

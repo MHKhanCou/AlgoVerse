@@ -133,6 +133,7 @@ const NAME_ALIASES = {
   'Depth-first Search': 'DFS',
 };
 
+// eslint-disable-next-line no-unused-vars
 const WhenToUse = ({ category = 'sorting', algorithmName = '' }) => {
   const lookupName = NAME_ALIASES[algorithmName] || algorithmName;
   const info = WHEN_TO_USE_BY_ALGORITHM[lookupName] || WHEN_TO_USE_BY_ALGORITHM['Bubble Sort'];

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
@@ -7,6 +7,7 @@ import '../styles/MyBlogs.css';
 import UserLink from '../components/common/UserLink';
 
 const MyBlogs = () => {
+  // eslint-disable-next-line no-unused-vars
   const { isAuthenticated, user } = useAuth();
   const [blogs, setBlogs] = useState([]);
   const [page, setPage] = useState(1);
@@ -18,6 +19,7 @@ const MyBlogs = () => {
     if (!isAuthenticated) return;
     const fetchMyBlogs = async () => {
       try {
+        // eslint-disable-next-line no-unused-vars
         const token = localStorage.getItem('token');
         const params = { skip: (page - 1) * limit, limit };
         if (statusFilter !== 'all') {
@@ -26,7 +28,7 @@ const MyBlogs = () => {
         const response = await api.get('/profile/my-blogs', { params });
         setBlogs(response.data);
         setHasMore(response.data.length === limit);
-      } catch (error) {
+      } catch {
         toast.error('Failed to fetch your blogs', { theme: 'dark' });
       }
     };

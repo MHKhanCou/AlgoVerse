@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # --max-warnings is deliberately generous: the repo carries 19 advisory
+      # react-hooks/react-refresh warnings. Errors are gated at zero so no new
+      # undefined reference or unused binding can land.
+      - name: Lint
+        run: npx eslint src/ e2e/ --max-warnings 25
+
       - name: Run tests
         run: npm run test:run
 

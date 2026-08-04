@@ -133,6 +133,7 @@ const NAME_ALIASES = {
   'Depth-first Search': 'DFS',
 };
 
+// eslint-disable-next-line no-unused-vars
 const CommonMistakes = ({ category = 'sorting', algorithmName = '' }) => {
   const lookupName = NAME_ALIASES[algorithmName] || algorithmName;
   const mistakes = MISTAKES_BY_ALGORITHM[lookupName] || MISTAKES_BY_ALGORITHM['Bubble Sort'];

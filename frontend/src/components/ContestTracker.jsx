@@ -91,6 +91,7 @@ const IconICPC = ({ size = 16 }) => (
 );
 
 // ICPC card styled similarly to contest cards with a special accent
+// eslint-disable-next-line no-unused-vars
 const IcpcCard = ({ ev, nowTick, formatCountdown }) => {
   const start = new Date(ev.start_time);
   // Countdown to 2 PM on start day (start + 14 hours)
@@ -128,6 +129,7 @@ const IconTimer = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2h4"/><path d="M12 14V8"/><circle cx="12" cy="16" r="6"/></svg>
 );
 
+// eslint-disable-next-line no-unused-vars
 const ContestCard = ({ c, status, nowTick }) => {
   const start = new Date(c.start_time);
   const durationSec = Number(c.duration || 0);
@@ -211,8 +213,10 @@ export default function ContestTracker() {
   const [cacheStatus, setCacheStatus] = useState({ isCached: false, timestamp: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [counts, setCounts] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
+  // eslint-disable-next-line no-unused-vars
   const [lastFetchTime, setLastFetchTime] = useState(null);
   // Remove HackerEarth for now
   const ALL_SITES = ['cf','codechef','atcoder','leetcode','topcoder'];
@@ -248,6 +252,7 @@ export default function ContestTracker() {
   ];
 
   // Determine next ICPC event relative to nowTick
+  // eslint-disable-next-line no-unused-vars
   const nextIcpcEvent = (() => {
     const now = new Date(nowTick);
     // sort by start
@@ -287,7 +292,7 @@ export default function ContestTracker() {
         return null;
       }
       return parsed;
-    } catch (e) {
+    } catch {
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
@@ -451,7 +456,7 @@ export default function ContestTracker() {
       const start = new Date(c.start_time).getTime();
       const diff = start - nowMs; // ms until start
       return diff >= 0 && diff <= days * 24 * 60 * 60 * 1000;
-    } catch (_) {
+    } catch {
       return false;
     }
   });

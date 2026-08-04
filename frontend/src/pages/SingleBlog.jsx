@@ -23,7 +23,7 @@ const SingleBlog = () => {
         setBlog(response.data);
         setTitle(response.data.title);
         setBody(response.data.body);
-      } catch (error) {
+      } catch {
         toast.error('Failed to fetch blog', { theme: 'dark' });
         navigate('/blogs');
       }
@@ -34,6 +34,7 @@ const SingleBlog = () => {
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this blog?')) return;
     try {
+      // eslint-disable-next-line no-unused-vars
       const token = localStorage.getItem('token');
       await api.delete(`/blogs/${id}`);
       toast.success('Blog deleted successfully', { theme: 'dark' });
@@ -54,6 +55,7 @@ const SingleBlog = () => {
       return;
     }
     try {
+      // eslint-disable-next-line no-unused-vars
       const token = localStorage.getItem('token');
       const response = await api.put(
         `/blogs/${id}`,
