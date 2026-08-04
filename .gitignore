@@ -259,3 +259,15 @@ backend/__pycache__/
 *.sql.bak
 migrations/*.bak
 alembic_migrations/*.bak
+
+# =========================
+# Local dev/admin scripts (may contain DB credentials)
+# =========================
+migrate_sqlite_to_postgres.py
+reset_neondb.py
+seed_*.py
+check_*.py
+add_missing.py
+
+# Research notes (local working material)
+research/
