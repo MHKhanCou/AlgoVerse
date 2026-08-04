@@ -46,3 +46,24 @@
 .split-pane-vertical.split-pane-dragging {
   cursor: row-resize;
 }
+
+
+/* Stacked mode: on phones the two panes sit one above the other instead of
+   side by side. The component drops its inline width styles when stacked, so
+   these rules are free to take over. */
+.split-pane-stacked {
+  flex-direction: column;
+  height: auto;
+  overflow: visible;
+}
+
+.split-pane-stacked .split-pane-left,
+.split-pane-stacked .split-pane-right {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.split-pane-stacked .split-pane-divider {
+  display: none;
+}

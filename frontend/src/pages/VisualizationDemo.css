@@ -297,3 +297,46 @@
     display: none;
   }
 }
+
+/* --- Mobile: keep every category tab reachable -------------------------- */
+@media (max-width: 768px) {
+  /* The six category tabs cannot fit across a phone. Let the row scroll
+     horizontally instead of clipping DP / Recursion / String off-screen. */
+  .viz-demo-tabs {
+    /* The parent .viz-demo is a flex column; without this the tab strip is
+       squeezed to a few pixels tall regardless of its content. */
+    flex: 0 0 auto;
+    /* A scrolling flex row collapses unless it is told to stretch its
+       children; without this the tab strip renders as a thin sliver. */
+    align-items: stretch;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .viz-demo-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .viz-demo-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    /* Comfortable tap target. */
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  /* Controls stack rather than squeezing into an unusable row. */
+  .viz-demo-select,
+  .viz-demo-range {
+    min-height: 44px;
+  }
+
+  /* The code pane is stacked under the visualization by SplitPane, so it
+     should be visible again rather than hidden. */
+  .viz-demo-code-area {
+    display: block;
+    min-height: 220px;
+  }
+}

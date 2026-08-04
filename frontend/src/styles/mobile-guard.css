@@ -1,0 +1,58 @@
+
+/* ==========================================================================
+   Mobile overflow guard
+   --------------------------------------------------------------------------
+   A single over-wide element used to make the whole page scroll sideways,
+   which is the most common way a responsive layout "feels broken" on a phone.
+   These rules stop the page from scrolling horizontally and make the usual
+   culprits (media, tables, pre/code) behave inside their container.
+   ========================================================================== */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* Media should never exceed its container.
+     `height: auto` is deliberately limited to img/video: applying it to every
+     svg collapses icon sizing (lucide icons carry explicit width/height), which
+     flattened the visualizer tab strip to a 10px sliver. */
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  svg,
+  canvas {
+    max-width: 100%;
+  }
+
+  /* Long unbroken strings (URLs, IDs) are a classic overflow source. */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  li,
+  td,
+  th {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  /* Code and tables scroll within themselves rather than stretching the page. */
+  pre,
+  table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* Inputs default to a size-based width that often exceeds small screens. */
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+}

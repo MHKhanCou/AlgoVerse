@@ -80,12 +80,19 @@
   display: flex;
   align-items: center;
   transition: all 0.2s ease;
+  /* The logo is a wide wordmark. Without min-width:0 a flex item will not
+     shrink below its content size, so it pushed the header past the viewport
+     and shoved the menu button off-screen on phones. */
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
 }
 
 .logo-img {
   height: 32px;
   width: auto;
   transition: transform 0.2s ease, filter 0.2s ease;
+  max-width: 100%;
 }
 
 .logo:hover .logo-img {
@@ -194,6 +201,12 @@
   border: none;
   cursor: pointer;
   padding: 0.5rem;
+  /* 44px is the minimum comfortable tap target. */
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .mobile-menu-btn span {

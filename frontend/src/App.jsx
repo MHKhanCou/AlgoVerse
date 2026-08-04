@@ -11,6 +11,8 @@ import Algorithms from './pages/Algorithms';
 import NotFound from './pages/NotFound';
 import './styles/App.css';
 import './styles/GlobalTheme.css';
+// Imported last so its mobile rules win ties against page-level stylesheets.
+import './styles/mobile-guard.css';
 import Footer from './components/Footer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

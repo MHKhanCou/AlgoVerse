@@ -11,7 +11,13 @@ import { mkdirSync } from 'node:fs';
  */
 const PORT = process.env.E2E_PORT ?? '5190';
 const BASE = `http://localhost:${PORT}`;
-const SUITES = ['e2e/smoke.mjs', 'e2e/tabs.mjs', 'e2e/detail.mjs'];
+const SUITES = [
+  'e2e/smoke.mjs',
+  'e2e/tabs.mjs',
+  'e2e/detail.mjs',
+  'e2e/mobile-audit.mjs',
+  'e2e/mobile-tabs.mjs',
+];
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 

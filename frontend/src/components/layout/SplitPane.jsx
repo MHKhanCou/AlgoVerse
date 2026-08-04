@@ -13,15 +13,31 @@ const SplitPane = ({
   minSplit = 20,
   maxSplit = 80,
   direction = 'horizontal', // 'horizontal' | 'vertical'
+  stackBelow = 768, // px viewport width below which panes stack vertically
 }) => {
   const [split, setSplit] = useState(defaultSplit);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
 
+  // Side-by-side panes do not fit on a phone. Track the viewport so the
+  // inline width styles below can be dropped entirely when stacked; a CSS
+  // media query alone cannot win against an inline style.
+  const [isStacked, setIsStacked] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= stackBelow
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsStacked(window.innerWidth <= stackBelow);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [stackBelow]);
+
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
+    if (isStacked) return; // no dragging when stacked
     setIsDragging(true);
-  }, []);
+  }, [isStacked]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -58,13 +74,15 @@ const SplitPane = ({
   return (
     <div
       ref={containerRef}
-      className={`split-pane split-pane-${direction} ${isDragging ? 'split-pane-dragging' : ''}`}
+      className={`split-pane split-pane-${direction} ${isDragging ? 'split-pane-dragging' : ''} ${isStacked ? 'split-pane-stacked' : ''}`}
     >
       <div
         className="split-pane-left"
-        style={direction === 'horizontal'
-          ? { width: `${split}%` }
-          : { height: `${split}%` }
+        style={isStacked
+          ? undefined
+          : direction === 'horizontal'
+            ? { width: `${split}%` }
+            : { height: `${split}%` }
         }
       >
         {left}
@@ -77,9 +95,11 @@ const SplitPane = ({
 
       <div
         className="split-pane-right"
-        style={direction === 'horizontal'
-          ? { width: `${100 - split}%` }
-          : { height: `${100 - split}%` }
+        style={isStacked
+          ? undefined
+          : direction === 'horizontal'
+            ? { width: `${100 - split}%` }
+            : { height: `${100 - split}%` }
         }
       >
         {right}
