@@ -20,6 +20,10 @@ class Settings(BaseSettings):
 
     # CORS Origins
     DEV_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174"
+    # Production origins. Localhost is deliberately NOT included: with
+    # allow_credentials=True it would let any page on a developer's machine
+    # make authenticated calls against production. Override with the
+    # PROD_CORS_ORIGINS env var to add origins without editing code.
     PROD_CORS_ORIGINS: str = "https://algo-verse-eight.vercel.app,https://algo-verse-mehedi-hasan-khans-projects.vercel.app,https://algo-verse-git-main-mehedi-hasan-khans-projects.vercel.app,https://algo-verse-la484m77d-mehedi-hasan-khans-projects.vercel.app,https://algoverse.vercel.app"
 
     # Frontend URLs
@@ -50,6 +54,9 @@ class Settings(BaseSettings):
     # Application Settings
     DEBUG: bool = False
     DISABLE_EMAIL: bool = False
+    # Creating tables from models on boot is convenient locally but lets the
+    # app mutate a live schema on deploy. Default off; the `auto_create_tables`
+    # property below enables it automatically for local SQLite development.
     AUTO_CREATE_TABLES: bool = False
     BASE_URL: str = ""
 
@@ -82,6 +89,20 @@ class Settings(BaseSettings):
         """Get appropriate CORS origins based on environment"""
         origins = self.PROD_CORS_ORIGINS if self.is_production else self.DEV_CORS_ORIGINS
         return [origin.strip() for origin in origins.split(",")]
+
+    @property
+    def auto_create_tables(self) -> bool:
+        """
+        Whether to create tables from the models on startup.
+
+        On in development so a fresh checkout works with no migration step;
+        in production it requires an explicit AUTO_CREATE_TABLES=true, because
+        create_all() against a live database should be a deliberate choice
+        rather than something inherited from a default.
+        """
+        if self.is_production:
+            return self.AUTO_CREATE_TABLES
+        return True
     
     @property
     def frontend_url(self) -> str:

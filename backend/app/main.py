@@ -34,7 +34,7 @@ app.add_middleware(
 async def root():
     return {"message": "API is running"}
 
-if settings.AUTO_CREATE_TABLES:
+if settings.auto_create_tables:
     models.Base.metadata.create_all(bind=engine)
 
 app.include_router(authentication.router)
