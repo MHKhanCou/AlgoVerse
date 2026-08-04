@@ -68,7 +68,7 @@ export const useVisualizationStore = create((set, get) => ({
     }
     const nextStep = currentStep + 1;
     const step = steps[nextStep];
-    const stats = get()._accumulateStats(step);
+    const stats = get()._statsThrough(nextStep);
     set({
       currentStep: nextStep,
       status: 'stepping',
@@ -87,13 +87,7 @@ export const useVisualizationStore = create((set, get) => ({
       return;
     }
     // Recalculate stats up to the previous step
-    const stats = { comparisons: 0, swaps: 0, accesses: 0 };
-    for (let i = 0; i < currentStep; i++) {
-      const s = steps[i];
-      if (s.type === 'compare') stats.comparisons++;
-      if (s.type === 'swap') stats.swaps++;
-      stats.accesses++;
-    }
+    const stats = get()._statsThrough(currentStep - 1);
     const prevStep = steps[currentStep - 1];
     set({
       currentStep: currentStep - 1,
@@ -108,14 +102,7 @@ export const useVisualizationStore = create((set, get) => ({
     const { steps } = get();
     if (stepIndex < 0 || stepIndex >= steps.length) return;
 
-    // Recalculate stats up to this step
-    const stats = { comparisons: 0, swaps: 0, accesses: 0 };
-    for (let i = 0; i <= stepIndex; i++) {
-      const s = steps[i];
-      if (s.type === 'compare') stats.comparisons++;
-      if (s.type === 'swap') stats.swaps++;
-      stats.accesses++;
-    }
+    const stats = get()._statsThrough(stepIndex);
 
     const step = steps[stepIndex];
     set({
@@ -140,21 +127,30 @@ export const useVisualizationStore = create((set, get) => ({
 
   // --- Internal helpers ---
 
-  _accumulateStats: (step) => {
-    const { stats } = get();
-    const newStats = { ...stats };
-    if (step.type === 'compare') newStats.comparisons++;
-    if (step.type === 'swap') newStats.swaps++;
-    newStats.accesses++;
-    // Graph-specific metrics
-    if (step.type === 'visit' || step.type === 'explore') {
-      newStats.nodesVisited = (newStats.nodesVisited || 0) + 1;
+  /**
+   * Authoritative stats for steps[0..stepIndex].
+   *
+   * Derived from the index rather than accumulated, so seeking, stepping
+   * backward, or replaying a region can never inflate the counters.
+   */
+  _statsThrough: (stepIndex) => {
+    const { steps } = get();
+    const stats = { comparisons: 0, swaps: 0, accesses: 0 };
+    for (let i = 0; i <= stepIndex && i < steps.length; i++) {
+      const s = steps[i];
+      if (s.type === 'compare') stats.comparisons++;
+      if (s.type === 'swap') stats.swaps++;
+      stats.accesses++;
+      if (s.type === 'visit' || s.type === 'explore') {
+        stats.nodesVisited = (stats.nodesVisited || 0) + 1;
+      }
+      if (s.type === 'explore' || s.type === 'relax') {
+        stats.edgesExplored = (stats.edgesExplored || 0) + 1;
+      }
     }
-    if (step.type === 'explore' || step.type === 'relax') {
-      newStats.edgesExplored = (newStats.edgesExplored || 0) + 1;
-    }
-    return newStats;
+    return stats;
   },
+
 }));
 
 export default useVisualizationStore;

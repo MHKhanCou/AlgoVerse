@@ -141,6 +141,10 @@ const ArrayRenderer = memo(({
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    // getContext returns null when a 2D context cannot be created (canvas
+    // unsupported, context lost, or a headless/test environment). Bail out
+    // rather than throwing and taking the whole page down.
+    if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 

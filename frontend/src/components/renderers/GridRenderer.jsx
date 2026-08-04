@@ -68,12 +68,21 @@ const GridRenderer = memo(({
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    // getContext returns null when a 2D context cannot be created; bail out
+    // rather than throwing and taking the whole page down.
+    if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    // Only reallocate the backing store when the size actually changes;
+    // assigning width/height clears the canvas and resets the transform.
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const width = rect.width;
     const height = rect.height;

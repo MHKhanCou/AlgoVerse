@@ -42,14 +42,7 @@ export class PlaybackEngine {
 
       this.timeline.call(
         () => {
-          const s = useVisualizationStore.getState();
-          const stats = s._accumulateStats(step);
-          useVisualizationStore.setState({
-            currentStep: index,
-            codeLine: step.codeLine ?? null,
-            description: step.description ?? null,
-            stats,
-          });
+          this._applyStepState(step, index);
           onStep?.(step, index);
         },
         [],
@@ -59,6 +52,17 @@ export class PlaybackEngine {
 
     this.onComplete = onComplete;
     this._applyStoredSpeed();
+  }
+
+  /**
+   * Apply the state for a given step index.
+   *
+   * Stats are derived from the step index rather than incremented, because
+   * the timeline can replay a region (seek backward then play again) and an
+   * incremental counter would inflate the totals on every repeat.
+   */
+  _applyStepState(step, index) {
+    useVisualizationStore.getState().seek(index);
   }
 
   /** Apply the store's current speed to a freshly built timeline */
@@ -101,8 +105,9 @@ export class PlaybackEngine {
       return false;
     }
 
-    // Seek without firing timeline callbacks, then set state once (avoids
-    // double-counting stats when the seek re-triggers step callbacks).
+    // Seek the timeline to match, then set state from the step index.
+    // Stats are index-derived (store.seek), never incremented, so repeated
+    // stepping or replaying a region cannot inflate the counters.
     const totalDuration = this.timeline.duration();
     this.timeline.seek((nextIndex / steps.length) * totalDuration, true);
 

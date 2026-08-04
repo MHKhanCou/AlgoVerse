@@ -18,7 +18,6 @@ const PlaybackControls = ({ engine, onStart }) => {
   } = useVisualizationStore();
 
   const isPlaying = status === 'playing';
-  const isPaused = status === 'paused';
   const isIdle = status === 'idle' || status === 'stepping';
   const totalSteps = steps.length;
   const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
