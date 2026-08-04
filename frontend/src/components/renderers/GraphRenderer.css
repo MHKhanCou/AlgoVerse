@@ -1,0 +1,73 @@
+.graph-renderer {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.graph-renderer .react-flow__node {
+  cursor: grab;
+}
+
+.graph-renderer .react-flow__node:active {
+  cursor: grabbing;
+}
+
+/* Custom node styling */
+.algorithm-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--text-muted, #64748b);
+  border-radius: 50%;
+  background: var(--bg-secondary, #1e293b);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.algorithm-node-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.algorithm-node-weight {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-primary, #0f172a);
+  color: var(--text-secondary, #94a3b8);
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-primary, #334155);
+}
+
+/* React Flow overrides */
+.react-flow__controls {
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls button {
+  background: var(--bg-secondary, #1e293b);
+  border-color: var(--border-primary, #334155);
+  color: var(--text-secondary, #94a3b8);
+  width: 28px;
+  height: 28px;
+}
+
+.react-flow__controls button:hover {
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #f8fafc);
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--border-primary, #334155);
+  border-radius: 8px;
+  overflow: hidden;
+}
