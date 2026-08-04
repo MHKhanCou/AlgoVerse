@@ -183,9 +183,7 @@ const GraphRenderer = ({
         onEdgesChange={() => {}} // Controlled - no external state updates
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
-        fitView={true}
-        fitViewOnRender={true}
-        fitViewOnNodesChange={false}
+        fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.3}
         maxZoom={2}
