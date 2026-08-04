@@ -26,6 +26,7 @@ npx vite preview --port 5190 --strictPort &
 
 node e2e/smoke.mjs   # page load, favicon, canvas pixels, playback
 node e2e/tabs.mjs    # all 6 algorithm categories + dark mode
+node e2e/detail.mjs  # /algorithms/:id route, sanitization, playback
 ```
 
 Both exit non-zero on failure, so they can be wired into CI once a
@@ -45,3 +46,10 @@ Playwright-provisioned runner is available.
 - Each of Sorting / Searching / Graph / DP / Recursion / String renders a
   visualization surface and produces playback steps with no runtime errors
 - Dark mode still paints the canvas
+
+`detail.mjs`
+- `/algorithms/:id` renders with a mocked API (no backend needed)
+- Hostile `explanation` HTML is sanitized: no `onerror` survives and no
+  script executes
+- The Visualize tab paints a canvas and playback advances
+
