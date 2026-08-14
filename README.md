@@ -73,13 +73,12 @@ cp backend/.env.example backend/.env
 # Run database migrations
 cd backend
 alembic upgrade head
-```
-
-Alembic is used for schema migrations in both development and production.
 
 # Start backend server
 uvicorn app.main:app --reload --port 8000
 ```
+
+Alembic is used for schema migrations in both development and production.
 
 > Note: The root `main.py` exists only for deployment convenience.
 > All application logic lives in `backend/app/main.py`.
