@@ -115,4 +115,25 @@ export const algorithmService = {
       throw new Error(error.response?.data?.detail || 'Failed to fetch related problems');
     }
   },
+
+  async suggestProblems(algorithmId, { count, level, refresh } = {}) {
+    try {
+      const response = await api.get(`/api/problems/suggest/${algorithmId}`, {
+        params: {
+          ...(count ? { count } : {}),
+          ...(level ? { level } : {}),
+          ...(refresh ? { refresh: true } : {}),
+        },
+        // Suggestions may pay for a cold Codeforces pool fetch / model call
+        // on the server, so they get a longer budget than ordinary reads.
+        timeout: 30000,
+      });
+      return response.data;
+    } catch (error) {
+      if (!error.response) {
+        throw new Error('Network error: Unable to reach the server.');
+      }
+      throw new Error(error.response?.data?.detail || 'Failed to fetch suggestions');
+    }
+  },
 };

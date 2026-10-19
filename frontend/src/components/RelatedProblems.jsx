@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, CheckCircle, Clock, AlertCircle, Star, Calendar, Target, Grid, List } from 'lucide-react';
+import { ExternalLink, CheckCircle, Clock, AlertCircle, Star, Calendar, Target, Grid, List, Sparkles, RefreshCw } from 'lucide-react';
 import { algorithmService } from '../services/algorithmService';
 import { userProgressService } from '../services/userProgressService';
 import { toast } from 'react-toastify';
@@ -32,6 +32,12 @@ const PlatformLogo = ({ platform }) => {
         return (
           <svg className="platform-logo" viewBox="0 0 24 24" fill="currentColor">
             <path d="M11.257.004c-.37 0-.74.124-1.03.372L.732 9.14a1.45 1.45 0 0 0-.001 2.063l9.494 8.764a1.45 1.45 0 0 0 2.062-.001l9.494-8.764a1.45 1.45 0 0 0 0-2.062L12.287.376a1.45 1.45 0 0 0-1.03-.372zm4.455 6.096c.898 0 1.627.729 1.627 1.627s-.729 1.627-1.627 1.627-1.627-.729-1.627-1.627.729-1.627 1.627-1.627zm-7.364 0c.898 0 1.627.729 1.627 1.627s-.729 1.627-1.627 1.627-1.627-.729-1.627-1.627.729-1.627 1.627-1.627zM12 10.908c2.013 0 3.636 1.623 3.636 3.636S14.013 18.18 12 18.18s-3.636-1.623-3.636-3.636S9.987 10.908 12 10.908z"/>
+          </svg>
+        );
+      case 'cses':
+        return (
+          <svg className="platform-logo" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2 4 5v6c0 5.1 3.4 9.7 8 11 4.6-1.3 8-5.9 8-11V5l-8-3zm-1.1 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6 1.4 1.4-6 6z"/>
           </svg>
         );
       default:
@@ -336,12 +342,81 @@ const ProblemListItem = ({
   );
 };
 
+const SuggestedProblemCard = ({ problem }) => {
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'beginner':
+        return 'text-green-400 bg-green-50 border-green-200';
+      case 'easy':
+        return 'text-green-500 bg-green-50 border-green-200';
+      case 'medium':
+        return 'text-yellow-500 bg-yellow-50 border-yellow-200';
+      case 'hard':
+        return 'text-red-500 bg-red-50 border-red-200';
+      case 'expert':
+        return 'text-purple-500 bg-purple-50 border-purple-200';
+      default:
+        return 'text-gray-500 bg-gray-50 border-gray-200';
+    }
+  };
+
+  return (
+    <div className="suggested-problem-card">
+      <div className="suggested-problem-meta">
+        <span className={`problem-platform ${problem.platform?.toLowerCase()}`}>
+          <PlatformLogo platform={problem.platform} />
+          {problem.platform}
+        </span>
+        <span className={`problem-difficulty ${getDifficultyColor(problem.difficulty)}`}>
+          {problem.difficulty}
+        </span>
+        {problem.rating && (
+          <span className="suggested-problem-rating">CF {problem.rating}</span>
+        )}
+      </div>
+
+      <h4 className="suggested-problem-title">
+        <Target className="w-4 h-4" />
+        {problem.title}
+      </h4>
+
+      {problem.description && (
+        <p className="suggested-problem-description">{problem.description}</p>
+      )}
+
+      {problem.tags && (
+        <div className="problem-tags">
+          {problem.tags.split(',').slice(0, 3).map((tag, index) => (
+            <span key={index} className="problem-tag">
+              {tag.trim()}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <a
+        href={problem.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="problem-link-btn suggested-problem-link"
+      >
+        <ExternalLink className="w-4 h-4" />
+        Solve Problem
+      </a>
+    </div>
+  );
+};
+
 const RelatedProblems = ({ algorithm, user }) => {
   const [relatedProblems, setRelatedProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [progressMap, setProgressMap] = useState({});
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [suggestionsError, setSuggestionsError] = useState('');
+  const [suggestionsMeta, setSuggestionsMeta] = useState(null);
 
   useEffect(() => {
     const fetchRelatedProblems = async () => {
@@ -398,6 +473,40 @@ const RelatedProblems = ({ algorithm, user }) => {
     
     fetchRelatedProblems();
   }, [algorithm?.id, algorithm?.type_id, user]);
+
+  const fetchSuggestions = async (refresh = false) => {
+    if (!algorithm?.id) return;
+
+    try {
+      setSuggestionsLoading(true);
+      setSuggestionsError('');
+      const data = await algorithmService.suggestProblems(
+        algorithm.id,
+        refresh ? { refresh: true } : undefined
+      );
+      setSuggestions(Array.isArray(data?.problems) ? data.problems : []);
+      setSuggestionsMeta({
+        ai: Boolean(data?.ai),
+        level: data?.level ?? null,
+        levelSource: data?.level_source || 'default',
+        summary: data?.summary || ''
+      });
+    } catch (err) {
+      console.error('Error fetching practice suggestions:', err);
+      setSuggestions([]);
+      setSuggestionsMeta(null);
+      setSuggestionsError(err.message || 'Could not load suggestions');
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuggestions(false);
+    // Suggestions only depend on the algorithm and on the signed-in user
+    // (their linked Codeforces rating tunes the level).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [algorithm?.id, user]);
 
   const handleUpdateProgress = async (algoId, newStatus) => {
     if (!user) return;
@@ -521,19 +630,7 @@ const RelatedProblems = ({ algorithm, user }) => {
         )}
       </div>
       
-      {relatedProblems.length === 0 ? (
-        <div className="no-related-problems">
-          <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-            <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No related problems found</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-              We couldn't find any related problems for this algorithm. Check back later or explore other algorithms.
-            </p>
-          </div>
-        </div>
-      ) : (
+      {relatedProblems.length > 0 && (
         <div className={`related-problems-content ${viewMode === 'list' ? 'list-view' : 'grid-view'}`}>
           {viewMode === 'grid' ? (
             <div className="related-problems-grid">
@@ -562,6 +659,73 @@ const RelatedProblems = ({ algorithm, user }) => {
           )}
         </div>
       )}
+
+      <div className="practice-suggestions">
+        <div className="practice-suggestions-header">
+          <div className="practice-suggestions-heading">
+            <h3>
+              <Target className="w-4 h-4" />
+              <span>Suggested practice problems</span>
+              {suggestionsMeta?.ai && (
+                <span
+                  className="practice-suggestions-ai-badge"
+                  title="An AI picked these from a verified pool of real problems"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  AI-picked
+                </span>
+              )}
+            </h3>
+            <p className="practice-suggestions-subtitle">
+              {suggestionsMeta?.ai
+                ? 'Selected by AI from real Codeforces and CSES problems'
+                : 'Real Codeforces and CSES problems that fit this topic'}
+              {suggestionsMeta?.level != null
+                ? suggestionsMeta.levelSource === 'codeforces'
+                  ? ` · matched to your Codeforces rating (${suggestionsMeta.level})`
+                  : ` · around rating ${suggestionsMeta.level}`
+                : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="practice-suggestions-refresh"
+            onClick={() => fetchSuggestions(true)}
+            disabled={suggestionsLoading}
+            title="Get a fresh set of suggestions"
+          >
+            <RefreshCw className={`w-4 h-4${suggestionsLoading ? ' spinning' : ''}`} />
+            New set
+          </button>
+        </div>
+
+        {suggestionsMeta?.summary && (
+          <p className="practice-suggestions-summary">{suggestionsMeta.summary}</p>
+        )}
+
+        {suggestionsLoading ? (
+          <div className="practice-suggestions-loading">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="suggestion-skeleton"></div>
+            ))}
+          </div>
+        ) : suggestions.length > 0 ? (
+          <div className="practice-suggestions-grid">
+            {suggestions.map((problem) => (
+              <SuggestedProblemCard key={problem.id} problem={problem} />
+            ))}
+          </div>
+        ) : (
+          <div className="practice-suggestions-empty">
+            <AlertCircle className="w-4 h-4" />
+            <p>
+              {suggestionsError
+                ? "Couldn't load suggestions right now — please try again later."
+                : 'No suggestions available for this algorithm yet.'}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

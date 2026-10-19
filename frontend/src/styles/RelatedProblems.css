@@ -1089,3 +1089,217 @@
 .border-gray-200 {
   border-color: var(--border-primary);
 }
+
+/* Suggested practice problems */
+.practice-suggestions {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+.practice-suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.practice-suggestions-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.practice-suggestions-heading h3 svg {
+  color: var(--primary);
+}
+
+.practice-suggestions-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-xl);
+  padding: 0.125rem 0.5rem;
+}
+
+.practice-suggestions-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.practice-suggestions-summary {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.practice-suggestions-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.practice-suggestions-refresh:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.practice-suggestions-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.practice-suggestions-refresh .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.practice-suggestions-grid,
+.practice-suggestions-loading {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.suggestion-skeleton {
+  height: 8rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.suggested-problem-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-normal);
+}
+
+.suggested-problem-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+.suggested-problem-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.suggested-problem-rating {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+}
+
+.suggested-problem-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.suggested-problem-title svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.suggested-problem-description {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.suggested-problem-card .problem-tags {
+  margin-bottom: 0;
+}
+
+.suggested-problem-link {
+  margin-top: auto;
+  align-self: flex-start;
+  min-width: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.practice-suggestions-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.practice-suggestions-empty p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.practice-suggestions-empty svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.problem-platform.cses {
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+}
+
+@media (max-width: 768px) {
+  .practice-suggestions-grid,
+  .practice-suggestions-loading {
+    grid-template-columns: 1fr;
+  }
+}
