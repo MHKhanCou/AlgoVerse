@@ -26,6 +26,31 @@ import api from '../services/api';
 import { toast } from 'react-toastify';
 import '../styles/CodeforcesAnalyzer.css';
 
+const friendlyError = (message) => Object.assign(new Error(message), { friendly: true });
+
+// Wrap CF API reads so raw exceptions (fetch failures, HTML error pages) never
+// reach the error box; only curated messages are shown to the user.
+const fetchCodeforcesJson = async (url) => {
+  let response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw friendlyError('Could not reach Codeforces. Check your connection and try again.');
+  }
+  try {
+    return await response.json();
+  } catch {
+    throw friendlyError('Codeforces is temporarily unavailable. Please try again later.');
+  }
+};
+
+const describeUserInfoFailure = (handle, userData) => {
+  const comment = typeof userData?.comment === 'string' ? userData.comment : '';
+  return /not found/i.test(comment)
+    ? `Codeforces user "${handle}" was not found.`
+    : 'Codeforces is temporarily unavailable. Please try again later.';
+};
+
 const CodeforcesAnalyzer = () => {
   const { user, updateUser } = useAuth();
   const [userInfo, setUserInfo] = useState(null);
@@ -34,6 +59,7 @@ const CodeforcesAnalyzer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({});
+  const [statsUnavailable, setStatsUnavailable] = useState(false);
   const [handle, setHandle] = useState(user?.codeforces_handle || '');
   const [isEditing, setIsEditing] = useState(!user?.codeforces_handle);
   
@@ -56,37 +82,49 @@ const CodeforcesAnalyzer = () => {
     
     setLoading(true);
     setError(null);
+    setStatsUnavailable(false);
 
     try {
       // Fetch user info
-      const userResponse = await fetch(`https://codeforces.com/api/user.info?handles=${cfHandle}`);
-      const userData = await userResponse.json();
+      const userData = await fetchCodeforcesJson(`https://codeforces.com/api/user.info?handles=${cfHandle}`);
       
       if (userData.status !== 'OK') {
-        throw new Error('User not found');
+        throw friendlyError(describeUserInfoFailure(cfHandle, userData));
       }
 
       setUserInfo(userData.result[0]);
 
       // Fetch user submissions (get more submissions for better accuracy)
-      const submissionsResponse = await fetch(`https://codeforces.com/api/user.status?handle=${cfHandle}&from=1&count=10000`);
-      const submissionsData = await submissionsResponse.json();
+      const submissionsData = await fetchCodeforcesJson(`https://codeforces.com/api/user.status?handle=${cfHandle}&from=1&count=10000`);
       
       if (submissionsData.status === 'OK') {
         setSubmissions(submissionsData.result);
         calculateStats(submissionsData.result);
+      } else {
+        setSubmissions([]);
+        setStats({});
+        setStatsUnavailable(true);
       }
 
       // Fetch contest ratings
-      const ratingsResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${cfHandle}`);
-      const ratingsData = await ratingsResponse.json();
+      const ratingsData = await fetchCodeforcesJson(`https://codeforces.com/api/user.rating?handle=${cfHandle}`);
       
       if (ratingsData.status === 'OK') {
         setContests(ratingsData.result);
+      } else {
+        setContests([]);
       }
 
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to load Codeforces data:', err);
+      // Drop any previously loaded profile so the error is not shown above
+      // stale analytics from a different handle.
+      setUserInfo(null);
+      setSubmissions([]);
+      setContests([]);
+      setStats({});
+      setStatsUnavailable(false);
+      setError(err?.friendly ? err.message : 'Something went wrong while loading Codeforces data.');
     } finally {
       setLoading(false);
     }
@@ -433,6 +471,8 @@ const CodeforcesAnalyzer = () => {
                     <button
                       onClick={() => removeComparisonHandle(compHandle)}
                       className="cf-remove-handle"
+                      aria-label={`Remove ${compHandle} from comparison`}
+                      title={`Remove ${compHandle} from comparison`}
                     >
                       <X className="cf-icon-sm" />
                     </button>
@@ -455,76 +495,81 @@ const CodeforcesAnalyzer = () => {
       )}
 
       {/* Comparison View */}
-      {comparisonMode && comparisonData.length > 0 && (
+      {comparisonMode && (
         <div className="cf-comparison-view">
           <h3 className="cf-chart-title">
             <ArrowUpDown className="cf-icon" />
             User Comparison
           </h3>
           
-          {comparisonLoading && (
+          {comparisonLoading ? (
             <div className="cf-loading">
               <div className="cf-loading-spinner"></div>
               <p>Loading comparison data...</p>
             </div>
-          )}
-
-          <div className="cf-comparison-table">
-            <div className="cf-comparison-header">
-              <div>User</div>
-              <div>Rating</div>
-              <div>Rank</div>
-              <div>Solved</div>
-              <div>Attempted</div>
-              <div>Submissions</div>
-              <div>Success Rate</div>
-            </div>
-            
-            {comparisonData.map((userData) => {
-              const successRate = userData.stats.totalAttempted > 0 
-                ? ((userData.stats.totalSolved / userData.stats.totalAttempted) * 100).toFixed(1)
-                : '0.0';
+          ) : comparisonData.length > 0 ? (
+            <div className="cf-comparison-table">
+              <div className="cf-comparison-header">
+                <div>User</div>
+                <div>Rating</div>
+                <div>Rank</div>
+                <div>Solved</div>
+                <div>Attempted</div>
+                <div>Submissions</div>
+                <div>Success Rate</div>
+              </div>
               
-              return (
-                <div key={userData.handle} className="cf-comparison-row">
-                  <div className="cf-comparison-user">
-                    <div className="cf-comparison-avatar">
-                      {userData.userInfo.avatar && (
-                        <img src={userData.userInfo.avatar} alt={userData.handle} />
-                      )}
+              {comparisonData.map((userData) => {
+                const stats = userData.stats || {};
+                const successRate = stats.totalAttempted > 0
+                  ? `${((stats.totalSolved / stats.totalAttempted) * 100).toFixed(1)}%`
+                  : '—';
+                
+                return (
+                  <div key={userData.handle} className="cf-comparison-row">
+                    <div className="cf-comparison-user">
+                      <div className="cf-comparison-avatar">
+                        {userData.userInfo.avatar && (
+                          <img src={userData.userInfo.avatar} alt={userData.handle} />
+                        )}
+                      </div>
+                      <div>
+                        <div className="cf-comparison-handle">{userData.handle}</div>
+                        {userData.handle === handle && (
+                          <span className="cf-current-user-badge">You</span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <div className="cf-comparison-handle">{userData.handle}</div>
-                      {userData.handle === handle && (
-                        <span className="cf-current-user-badge">You</span>
-                      )}
+                    <div className="cf-comparison-rating">
+                      {userData.userInfo.rating || 'Unrated'}
+                    </div>
+                    <div className="cf-comparison-rank">
+                      <span
+                        className={`cf-rank-badge${userData.userInfo.rank ? '' : ' cf-rank-badge-unrated'}`}
+                        style={userData.userInfo.rank ? { backgroundColor: getRankColor(userData.userInfo.rank) } : undefined}
+                      >
+                        {userData.userInfo.rank || 'Unrated'}
+                      </span>
+                    </div>
+                    <div className="cf-comparison-solved">
+                      {stats.totalSolved ?? '—'}
+                    </div>
+                    <div className="cf-comparison-attempted">
+                      {stats.totalAttempted ?? '—'}
+                    </div>
+                    <div className="cf-comparison-submissions">
+                      {stats.totalSubmissions ?? '—'}
+                    </div>
+                    <div className="cf-comparison-success-rate">
+                      {successRate}
                     </div>
                   </div>
-                  <div className="cf-comparison-rating">
-                    {userData.userInfo.rating || 'Unrated'}
-                  </div>
-                  <div 
-                    className="cf-comparison-rank"
-                    style={{ color: getRankColor(userData.userInfo.rank) }}
-                  >
-                    {userData.userInfo.rank || 'Unrated'}
-                  </div>
-                  <div className="cf-comparison-solved">
-                    {userData.stats.totalSolved}
-                  </div>
-                  <div className="cf-comparison-attempted">
-                    {userData.stats.totalAttempted}
-                  </div>
-                  <div className="cf-comparison-submissions">
-                    {userData.stats.totalSubmissions}
-                  </div>
-                  <div className="cf-comparison-success-rate">
-                    {successRate}%
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="cf-comparison-empty">No comparison data available yet. Add a handle to compare.</p>
+          )}
         </div>
       )}
 
@@ -549,9 +594,9 @@ const CodeforcesAnalyzer = () => {
                 <div className="cf-profile-stats">
                   <div className="cf-profile-stat">
                     <Trophy className="cf-icon-sm" />
-                    <span 
-                      className="cf-rank"
-                      style={{ color: getRankColor(userInfo.rank) }}
+                    <span
+                      className={`cf-rank-badge${userInfo.rank ? '' : ' cf-rank-badge-unrated'}`}
+                      style={userInfo.rank ? { backgroundColor: getRankColor(userInfo.rank) } : undefined}
                     >
                       {userInfo.rank || 'Unrated'}
                     </span>
@@ -582,6 +627,16 @@ const CodeforcesAnalyzer = () => {
             </a>
           </div>
 
+          {statsUnavailable && (
+            <div className="cf-chart-card cf-stats-unavailable">
+              <AlertCircle className="cf-icon" />
+              <h3>Statistics unavailable</h3>
+              <p>Codeforces did not return submission data for this handle. Try again in a moment.</p>
+            </div>
+          )}
+
+          {!statsUnavailable && (
+          <>
           {/* Statistics Cards */}
           <div className="cf-stats-grid">
             <div className="cf-stat-card cf-stat-solved">
@@ -590,7 +645,7 @@ const CodeforcesAnalyzer = () => {
               </div>
               <div className="cf-stat-content">
                 <div className="cf-stat-number">{stats.totalSolved}</div>
-                <div className="cf-stat-label">Problems Solved</div>
+                <div className="cf-stat-label">Problems Solved (last 10k)</div>
               </div>
             </div>
 
@@ -610,7 +665,7 @@ const CodeforcesAnalyzer = () => {
               </div>
               <div className="cf-stat-content">
                 <div className="cf-stat-number">{stats.totalSubmissions}</div>
-                <div className="cf-stat-label">Total Submissions</div>
+                <div className="cf-stat-label">Submissions (last 10k)</div>
               </div>
             </div>
 
@@ -739,7 +794,7 @@ const CodeforcesAnalyzer = () => {
                 <div>Problem</div>
                 <div>Verdict</div>
                 <div>Language</div>
-                <div>Time</div>
+                <div>Date</div>
               </div>
               <div className="cf-table-body">
                 {submissions.slice(0, 10).map((submission, index) => (
@@ -778,6 +833,8 @@ const CodeforcesAnalyzer = () => {
               </div>
             </div>
           </div>
+          </>
+          )}
         </>
       )}
 

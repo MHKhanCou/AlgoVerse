@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, 
   Trophy, 
@@ -20,13 +20,42 @@ import {
 import { toast } from 'react-toastify';
 import '../styles/CodeforcesAnalyzer.css';
 
-const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] }) => {
+// Stable default so the mount effect never sees a fresh array identity.
+const EMPTY_HANDLES = [];
+
+const friendlyError = (message) => Object.assign(new Error(message), { friendly: true });
+
+// Wrap CF API reads so raw exceptions (fetch failures, HTML error pages) never
+// reach the error box; only curated messages are shown to the user.
+const fetchCodeforcesJson = async (url) => {
+  let response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw friendlyError('Could not reach Codeforces. Check your connection and try again.');
+  }
+  try {
+    return await response.json();
+  } catch {
+    throw friendlyError('Codeforces is temporarily unavailable. Please try again later.');
+  }
+};
+
+const describeUserInfoFailure = (handle, userData) => {
+  const comment = typeof userData?.comment === 'string' ? userData.comment : '';
+  return /not found/i.test(comment)
+    ? `Codeforces user "${handle}" was not found.`
+    : 'Codeforces is temporarily unavailable. Please try again later.';
+};
+
+const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = EMPTY_HANDLES }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({});
+  const [statsUnavailable, setStatsUnavailable] = useState(false);
   const [handle, setHandle] = useState(initialHandle || '');
   const [isEditing, setIsEditing] = useState(!initialHandle);
 
@@ -35,32 +64,35 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
   const [comparisonData, setComparisonData] = useState([]);
   const [comparisonLoading, setComparisonLoading] = useState(false);
 
+  // Last handle set the effect fetched, so a new array with identical content
+  // (or a StrictMode double invoke) does not repeat the CF API calls.
+  const lastHandlesRef = useRef('');
+
   useEffect(() => {
-    // Determine handles from URL or props and initialize view
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlHandles = urlParams.get('handles');
+    // Props are the single source of truth (the parent parses ?handles), so
+    // each handle set is fetched exactly once.
+    const handles = Array.isArray(initialHandles) && initialHandles.length > 0
+      ? initialHandles
+      : (initialHandle ? [initialHandle] : []);
 
-    let handlesFromUrl = [];
-    if (urlHandles) {
-      handlesFromUrl = urlHandles.split(',').map((s) => s.trim()).filter(Boolean);
-    }
+    if (handles.length === 0) return;
 
-    const handles = handlesFromUrl.length > 0 ? handlesFromUrl : (Array.isArray(initialHandles) ? initialHandles : []);
+    const handlesKey = handles.join(',');
+    if (lastHandlesRef.current === handlesKey) return;
+    lastHandlesRef.current = handlesKey;
 
-    if (handles.length > 0) {
-      setHandle(handles[0]);
+    setHandle(handles[0]);
+
+    if (handles.length > 1) {
+      // Multiple handles: the comparison table is the whole view. Fetching the
+      // first handle separately would call the CF API twice per request.
+      setComparisonHandles(handles);
+      setComparisonData([]);
+      fetchComparisonData(handles);
+    } else {
+      setComparisonHandles([]);
+      setComparisonData([]);
       fetchCodeforcesData(handles[0]);
-      // If there are multiple handles, set up comparison
-      if (handles.length > 1) {
-        setComparisonHandles(handles);
-        fetchComparisonData(handles);
-      } else {
-        setComparisonHandles([]);
-        setComparisonData([]);
-      }
-    } else if (initialHandle) {
-      setHandle(initialHandle);
-      fetchCodeforcesData(initialHandle);
     }
   }, [initialHandle, initialHandles]);
 
@@ -69,37 +101,49 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
     
     setLoading(true);
     setError(null);
+    setStatsUnavailable(false);
 
     try {
       // Fetch user info
-      const userResponse = await fetch(`https://codeforces.com/api/user.info?handles=${cfHandle}`);
-      const userData = await userResponse.json();
+      const userData = await fetchCodeforcesJson(`https://codeforces.com/api/user.info?handles=${cfHandle}`);
       
       if (userData.status !== 'OK') {
-        throw new Error('User not found');
+        throw friendlyError(describeUserInfoFailure(cfHandle, userData));
       }
 
       setUserInfo(userData.result[0]);
 
       // Fetch user submissions
-      const submissionsResponse = await fetch(`https://codeforces.com/api/user.status?handle=${cfHandle}&from=1&count=10000`);
-      const submissionsData = await submissionsResponse.json();
+      const submissionsData = await fetchCodeforcesJson(`https://codeforces.com/api/user.status?handle=${cfHandle}&from=1&count=10000`);
       
       if (submissionsData.status === 'OK') {
         setSubmissions(submissionsData.result);
         calculateStats(submissionsData.result);
+      } else {
+        setSubmissions([]);
+        setStats({});
+        setStatsUnavailable(true);
       }
 
       // Fetch contest ratings
-      const ratingsResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${cfHandle}`);
-      const ratingsData = await ratingsResponse.json();
+      const ratingsData = await fetchCodeforcesJson(`https://codeforces.com/api/user.rating?handle=${cfHandle}`);
       
       if (ratingsData.status === 'OK') {
         setContests(ratingsData.result);
+      } else {
+        setContests([]);
       }
 
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to load Codeforces data:', err);
+      // Drop any previously loaded profile so the error is not shown above
+      // stale analytics from a different handle.
+      setUserInfo(null);
+      setSubmissions([]);
+      setContests([]);
+      setStats({});
+      setStatsUnavailable(false);
+      setError(err?.friendly ? err.message : 'Something went wrong while loading Codeforces data.');
     } finally {
       setLoading(false);
     }
@@ -222,8 +266,13 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
       toast.warn('Please enter a handle');
       return;
     }
+    const trimmed = handle.trim();
+    setHandle(trimmed);
     setIsEditing(false);
-    fetchCodeforcesData(handle.trim());
+    // A manually entered handle replaces any deep-linked comparison view.
+    setComparisonHandles([]);
+    setComparisonData([]);
+    fetchCodeforcesData(trimmed);
   };
 
   const getRankColor = (rank) => {
@@ -271,7 +320,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
                 placeholder="Enter Codeforces handle (e.g., tourist, Benq)"
-                className="cf-handle-input"
+                className="cf-input"
                 onKeyPress={(e) => e.key === 'Enter' && saveHandle()}
               />
               <button onClick={saveHandle} className="cf-btn cf-btn-primary">
@@ -349,17 +398,19 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                   </div>
                   <div className="cf-comparison-rank">
                     <span
-                      className="cf-rank-badge"
-                      style={{ backgroundColor: getRankColor(u.userInfo.rank) }}
+                      className={`cf-rank-badge${u.userInfo.rank ? '' : ' cf-rank-badge-unrated'}`}
+                      style={u.userInfo.rank ? { backgroundColor: getRankColor(u.userInfo.rank) } : undefined}
                     >
-                      {u.userInfo.rank || '—'}
+                      {u.userInfo.rank || 'Unrated'}
                     </span>
                   </div>
                   <div className="cf-comparison-rating">{u.userInfo.rating ?? '—'}</div>
                   <div className="cf-comparison-max-rating cf-max-rating">{u.userInfo.maxRating ?? '—'}</div>
-                  <div className="cf-comparison-stat">{u.stats?.totalSolved ?? 0}</div>
-                  <div className="cf-comparison-stat">{u.stats?.totalAttempted ?? 0}</div>
-                  <div className="cf-comparison-stat cf-success-rate">{u.stats?.successRate ?? 0}%</div>
+                  <div className="cf-comparison-stat">{u.stats?.totalSolved ?? '—'}</div>
+                  <div className="cf-comparison-stat">{u.stats?.totalAttempted ?? '—'}</div>
+                  <div className="cf-comparison-stat cf-success-rate">
+                    {u.stats?.totalAttempted ? `${u.stats.successRate}%` : '—'}
+                  </div>
                 </div>
               ))}
             </div>
@@ -368,8 +419,9 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
       )}
 
       {/* User Info Section */}
-      {/* Single User Analytics */}
-      {userInfo && (
+      {/* Single User Analytics - only when there is at most one handle;
+          multiple handles show the comparison table instead. */}
+      {userInfo && comparisonHandles.length <= 1 && (
         <>
           {/* User Info Card */}
           <div className="cf-user-card">
@@ -385,12 +437,12 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                 <h2 className="cf-user-handle">{userInfo.handle}</h2>
                 <div className="cf-user-details">
                   <span 
-                    className="cf-rank-badge"
-                    style={{ backgroundColor: getRankColor(userInfo.rank) }}
+                    className={`cf-rank-badge${userInfo.rank ? '' : ' cf-rank-badge-unrated'}`}
+                    style={userInfo.rank ? { backgroundColor: getRankColor(userInfo.rank) } : undefined}
                   >
-                    {userInfo.rank}
+                    {userInfo.rank || 'Unrated'}
                   </span>
-                  <span className="cf-rating" style={{ color: getRankColor(userInfo.rank) }}>
+                  <span className="cf-rating">
                     {userInfo.rating || 'Unrated'}
                   </span>
                   {userInfo.maxRating && (
@@ -419,6 +471,16 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
             </div>
           </div>
 
+          {statsUnavailable && (
+            <div className="cf-chart-card cf-stats-unavailable">
+              <AlertCircle className="cf-icon" />
+              <h3>Statistics unavailable</h3>
+              <p>Codeforces did not return submission data for this handle. Try again in a moment.</p>
+            </div>
+          )}
+
+          {!statsUnavailable && (
+          <>
           {/* Statistics Overview */}
           <div className="cf-stats-grid">
             <div className="cf-stat-card">
@@ -427,7 +489,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
               </div>
               <div className="cf-stat-content">
                 <div className="cf-stat-number">{stats.totalSolved}</div>
-                <div className="cf-stat-label">Problems Solved</div>
+                <div className="cf-stat-label">Problems Solved (last 10k)</div>
               </div>
             </div>
 
@@ -457,7 +519,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
               </div>
               <div className="cf-stat-content">
                 <div className="cf-stat-number">{stats.totalSubmissions}</div>
-                <div className="cf-stat-label">Total Submissions</div>
+                <div className="cf-stat-label">Submissions (last 10k)</div>
               </div>
             </div>
           </div>
@@ -540,7 +602,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                 <Award className="cf-icon" />
                 Problem Ratings
               </h3>
-              <div className="cf-rating-chart">
+              <div className="cf-rating-list">
                 {Object.entries(stats.ratingCount || {})
                   .sort(([a], [b]) => parseInt(a) - parseInt(b))
                   .map(([rating, count]) => (
@@ -607,7 +669,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                 <div>Problem</div>
                 <div>Verdict</div>
                 <div>Language</div>
-                <div>Time</div>
+                <div>Date</div>
               </div>
               <div className="cf-table-body">
                 {submissions.slice(0, 10).map((submission, index) => (
@@ -646,10 +708,12 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
               </div>
             </div>
           </div>
+          </>
+          )}
         </>
       )}
 
-      {!userInfo && !loading && !error && (
+      {!userInfo && !loading && !error && !comparisonLoading && comparisonHandles.length <= 1 && (
         <div className="cf-empty-state">
           <User className="cf-empty-icon" />
           <h3>No Data Available</h3>
