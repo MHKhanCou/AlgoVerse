@@ -5,6 +5,9 @@ import { userService } from '../services/userService';
 import '../styles/UserPublicPage.css';
 import { useAuth } from '../contexts/AuthContext';
 
+// First page of "Recent Blogs"; a full page means there may be more.
+const RECENT_BLOGS_LIMIT = 5;
+
 export default function UserPublicPage() {
   const { id } = useParams();
   const { user: authUser, isAuthenticated } = useAuth();
@@ -12,6 +15,7 @@ export default function UserPublicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cf, setCf] = useState(null); // { rating, rank, maxRating, maxRank }
+  const [cfStatus, setCfStatus] = useState('idle'); // idle | loading | ok | error
   const [blogs, setBlogs] = useState([]);
   const [allBlogs, setAllBlogs] = useState([]);
   const [showAllBlogs, setShowAllBlogs] = useState(false);
@@ -43,7 +47,12 @@ export default function UserPublicPage() {
   useEffect(() => {
     let active = true;
     const handle = data?.codeforces_handle?.trim();
-    if (!handle) return;
+    if (!handle) {
+      setCf(null);
+      setCfStatus('idle');
+      return;
+    }
+    setCfStatus('loading');
     (async () => {
       try {
         const resp = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`);
@@ -57,12 +66,16 @@ export default function UserPublicPage() {
             maxRating: u.maxRating,
             maxRank: u.maxRank,
           });
+          setCfStatus('ok');
         } else {
           setCf(null);
+          setCfStatus('error');
         }
       } catch {
+        if (!active) return;
         // Silent fail; CF API may be rate limited
         setCf(null);
+        setCfStatus('error');
       }
     })();
     return () => { active = false; };
@@ -73,7 +86,7 @@ export default function UserPublicPage() {
     let active = true;
     (async () => {
       try {
-        const resp = await api.get(`/blogs/user/${id}`, { params: { skip: 0, limit: 5 } });
+        const resp = await api.get(`/blogs/user/${id}`, { params: { skip: 0, limit: RECENT_BLOGS_LIMIT } });
         if (!active) return;
         const items = Array.isArray(resp.data) ? resp.data : [];
         setBlogs(items);
@@ -192,8 +205,10 @@ export default function UserPublicPage() {
                   <span className="badge">Rank: {cf.rank ?? '—'}</span>
                   <span className="badge subtle">Max: {cf.maxRating ?? '—'} ({cf.maxRank ?? '—'})</span>
                 </div>
-              ) : (
+              ) : cfStatus === 'error' ? (
                 <div className="up-cf-stats subtle">Rating info not available</div>
+              ) : (
+                <div className="up-cf-stats subtle">Loading rating…</div>
               )}
             </div>
           </div>
@@ -240,9 +255,9 @@ export default function UserPublicPage() {
               ))}
             </ul>
           )}
-          {allBlogs.length > blogs.length && (
+          {blogs.length >= RECENT_BLOGS_LIMIT && (
             <div className="up-actions" style={{ marginTop: 12 }}>
-              <button className="up-btn secondary" onClick={() => setShowAllBlogs(true)}>View all ({allBlogs.length})</button>
+              <button className="up-btn secondary" onClick={() => setShowAllBlogs(true)}>View all</button>
             </div>
           )}
         </div>

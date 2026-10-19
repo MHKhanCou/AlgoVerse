@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PublicCodeforcesAnalyzer from '../components/PublicCodeforcesAnalyzer';
@@ -8,21 +8,18 @@ const CodeforcesAnalytics = () => {
   // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
   const location = useLocation();
-  const [initialHandles, setInitialHandles] = useState([]);
 
-  useEffect(() => {
-    // Handle deep linking with query params, supporting multiple handles
+  // Single source of truth for deep-linked handles: the child depends only on
+  // this prop, and the memo keeps the array identity stable so the mount effect
+  // fetches each handle set exactly once.
+  const initialHandles = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const handlesParam = params.get('handles');
-    if (handlesParam) {
-      const list = handlesParam
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      setInitialHandles(list);
-    } else {
-      setInitialHandles([]);
-    }
+    if (!handlesParam) return [];
+    return handlesParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   }, [location.search]);
 
   return (

@@ -263,6 +263,7 @@
 
 .profile-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 2rem;
   border-bottom: 2px solid var(--border-color, #e5e7eb);
