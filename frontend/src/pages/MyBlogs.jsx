@@ -6,6 +6,13 @@ import { toast } from 'react-toastify';
 import '../styles/MyBlogs.css';
 import UserLink from '../components/common/UserLink';
 
+const EMPTY_MESSAGES = {
+  all: "You haven't created any blogs yet.",
+  approved: "You don't have any approved blogs.",
+  pending: "You don't have any blogs awaiting review.",
+  rejected: "You don't have any rejected blogs.",
+};
+
 const MyBlogs = () => {
   // eslint-disable-next-line no-unused-vars
   const { isAuthenticated, user } = useAuth();
@@ -68,22 +75,22 @@ const MyBlogs = () => {
             Approved
           </button>
           <button
-            className={`segmented-button ${statusFilter === 'unapproved' ? 'active' : ''}`}
-            onClick={() => { setPage(1); setStatusFilter('unapproved'); }}
+            className={`segmented-button ${statusFilter === 'pending' ? 'active' : ''}`}
+            onClick={() => { setPage(1); setStatusFilter('pending'); }}
           >
             Pending
+          </button>
+          <button
+            className={`segmented-button ${statusFilter === 'rejected' ? 'active' : ''}`}
+            onClick={() => { setPage(1); setStatusFilter('rejected'); }}
+          >
+            Rejected
           </button>
         </div>
       </div>
       <div className="blogs-list">
         {blogs.length === 0 ? (
-          <p>
-            {statusFilter === 'all'
-              ? "You haven't created any blogs yet."
-              : statusFilter === 'approved'
-                ? "You don't have any approved blogs."
-                : "You don't have any pending blogs."}
-          </p>
+          <p>{EMPTY_MESSAGES[statusFilter]}</p>
         ) : (
           blogs.map((blog) => (
             <div key={blog.id} className="blog-card">
@@ -104,6 +111,9 @@ const MyBlogs = () => {
                 <p className="blog-status" style={{ marginTop: '6px' }}>
                   Status: <strong>{String(blog.status).toUpperCase()}</strong>
                 </p>
+              )}
+              {blog.admin_feedback && (
+                <p className="blog-feedback">Reviewer feedback: {blog.admin_feedback}</p>
               )}
             </div>
           ))

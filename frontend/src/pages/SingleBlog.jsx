@@ -63,7 +63,11 @@ const SingleBlog = () => {
       );
       setBlog(response.data);
       setIsEditing(false);
-      toast.success('Blog updated successfully', { theme: 'dark' });
+      if (response.data.status === 'pending') {
+        toast.info('Saved — your post is back in review.', { theme: 'dark' });
+      } else {
+        toast.success('Blog updated successfully', { theme: 'dark' });
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update blog', { theme: 'dark' });
     }
@@ -110,6 +114,11 @@ const SingleBlog = () => {
               required
             />
           </div>
+          {!isAdmin && blog.status === 'approved' && (
+            <p className="edit-review-hint">
+              Saving changes to a published post sends it back to review.
+            </p>
+          )}
           <div className="form-buttons">
             <button type="submit" className="cta-button primary">
               Save Changes
@@ -150,6 +159,24 @@ const SingleBlog = () => {
             <li className="pill">Created: {new Date(blog.created_at).toLocaleDateString()}</li>
             <li className="pill">Updated: {new Date(blog.updated_at).toLocaleDateString()}</li>
           </ul>
+
+          {canManage && blog.status === 'pending' && (
+            <div className="review-banner status-pending">
+              <p>
+                Waiting for review — this post is visible only to you and admins
+                until it is approved.
+              </p>
+            </div>
+          )}
+          {canManage && blog.status === 'rejected' && (
+            <div className="review-banner status-rejected">
+              <p>This post was rejected and is not public.</p>
+              {blog.admin_feedback && (
+                <p className="review-feedback">Reviewer feedback: {blog.admin_feedback}</p>
+              )}
+              <p>Edit and save to send it back for review.</p>
+            </div>
+          )}
 
           <div className="blog-body">{blog.body}</div>
 

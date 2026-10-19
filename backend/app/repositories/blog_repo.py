@@ -28,6 +28,39 @@ def get_blog_by_id(db: Session, blog_id: int):
         "approved_at": blog.approved_at
     }
 
+def get_blog_visible_to(db: Session, blog_id: int, viewer=None):
+    """Fetch one blog for reading.
+
+    Approved posts are public. Everything else is visible only to its author
+    and admins; other callers get a 404 so drafts do not leak their existence.
+    """
+    blog = db.query(Blog).options(joinedload(Blog.user)).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Blog with ID {blog_id} not found"
+        )
+    if blog.status != BlogStatus.approved:
+        is_owner = viewer is not None and viewer.id == blog.user_id
+        is_admin = viewer is not None and bool(viewer.is_admin)
+        if not (is_owner or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Blog with ID {blog_id} not found"
+            )
+    return {
+        "id": blog.id,
+        "title": blog.title,
+        "body": blog.body,
+        "author": blog.user.name if blog.user else "Unknown",
+        "author_id": blog.user.id if blog.user else None,
+        "created_at": blog.created_at,
+        "updated_at": blog.updated_at,
+        "status": blog.status,
+        "admin_feedback": blog.admin_feedback,
+        "approved_at": blog.approved_at
+    }
+
 def get_all_blogs(db: Session, skip: int = 0, limit: int = 5):
     try:
         # Only return approved blogs for public viewing
@@ -86,29 +119,50 @@ def create_blog(db: Session, request: AddBlog, user_id: int):
 
 def update_blog(db: Session, request: UpdateBlog, blog_id: int, user_id: int):
     try:
-        blog = get_blog_by_id(db, blog_id)
-        if blog["author"] != db.query(User).filter(User.id == user_id).first().name:
-            raise HTTPException(status_code=403, detail="Not authorized to update this blog")
-        
         blog_obj = db.query(Blog).filter(Blog.id == blog_id).first()
+        if not blog_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Blog with ID {blog_id} not found"
+            )
+        editor = db.query(User).filter(User.id == user_id).first()
+        if not editor:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials"
+            )
+        if blog_obj.user_id != editor.id and not editor.is_admin:
+            raise HTTPException(status_code=403, detail="Not authorized to update this blog")
+
         if request.title is not None:
             blog_obj.title = request.title
         if request.body is not None:
             blog_obj.body = request.body
-            
+
+        # An author's edit of a live post sends it back to review; an admin's
+        # edit is a moderation action and must not silently unpublish.
+        if not editor.is_admin and blog_obj.status != BlogStatus.pending:
+            blog_obj.status = BlogStatus.pending
+            blog_obj.approved_at = None
+            blog_obj.approved_by = None
+            blog_obj.admin_feedback = None
+
         db.commit()
         db.refresh(blog_obj)
         return {
             "id": blog_obj.id,
             "title": blog_obj.title,
             "body": blog_obj.body,
-            "author": blog["author"],
+            "author": blog_obj.user.name if blog_obj.user else "Unknown",
             "created_at": blog_obj.created_at,
             "updated_at": blog_obj.updated_at,
             "status": blog_obj.status,
             "admin_feedback": blog_obj.admin_feedback,
             "approved_at": blog_obj.approved_at
         }
+    except HTTPException:
+        db.rollback()
+        raise
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error updating blog: {str(e)}")
@@ -120,14 +174,26 @@ def update_blog(db: Session, request: UpdateBlog, blog_id: int, user_id: int):
 
 def delete_blog(db: Session, blog_id: int, user_id: int):
     try:
-        blog = get_blog_by_id(db, blog_id)
-        user = db.query(User).filter(User.id == user_id).first()
-        if blog["author"] != user.name and not user.is_admin:
-            raise HTTPException(status_code=403, detail="Not authorized to delete this blog")
         blog_obj = db.query(Blog).filter(Blog.id == blog_id).first()
+        if not blog_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Blog with ID {blog_id} not found"
+            )
+        editor = db.query(User).filter(User.id == user_id).first()
+        if not editor:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials"
+            )
+        if blog_obj.user_id != editor.id and not editor.is_admin:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this blog")
         db.delete(blog_obj)
         db.commit()
         return None
+    except HTTPException:
+        db.rollback()
+        raise
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Database error deleting blog: {str(e)}")
@@ -158,6 +224,7 @@ def delete_by_user(db: Session, user_id: int):
 def search_blogs(db: Session, query: str):
     try:
         blogs = db.query(Blog).options(joinedload(Blog.user)).filter(
+            Blog.status == BlogStatus.approved,
             (Blog.title.ilike(f"%{query}%")) |
             (Blog.body.ilike(f"%{query}%"))
         ).all()
@@ -280,7 +347,7 @@ def get_all_blogs_for_admin(db: Session, status_filter: str = None, skip: int = 
             elif status_filter == "rejected":
                 query = query.filter(Blog.status == BlogStatus.rejected)
         
-        blogs = query.offset(skip).limit(limit).all()
+        blogs = query.order_by(Blog.created_at.desc()).offset(skip).limit(limit).all()
         return [
             {
                 "id": blog.id,
@@ -321,9 +388,8 @@ def moderate_blog(db: Session, blog_id: int, action: BlogStatus, admin_id: int, 
         blog.admin_feedback = feedback
         blog.approved_by = admin_id
         
-        if action == BlogStatus.approved:
-            from datetime import datetime
-            blog.approved_at = datetime.utcnow()
+        from datetime import datetime
+        blog.approved_at = datetime.utcnow() if action == BlogStatus.approved else None
         
         db.commit()
         db.refresh(blog)

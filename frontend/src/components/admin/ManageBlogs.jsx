@@ -40,6 +40,26 @@ const ManageBlogs = ({ blogs, searchQuery, setSearchQuery, fetchBlogs, adminServ
     }
   };
 
+  const rejectBlog = async (blog) => {
+    const feedback = window.prompt('Feedback for the author (optional):');
+    if (feedback === null) return; // cancelled
+    if (isUpdating[blog.id]) return;
+    setIsUpdating((prev) => ({ ...prev, [blog.id]: true }));
+    try {
+      await adminService.updateBlogStatus(blog.id, {
+        status: 'rejected',
+        feedback: feedback.trim() || null,
+      });
+      await fetchBlogs();
+      toast.success('Blog rejected');
+    } catch (error) {
+      console.error('Error rejecting blog:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reject blog');
+    } finally {
+      setIsUpdating((prev) => ({ ...prev, [blog.id]: false }));
+    }
+  };
+
   const viewBlog = (blog) => {
     window.open(`/blogs/${blog.id}`, '_blank');
   };
@@ -195,6 +215,17 @@ const ManageBlogs = ({ blogs, searchQuery, setSearchQuery, fetchBlogs, adminServ
                         {blog.status === 'approved' ? <Clock className="icon" /> : <Check className="icon" />}
                         {blog.status === 'approved' ? 'Pending' : 'Approve'}
                       </button>
+                      {blog.status !== 'rejected' && (
+                        <button
+                          onClick={() => rejectBlog(blog)}
+                          disabled={isUpdating[blog.id]}
+                          className="cta-button warning sm"
+                          title="Reject Blog"
+                        >
+                          <X className="icon" />
+                          Reject
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteBlog(blog.id)}
                         className="cta-button danger sm"
