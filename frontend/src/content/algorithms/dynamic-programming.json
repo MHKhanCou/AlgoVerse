@@ -1,0 +1,126 @@
+[
+  {
+    "name": "Fibonacci DP",
+    "description": "Computes Fibonacci numbers bottom-up: each value is the sum of the two before it, filled into a table or rolled through two variables. Turns the naive recursion's exponential work into linear time.",
+    "explanation": "<h3>What it is</h3>\n<p>The Fibonacci recurrence F(n) = F(n - 1) + F(n - 2) has massively overlapping subproblems — the naive recursion computes F(3) again and again. Dynamic programming fixes that by computing each value once, in dependency order.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Set the base cases: dp[0] = 0, dp[1] = 1.</li>\n  <li>For i from 2 to n, set dp[i] = dp[i - 1] + dp[i - 2].</li>\n  <li>Space optimisation: only the last two values are ever read, so two variables replace the whole table — O(1) space.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>n = 6: the table fills 0, 1, 1, 2, 3, 5, 8. The naive recursion for the same n makes 25 calls; the bottom-up loop makes 5 additions.</p>\n\n<h3>Key insight</h3>\n<p>Fibonacci DP is the smallest possible demonstration of the entire DP pattern: overlapping subproblems plus optimal substructure, solved once each. The naive recursion costs roughly 1.6^n calls; tabulation costs n additions; the rolling two-variable version costs n additions and O(1) space. Every larger DP — grids, knapsack, edit distance — is this idea with a bigger table.</p>",
+    "whenToUse": {
+      "use": [
+        "Learning the DP pattern on the simplest possible recurrence",
+        "Any recurrence with overlapping subproblems where the recursive form is too slow",
+        "Large n in Python, where arbitrary-precision integers keep exact results"
+      ],
+      "avoid": [
+        "Fixed-width integer languages past n = 92: Fibonacci overflows 64 bits and the results wrap silently",
+        "Billion-scale n; fast doubling computes F(n) in O(log n)",
+        "When an iterative loop is all the problem needs — do not call a whole DP framework for two variables"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Base cases off by one — returning n for the base, or starting the loop at the wrong index — shifts the entire sequence and no downstream check looks wrong.",
+        "fix": "Pin the definition with tests: F(0) = 0, F(1) = 1, F(2) = 1, F(10) = 55."
+      },
+      {
+        "mistake": "Sizing the table at n and then writing dp[n], which either raises or silently drops the final value depending on the language.",
+        "fix": "Allocate n + 1 slots for indices 0 through n."
+      },
+      {
+        "mistake": "Assuming the memoised recursion needs the full table: keeping an array of n values when only the previous two are read wastes O(n) memory for nothing.",
+        "fix": "Roll with two variables (prev, curr) when only F(n) is required."
+      }
+    ]
+  },
+  {
+    "name": "0/1 Knapsack",
+    "description": "Chooses items that maximize total value within a weight capacity, each item at most once. The DP runs in O(n x W) — pseudo-polynomial, because W scales with the numbers in the input, not the input size.",
+    "explanation": "<h3>What it is</h3>\n<p>Given n items with weights and values and a capacity W, the 0/1 knapsack picks a subset of maximum value whose weights sum to at most W. Each item is all-or-nothing, which is what separates it from fractional knapsack (greedy) and unbounded knapsack (items reusable).</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>dp[i][w] = the best value using the first i items with capacity w.</li>\n  <li>If item i's weight exceeds w: dp[i][w] = dp[i - 1][w] (the item cannot fit).</li>\n  <li>Otherwise dp[i][w] = max(dp[i - 1][w], dp[i - 1][w - weight[i]] + value[i]) — skip it or take it.</li>\n  <li>Space optimisation: one row of length W + 1, iterating w from W down to weight[i] — the descending direction is what keeps each item usable only once.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Weights [2, 3, 4, 5], values [3, 4, 5, 6], capacity 5: the DP prefers items 1 and 2 (value 7 at weight 5) over item 4 alone (value 6), and over items 2 and 3 (value 9 needs weight 7 — too heavy).</p>\n\n<h3>Key insight</h3>\n<p>The running time O(n x W) looks polynomial but is not: W is a value, not a count, so capacity 10^9 makes the algorithm unusable even though n is small. That is precisely what pseudo-polynomial and weak NP-hardness mean. When the capacity is astronomically large, the standard moves are meet-in-the-middle, branch and bound, or an FPTAS that trades a little accuracy for polynomial time.</p>",
+    "whenToUse": {
+      "use": [
+        "Capacity or budget is a moderate integer and n x W fits the time and memory budget",
+        "The canonical model for resource allocation under a single constraint",
+        "Problems that reduce cleanly: subset sums, budgeting, cargo loading"
+      ],
+      "avoid": [
+        "Capacity in the billions — the pseudo-polynomial table explodes; use meet-in-the-middle, branch and bound or an FPTAS",
+        "Fractional items allowed — greedy solves that in O(n log n)",
+        "Items reusable without limit — that is unbounded knapsack, with a one-line loop-direction change"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "In the one-dimensional version, iterating capacity upward. Ascending order lets the current item be taken again inside its own row, silently solving *unbounded* knapsack instead of 0/1.",
+        "fix": "Iterate w from W down to weight[i]; descending order sees only the previous item set. Ascending is only correct when items really are unlimited."
+      },
+      {
+        "mistake": "Indexing dp[w - weight[i]] when weight[i] > w, or dropping the skip branch so items that do not fit crash or get counted.",
+        "fix": "Branch explicitly: if weight[i] <= w, take the max of skip and take; otherwise carry dp[w] forward unchanged."
+      },
+      {
+        "mistake": "Trying to reconstruct which items were chosen from a 1D table — the earlier rows the decision depended on are gone.",
+        "fix": "Keep the full 2D table, or record the take/skip decision per (item, capacity) as you fill."
+      }
+    ]
+  },
+  {
+    "name": "Longest Common Subsequence",
+    "description": "Finds the longest sequence of characters appearing in both strings in order, not necessarily adjacent. The DP table behind it powers diff tools, version control and DNA alignment.",
+    "explanation": "<h3>What it is</h3>\n<p>A subsequence keeps characters in their relative order but may skip any; a substring may not skip. LCS asks for the longest skip-allowed sequence common to two inputs — for ABCBDAB and BDCABA the answer is BCAB, length 4.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>dp[i][j] = the LCS length of the first i characters of text1 and the first j of text2; row and column 0 are zeros.</li>\n  <li>If text1[i - 1] == text2[j - 1]: dp[i][j] = dp[i - 1][j - 1] + 1.</li>\n  <li>Otherwise dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]) — drop the character from whichever side looks worse.</li>\n  <li>Backtrack from dp[m][n] following the choices to recover the actual subsequence, not just its length.</li>\n</ol>\n\n<h3>Key insight</h3>\n<p>O(m x n) time; only the current row is needed for the length, giving O(min(m, n)) space, though recovering the sequence requires the table (or Hirschberg's divide-and-conquer trick). Diff tools apply this idea line-by-line with custom equality, and swap the cost model to substitution costs for edit distance and alignment — the table shape is the same family.</p>",
+    "whenToUse": {
+      "use": [
+        "Diff and merge tools comparing files or sequences line-by-line",
+        "Bioinformatics sequence alignment (with scoring variants)",
+        "Any two-sequence similarity question where skips are allowed"
+      ],
+      "avoid": [
+        "Pattern search — KMP is a different and far cheaper problem",
+        "Exact or approximate string matching: edit distance changes the recurrence",
+        "Very long inputs where the quadratic table is too big; Hirschberg halves memory, Myers-style heuristics power practical diff"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Comparing text1[i] and text2[j] in a 1-based table. dp[i][j] covers the first i and j characters, so the characters to compare are text1[i - 1] and text2[j - 1]; using i and j shifts every decision by one.",
+        "fix": "Keep the table 1-based and the string indices 0-based, and celebrate the off-by-one as the classic trap it is."
+      },
+      {
+        "mistake": "Confusing subsequence with substring: the longest common substring requires contiguity, a different recurrence that resets the table to 0 on mismatches.",
+        "fix": "If contiguity is required, drop the max(...) branch: dp[i][j] = dp[i - 1][j - 1] + 1 on match, 0 otherwise, with the answer being the table maximum."
+      },
+      {
+        "mistake": "Leaving row 0 and column 0 uninitialised (garbage or ones), which corrupts the whole table from its corner.",
+        "fix": "Zero the first row and column; every cell builds on them."
+      }
+    ]
+  },
+  {
+    "name": "Coin Change",
+    "description": "Computes the minimum number of coins that sum to a target amount, with each denomination usable any number of times. A one-dimensional DP: dp[a] = 1 + min over coins of dp[a - c].",
+    "explanation": "<h3>What it is</h3>\n<p>Given denominations and a target amount, find the fewest coins that total the amount. This is unbounded knapsack with values ignored and counts minimised: reuse is allowed, and the answer is the shortest path from 0 to the amount in a graph whose edges are coins.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>dp[0] = 0; every other dp[a] = infinity until reached.</li>\n  <li>For each amount a from 1 to target, try every coin c <= a: dp[a] = min(dp[a], dp[a - c] + 1).</li>\n  <li>If dp[target] stays infinite, the amount cannot be formed at all.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Coins [1, 3, 4], target 6. Greedy takes 4 + 1 + 1 — three coins. The DP finds 3 + 3 — two coins. The counterexample is the standard proof that greedy fails on non-canonical coin systems.</p>\n\n<h3>Key insight</h3>\n<p>O(amount x number-of-coins) time and O(amount) space. Note how close the wrong answer was: greedy is optimal for canonical systems like {1, 5, 10, 25}, which is why it survives in real life and fails in the general problem. With few coins and a huge amount, BFS over residues or Dijkstra on remainders beats the table.</p>",
+    "whenToUse": {
+      "use": [
+        "Minimum-coins and making-change problems with arbitrary denominations",
+        "Teaching unbounded DP where every item is reusable",
+        "Counting ways to make the amount (flip the recurrence to a sum; loop order then decides combinations versus permutations)"
+      ],
+      "avoid": [
+        "Trusting greedy — correct only for canonical systems",
+        "Astronomical amounts with few large coins; residue-graph methods scale better",
+        "Paying with limited coin supplies per denomination — that is the bounded variant, a different recurrence"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Initialising non-zero entries to 0 instead of infinity, so unreachable amounts report as formable with zero coins and every downstream minimum is wrong.",
+        "fix": "dp[0] = 0, all others = infinity; the answer is infinity (not found) if the target stays unreachable."
+      },
+      {
+        "mistake": "Replacing the DP with greedy change-making; {1, 3, 4} for 6 gives 4 + 1 + 1 (three coins) when 3 + 3 (two coins) is optimal.",
+        "fix": "Use the DP or a BFS over amounts; greedy is only safe for provably canonical systems."
+      },
+      {
+        "mistake": "Indexing dp[a - c] for coins larger than the current amount — a negative index wraps in Python and crashes elsewhere.",
+        "fix": "Skip coins where c > a, or bound-check before every access."
+      }
+    ]
+  }
+]

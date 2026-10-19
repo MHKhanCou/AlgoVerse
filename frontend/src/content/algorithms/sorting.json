@@ -1,0 +1,169 @@
+[
+  {
+    "name": "Bubble Sort",
+    "description": "Repeatedly compares adjacent elements and swaps them when they are out of order. After each full pass the largest remaining element has settled into its final position, so at most n - 1 passes sort the array.",
+    "explanation": "<h3>What it is</h3>\n<p>A comparison sort built entirely from one operation: compare neighbours, swap if they are out of order. Each pass walks the unsorted region once and pushes the largest element to its final slot, like a bubble rising to the surface.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Compare arr[j] with arr[j + 1] for j from 0 to n - i - 2, swapping when arr[j] > arr[j + 1].</li>\n  <li>After pass i, the last i elements are in their final positions, so the pass range shrinks by one each time.</li>\n  <li>Track whether any swap happened during a pass: if none did, the array is already sorted and the algorithm stops early.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[5, 1, 4, 2, 8]: pass one gives [1, 4, 2, 5, 8] (8 settled); pass two gives [1, 2, 4, 5, 8] (5 settled); pass three performs no swaps and the flag ends the run. Two passes of a possible four were enough.</p>\n\n<h3>Key insight</h3>\n<p>Bubble sort is stable and in-place, and with the swap flag it runs in O(n) on already-sorted input — but worst and average cases stay O(n²). Its real value is pedagogical: the loop invariants and the swap-per-pass model are the simplest complete picture of a comparison sort.</p>",
+    "whenToUse": {
+      "use": [
+        "Teaching or visualizing how comparison sorts work",
+        "Tiny arrays (a few dozen elements) where simplicity beats constant factors",
+        "Nearly sorted data when the early-exit flag is in place"
+      ],
+      "avoid": [
+        "Any performance-sensitive code — O(n²) is fatal past small n",
+        "When a standard library sort is available; use it",
+        "Reversed input, where it does the maximum possible swaps"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "The inner loop bound is off by one: writing j < n - i instead of j < n - i - 1 makes arr[j + 1] read into the already-sorted tail, and on the first pass reads past the array entirely.",
+        "fix": "Loop j from 0 to n - i - 2 inclusive; the final i elements are already fixed."
+      },
+      {
+        "mistake": "No early exit: a nearly sorted array still takes all n - 1 passes and roughly n²/2 comparisons, discarding bubble sort's one advantage.",
+        "fix": "Set a swapped flag on every swap; if a full pass completes without one, break — the array is sorted."
+      }
+    ]
+  },
+  {
+    "name": "Selection Sort",
+    "description": "Scans the unsorted region for its minimum and swaps that element into the next sorted slot. It performs at most n - 1 swaps, the fewest of any comparison sort, while always doing Θ(n²) comparisons.",
+    "explanation": "<h3>What it is</h3>\n<p>Selection sort grows a sorted prefix one position at a time. For each position it scans the entire remaining suffix to find the smallest element, then swaps that element into place — one swap per pass, regardless of how the array looks.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>For i from 0 to n - 2, scan j from i + 1 to n - 1 tracking the index of the minimum.</li>\n  <li>After the scan, swap arr[i] with arr[minIndex].</li>\n  <li>Repeat; the prefix [0..i] is sorted after each pass.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[64, 25, 12, 22, 11]: pass one finds 11 and swaps it with 64, giving [11, 25, 12, 22, 64]. Pass two finds 12 and swaps with 25: [11, 12, 25, 22, 64]. After three more passes the array is sorted — 4 swaps for 5 elements.</p>\n\n<h3>Key insight</h3>\n<p>Selection sort does not adapt: it performs the same Θ(n²) comparisons on already-sorted input as on random input. What it controls is writes — exactly n - 1 swaps — which is why it appears in systems where a write is far more expensive than a read, such as flash memory. It is not stable, because the long-distance swap can move equal keys past each other.</p>",
+    "whenToUse": {
+      "use": [
+        "Writes are much more expensive than reads (EEPROM/flash-style storage)",
+        "Small arrays where a predictable Θ(n) swap count is reassuring",
+        "Teaching in-place selection with minimal movement"
+      ],
+      "avoid": [
+        "Nearly sorted data — it cannot exploit existing order",
+        "When stability is required",
+        "Large arrays; O(n²) comparisons are unavoidable"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Swapping every time a smaller element is found during the scan, instead of swapping once after it. This turns a Θ(n) write count into Θ(n²) writes, destroying the one property selection sort is chosen for.",
+        "fix": "Track only the minimum index during the scan; perform a single swap at the end of each outer iteration."
+      },
+      {
+        "mistake": "Forgetting that selection sort is unstable and relying on equal elements keeping their relative order — a long-distance swap silently reorders them.",
+        "fix": "If stability matters, use insertion or merge sort; or attach the original position as a tiebreaker key."
+      }
+    ]
+  },
+  {
+    "name": "Insertion Sort",
+    "description": "Builds a sorted prefix one element at a time: take the next element and shift larger elements right until it fits. Runs in time proportional to the number of inversions, which is why library sorts switch to it for small ranges.",
+    "explanation": "<h3>What it is</h3>\n<p>Insertion sort maintains a sorted prefix. Each step takes the next element, walks left while the neighbours are larger, and inserts it into the gap — exactly how most people sort a hand of cards.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start at index 1; store the element as key.</li>\n  <li>Shift every element greater than key one position right (the loop condition must check the index bound before comparing).</li>\n  <li>Place key in the gap and advance to the next element.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[5, 2, 4, 6, 1, 3]: insert 2 left of 5, giving [2, 5, 4, 6, 1, 3]; insert 4 between 2 and 5, giving [2, 4, 5, 6, 1, 3]; 6 is already in place; 1 shifts everything right; 3 lands between 2 and 4.</p>\n\n<h3>Key insight</h3>\n<p>Insertion sort runs in Θ(n + k) where k is the number of inversions: sorted input costs n comparisons, reversed input about n²/2. That is why real library sorts — TimSort, Introsort — drop to insertion sort below roughly 16–32 elements. It is stable, in-place and online: it can sort elements as they arrive.</p>",
+    "whenToUse": {
+      "use": [
+        "Small ranges (under a few dozen elements), exactly where hybrid library sorts use it",
+        "Nearly sorted data — cost grows with the number of inversions, not n²",
+        "Streaming input where elements arrive and must be kept sorted"
+      ],
+      "avoid": [
+        "Large random or reversed arrays",
+        "When a well-tested library sort is one call away"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Overwriting the element being inserted: shifting arr[j] into arr[j + 1] without first saving arr[i]. The key is destroyed on the first shift.",
+        "fix": "Capture key = arr[i] before the shifting loop, then write key into the final gap."
+      },
+      {
+        "mistake": "Ordering the loop condition as arr[j] > key && j >= 0 — in languages that do not short-circuit, or with unsigned indices, this reads index -1.",
+        "fix": "Check the bound first: j >= 0 && arr[j] > key, and use a signed index."
+      }
+    ]
+  },
+  {
+    "name": "Merge Sort",
+    "description": "Divide-and-conquer sort: split the array until runs have one element, then merge sorted runs pairwise. Guarantees O(n log n) in every case and is stable, at the cost of O(n) auxiliary memory.",
+    "explanation": "<h3>What it is</h3>\n<p>Merge sort halves the array, sorts each half recursively, and merges two sorted runs into one by repeatedly taking the smaller front element. It is the standard example of divide-and-conquer.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Split the range at mid = (low + high) // 2 until the range holds a single element.</li>\n  <li>Merge: walk both sorted runs with two pointers, always emitting the smaller front element.</li>\n  <li>When one run is exhausted, append the remainder of the other — forgetting this step is the classic bug.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[38, 27, 43, 3, 9, 82, 10] splits into singletons, then merges: [27, 38], [3, 43], [9, 82], [10]; then [3, 27, 38, 43] and [9, 10, 82]; finally [3, 9, 10, 27, 38, 43, 82].</p>\n\n<h3>Key insight</h3>\n<p>Time is O(n log n) in best, average and worst cases alike: log n levels of recursion, Θ(n) merging per level. On ties, taking from the left run keeps equal elements in their original order, which makes the sort stable. Its sequential access pattern makes it the natural choice for linked lists and for external sorting of data larger than memory.</p>",
+    "whenToUse": {
+      "use": [
+        "You need guaranteed O(n log n) with stability (multi-key object sorting)",
+        "Linked lists — merging rewires pointers and needs no random access",
+        "External sorting of datasets larger than memory"
+      ],
+      "avoid": [
+        "Memory-tight settings where an in-place sort fits the budget better",
+        "Very small arrays, where insertion sort's lower overhead wins"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Dropping the leftover tail: the merge loop stops when one run is exhausted, and the remaining elements of the other run are never appended, so values go missing.",
+        "fix": "After the main loop, extend the output with the unexhausted run's remainder."
+      },
+      {
+        "mistake": "Breaking stability by taking from the right run on ties (comparing with strict <). Equal keys then come out in a different order than they went in.",
+        "fix": "On ties take from the left run (arr[i] <= arr[j]); stability is then automatic."
+      }
+    ]
+  },
+  {
+    "name": "Quick Sort",
+    "description": "Partitions the array around a pivot so smaller elements sit left of it and larger ones right, then sorts both sides. Average O(n log n) with the best cache behaviour of any sort; pivot choice decides whether it degrades to O(n²).",
+    "explanation": "<h3>What it is</h3>\n<p>Quick sort picks a pivot, rearranges the range so everything smaller sits left and everything larger sits right, places the pivot between the two, and recurses on both sides. The partitioning work happens before the recursive calls, not after.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Choose a pivot — random or median-of-three, not the first or last element by reflex.</li>\n  <li>Partition the range (Lomuto: one scan, swap smaller elements forward; Hoare: two pointers moving inward).</li>\n  <li>Recurse on the left and right subranges, excluding the settled pivot position.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[10, 7, 8, 9, 1, 5] with pivot 5 (Lomuto): elements below 5 collect first, giving [1, 5, 8, 9, 10, 7]. The pivot is final at index 1; the right side recurses and finishes in one more pass.</p>\n\n<h3>Key insight</h3>\n<p>With random pivots the expected depth is O(log n) and the sort is the fastest general-purpose comparison sort in practice — small constants, in-place partitioning, and cache-friendly sequential scans. The worst case is O(n²) when the pivot is consistently extreme, which is exactly what happens on sorted input if the pivot is always the last element. Production implementations (Introsort) watch the recursion depth and fall back to heap sort to make O(n log n) a guarantee.</p>",
+    "whenToUse": {
+      "use": [
+        "General-purpose in-memory sorting of arrays where constant factors and locality matter",
+        "When the pivot can be randomized or chosen by median-of-three",
+        "Situations tolerant of O(n log n) expected rather than guaranteed time"
+      ],
+      "avoid": [
+        "Stability required — partitioning is unstable by construction",
+        "Adversarial input with a predictable pivot; randomize or use a different sort",
+        "When worst-case O(n log n) must be guaranteed (heapsort, merge sort)"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Lomuto partitioning with a fixed last-element pivot on sorted or constant input: every partition peels off a single element, giving O(n²) time and O(n) recursion depth.",
+        "fix": "Randomize the pivot or use median-of-three; with many duplicates, three-way partitioning (Dutch flag) splits equals into their own band."
+      },
+      {
+        "mistake": "Hoare partition loop bounds wrong: advancing i and j with no guard lets them run past the array ends, producing out-of-range reads or infinite recursion.",
+        "fix": "Advance while arr[i] < pivot and arr[j] > pivot, stop when i >= j, and recurse on [low..j] and [j+1..high]."
+      },
+      {
+        "mistake": "Recursing on an empty or single-element range because the base case is missing, or recursing on the full range including the settled pivot — both paths loop forever or touch the wrong interval.",
+        "fix": "Base case: return when low >= high. Recurse strictly to the left and right of the final pivot index."
+      }
+    ]
+  },
+  {
+    "name": "Heap Sort",
+    "description": "Builds a max-heap in the array, then repeatedly moves the root (the maximum) to the end and restores the heap over the remaining part. Guarantees O(n log n) and sorts in place, unlike merge sort, but it is not stable.",
+    "explanation": "<h3>What it is</h3>\n<p>Heap sort treats the array itself as a binary tree: index i has children 2i + 1 and 2i + 2, and a max-heap satisfies parent >= children everywhere. Building that structure and then dismantling it one maximum at a time sorts the array.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Build a max-heap: sift down every internal node from floor(n/2) - 1 down to 0. This costs O(n) total, not O(n log n).</li>\n  <li>Swap the root (current maximum) with the last element of the heap.</li>\n  <li>Shrink the heap by one and sift the new root down. Repeat until one element remains.</li>\n</ol>\n\n<h3>Key insight</h3>\n<p>Heap sort is the only common comparison sort that offers both a worst-case O(n log n) guarantee and O(1) auxiliary space — the combination that matters in real-time systems. The price is practical speed: sifting jumps around memory, so it loses to quicksort on cache-bound workloads and it cannot preserve stability, since equal keys are separated by long-distance swaps.</p>",
+    "whenToUse": {
+      "use": [
+        "Worst-case O(n log n) is required with O(1) extra memory",
+        "Real-time or embedded contexts where a bounded worst case matters more than average speed",
+        "As the safety fallback inside hybrid sorts (Introsort)"
+      ],
+      "avoid": [
+        "Stability required",
+        "Cache-sensitive or latency-tolerant workloads where quicksort simply benchmarks faster"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Using 1-based child formulas on a 0-based array (children 2i and 2i + 1 instead of 2i + 1 and 2i + 2): sift-down compares the wrong nodes and the heap property silently never holds.",
+        "fix": "Commit to the 0-based layout: left = 2i + 1, right = 2i + 2, parent = (i - 1) // 2, and unit-test it."
+      },
+      {
+        "mistake": "Building the heap by sifting down from the last index instead of the last internal node, wasting half the work on leaves that are already valid heaps.",
+        "fix": "Start the build loop at floor(n/2) - 1 — the last node that has children."
+      },
+      {
+        "mistake": "Sifting down over the full array after each extraction instead of the shrinking heap region, so freshly placed sorted elements get pulled back into the heap and the sort never converges.",
+        "fix": "Track the heap boundary: after swapping out the root, restore the heap over [0..heapSize - 1] only."
+      }
+    ]
+  }
+]

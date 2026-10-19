@@ -479,7 +479,6 @@ const CodeforcesAnalyzer = () => {
               <div>Success Rate</div>
             </div>
             
-            // eslint-disable-next-line no-unused-vars
             {comparisonData.map((userData) => {
               const successRate = userData.stats.totalAttempted > 0 
                 ? ((userData.stats.totalSolved / userData.stats.totalAttempted) * 100).toFixed(1)

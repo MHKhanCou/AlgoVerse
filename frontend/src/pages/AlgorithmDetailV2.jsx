@@ -291,31 +291,6 @@ const AlgorithmDetailV2 = () => {
     return { rows: 1, cols: dpN + 1 };
   }, [algorithm, dpCapacity, dpText1, dpText2, dpAmount, dpN]);
 
-  // Get category for common mistakes
-  const category = useMemo(() => {
-    if (!algorithm) return 'sorting';
-    const name = algorithm.name?.toLowerCase() || '';
-    const typeName = algorithm.type_name?.toLowerCase() || '';
-    
-    // Check by name first
-    if (name.includes('sort')) return 'sorting';
-    if (name.includes('search')) return 'searching';
-    if (['bfs', 'dfs', 'dijkstra', 'prim', 'kruskal', 'topological', 'a*'].some(k => name.includes(k))) return 'graph';
-    if (['fibonacci', 'knapsack', 'lcs', 'coin'].some(k => name.includes(k))) return 'dp';
-    if (['factorial', 'tower'].some(k => name.includes(k))) return 'recursion';
-    if (['kmp', 'rabin'].some(k => name.includes(k))) return 'string';
-    if (['bst', 'heap insert'].some(k => name.includes(k))) return 'tree';
-    
-    // Fallback to type_name
-    if (typeName.includes('graph')) return 'graph';
-    if (typeName.includes('search')) return 'searching';
-    if (typeName.includes('dynamic') || typeName.includes('dp')) return 'dp';
-    if (typeName.includes('tree')) return 'tree';
-    if (typeName.includes('string')) return 'string';
-    if (typeName.includes('recursion')) return 'recursion';
-    return 'sorting';
-  }, [algorithm]);
-
   if (loading) {
     return (
       <div className="algo-detail-loading">
@@ -375,8 +350,8 @@ const AlgorithmDetailV2 = () => {
           </div>
 
           <div className="algo-detail-grid">
-            <CommonMistakes category={category} algorithmName={algorithm.name} />
-            <WhenToUse category={category} algorithmName={algorithm.name} />
+            <CommonMistakes algorithmName={algorithm.name} />
+            <WhenToUse algorithmName={algorithm.name} />
           </div>
         </div>
       ),

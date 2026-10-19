@@ -1,0 +1,124 @@
+[
+  {
+    "name": "KMP String Matching",
+    "description": "Preprocesses the pattern into an LPS table (longest proper prefix that is also a suffix) so every text character is examined once. Total search time is O(n + m) with no backtracking.",
+    "explanation": "<h3>What it is</h3>\n<p>Knuth-Morris-Pratt answers the question naive search cannot: after a mismatch, how much of the pattern still matches the text? The LPS table knows. It records, for every pattern prefix, the longest proper prefix that is also a suffix — exactly the amount of re-usable progress.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Build lps[] for the pattern with a two-pointer scan: extend on a match, fall back to lps[j - 1] on a mismatch.</li>\n  <li>Scan the text with one pointer; on a mismatch, set j = lps[j - 1] instead of restarting. The text pointer never moves backward.</li>\n  <li>On a full match, report i - m + 1 and continue from lps[j - 1] so overlapping occurrences are found too.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Pattern ABABCABAB has lps [0, 0, 1, 2, 0, 1, 2, 3, 4]. On a mismatch after matching ABCAB, the table says the last AB still matches, so scanning resumes from there instead of re-reading the text. Over the whole scan, j rises at most n times and falls at most n times — that amortisation is the O(n + m) proof.</p>\n\n<h3>Key insight</h3>\n<p>Naive matching degrades to O(n x m) on inputs like AAAAAAAA with pattern AAAAB because every position restarts the comparison; the LPS table breaks that cycle with worst-case O(n + m) and no input-dependent surprises. The same failure-function idea powers Aho-Corasick (many patterns at once) and the period/rotation checks used in competitive programming.</p>",
+    "whenToUse": {
+      "use": [
+        "Single-pattern search where worst-case guarantees matter (repetitive text is adversarial for naive search)",
+        "Streaming or one-pass matching where backtracking the input is impossible or expensive",
+        "Finding every occurrence, including overlapping ones, in linear total time"
+      ],
+      "avoid": [
+        "Several patterns sharing prefixes — Aho-Corasick generalises KMP for that",
+        "Very short patterns and short texts, where the naive scan is simpler and just as fast",
+        "When a battle-tested library search (two-way, Boyer-Moore variants) is a call away"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Building the LPS table wrongly by treating it as the longest prefix that is also a suffix — the word proper matters: lps[i] can never equal i + 1, because the whole prefix is not proper.",
+        "fix": "Two-pointer construction: prove it on AAAA, which must give [0, 1, 2, 3], not [1, 2, 3, 4]."
+      },
+      {
+        "mistake": "Moving the text pointer backward on a mismatch — that is the naive algorithm again, and the O(n x m) worst case returns.",
+        "fix": "Keep i fixed; fall back with j = lps[j - 1] (or 0 when j was already 0) and continue at the same text position."
+      },
+      {
+        "mistake": "Stopping after the first match, or restarting from j = 0 on a match, so overlapping occurrences are missed — ABA occurs twice in ABABA.",
+        "fix": "On a match, record the start index and resume from j = lps[j - 1] so the overlapping suffix state is preserved."
+      }
+    ]
+  },
+  {
+    "name": "Rabin-Karp",
+    "description": "Hashes every text window with a rolling hash and verifies character-by-character only when a window's hash matches the pattern's. Its real strength is searching many patterns at once.",
+    "explanation": "<h3>What it is</h3>\n<p>Rabin-Karp turns string comparison into number comparison. Each m-length window's hash is computed from the window before it in O(1) — drop the leading character, shift the rest, add the trailing one — so the scan costs O(n) hash updates plus verification on suspected matches.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Hash the pattern and the first text window with a polynomial hash modulo a large prime.</li>\n  <li>Slide: h = (h - leading x d^(m-1)) x d + trailing, all modulo p.</li>\n  <li>Whenever window and pattern hashes match, verify character-by-character before reporting — hashes can collide.</li>\n  <li>For k patterns, hash them all once and compare each window against the hash set.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Pattern ABABCABAB, text ABABDABACDABABCABAB: the window hash matches at the true start and also at the false start ABABD (the first four characters agree), where verification rejects it. The expected number of verifications stays small when the modulus spreads hashes well.</p>\n\n<h3>Key insight</h3>\n<p>Expected O(n + m) with uniformly distributed hashes; worst case O(n x m) when every window collides — and an adversary who knows the modulus can arrange that. Choosing a large prime (10^9 + 7, or 2^61 - 1 with overflow-safe arithmetic) keeps collisions rare in practice; double hashing or verification makes the guarantee real. The multi-pattern trick — one hash set, one pass — is why plagiarism detectors and k-gram similarity tools build on it.</p>",
+    "whenToUse": {
+      "use": [
+        "Searching many patterns in one pass (hash them all, check the set per window)",
+        "Multi-pattern similarity: plagiarism detection, winnowing, k-gram fingerprinting",
+        "Streaming windows where updating a rolling hash beats re-scanning"
+      ],
+      "avoid": [
+        "Adversarial input with a fixed modulus, where collisions can be engineered",
+        "Single-pattern search where KMP gives a clean worst-case guarantee for the same effort"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Reporting a match on hash equality alone — collisions are rare but real, and each one becomes a false positive in the output.",
+        "fix": "Verify the window character-by-character (or with a second hash) before reporting."
+      },
+      {
+        "mistake": "Recomputing each window's hash from scratch — that is O(m) per position, O(n x m) total, and the rolling update was the entire point.",
+        "fix": "Roll: h = (h - leading x d^(m-1)) x d + trailing, with d^(m-1) mod p precomputed once."
+      },
+      {
+        "mistake": "A small or non-prime modulus — collisions become common and worst-case verification dominates the run.",
+        "fix": "Use a large prime (10^9 + 7 or 2^61 - 1) and consider double hashing when an adversary controls the input."
+      }
+    ]
+  },
+  {
+    "name": "BST Insert",
+    "description": "Inserts a key by walking left for smaller and right for larger values until an empty slot appears. O(log n) on balanced trees, O(n) when sorted input degenerates the tree into a list.",
+    "explanation": "<h3>What it is</h3>\n<p>A binary search tree stores keys so that everything left of a node is smaller and everything right is larger. Insert follows that invariant: compare, descend, attach. In-order traversal then visits keys in sorted order — that property is the reason BSTs exist.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Compare the new key with the current node; smaller goes left, larger goes right.</li>\n  <li>Repeat until the chosen child position is empty and attach the new node there.</li>\n  <li>Decide the duplicate policy once — ignore, count, or place consistently — and keep search and delete consistent with it.</li>\n  <li>Recursive form: return the (possibly new) subtree root from every call so the parent pointers stay intact.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Inserting 50, 30, 70, 20, 40, 60, 80 produces a perfectly balanced three-level tree; searching any key takes at most 3 comparisons. Inserting 10, 20, 30, 40 in order instead produces a chain four levels deep — search is now a linear scan.</p>\n\n<h3>Key insight</h3>\n<p>Average case for random insertion order is about 1.39 log2(n) comparisons; sorted or nearly-sorted input gives the O(n) worst case, visibly. Balanced variants (AVL, red-black, B-trees for disk storage) add rotations to guarantee O(log n) by construction — which is why production sorted maps use them rather than raw BSTs. In-order traversal is the sorted sequence; the invariant is the data structure's entire value proposition.</p>",
+    "whenToUse": {
+      "use": [
+        "Dynamic ordered sets: range queries, predecessor/successor, min/max with insertions",
+        "Streaming data searched and extended repeatedly",
+        "Teaching the invariant before balanced variants take over"
+      ],
+      "avoid": [
+        "Sorted or adversarial insertion sequences without rebalancing — the tree becomes a list",
+        "Scale where membership only matters — a hash table is O(1) average",
+        "Static data: sort once and binary search"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Accidentally allowing duplicate keys: equal values walking right create silent runs of duplicates, and search returns an arbitrary one of them.",
+        "fix": "Choose a duplicate policy explicitly (ignore, store a count per node) and enforce it in insert, search and delete alike."
+      },
+      {
+        "mistake": "Losing the tree root in the recursive insert: assigning node.left = insert(...) but forgetting to return node, so the top-level call discards the new subtree.",
+        "fix": "Every recursive insert returns its (possibly new) subtree root; the caller assigns it back to the tree."
+      },
+      {
+        "mistake": "Feeding sorted input and assuming log-time behaviour: the walk becomes a linear scan at exactly the moment the data looks most orderly.",
+        "fix": "Use a self-balancing tree for sorted-heavy workloads or randomize insertion order where acceptable."
+      }
+    ]
+  },
+  {
+    "name": "Heap Insert",
+    "description": "Appends the new value at the end of the heap array, then sifts it up while it beats its parent. O(log n), and together with extract-max it forms the priority queue interface.",
+    "explanation": "<h3>What it is</h3>\n<p>A binary heap is a complete tree stored in an array: children of index i live at 2i + 1 and 2i + 2, so no pointers are needed. Insert exploits completeness: the new element goes in the only free array slot, and sifting up restores the heap property in at most one path to the root.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Append the value to the end of the array.</li>\n  <li>While the index is above the root and the value exceeds its parent (parent = (i - 1) // 2), swap upward.</li>\n  <li>Stop when the parent is larger, or the root is reached — the heap property now holds everywhere.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Heap [9, 7, 8, 3, 6] and insert 10: it lands at index 5, beats its parent 8 at index 2 and swaps, then beats 9 at index 0 and swaps — two comparisons, two swaps, and 10 is the new root. Inserting 1 instead would cost zero swaps.</p>\n\n<h3>Key insight</h3>\n<p>Sift-up moves along a single root path, so the cost is the height of the tree, floor(log2 n) — and at most half the elements are leaves, which is why building a heap bottom-up costs O(n), not O(n log n). With extract-max (sift-down) the interface is complete: peek O(1), push and pop O(log n), all in one array. That combination powers heapsort, priority queues, Dijkstra's frontier and top-k selection.</p>",
+    "whenToUse": {
+      "use": [
+        "Priority queues: schedulers, event simulation, Dijkstra/A* frontiers",
+        "Top-k and streaming extremes where sorting everything is wasteful",
+        "Teaching the sift-up invariant, a companion to heapsort's build phase"
+      ],
+      "avoid": [
+        "Ordered iteration — a heap is not sorted; use one when you need the sequence",
+        "Membership tests by value; heaps order by position, not key"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Using 1-based parent math on a 0-indexed array: parent is (i - 1) // 2, not i // 2, so odd-indexed elements compare against the wrong node and the heap silently violates its property.",
+        "fix": "Pin the layout with a unit test: children 2i + 1 / 2i + 2, parent (i - 1) // 2."
+      },
+      {
+        "mistake": "Sifting up without stopping at the root (missing the i > 0 condition), so index -1 wraps around and reads the array's last element.",
+        "fix": "Loop while i > 0 and arr[i] > arr[(i - 1) // 2]; swapping inside the loop naturally promotes the correct chain."
+      },
+      {
+        "mistake": "Mixing max-heap and min-heap comparisons between insert and extract, leaving the root unpredictable.",
+        "fix": "Pick one orientation, document it on the class, and use the same comparison in sift-up and sift-down."
+      }
+    ]
+  }
+]

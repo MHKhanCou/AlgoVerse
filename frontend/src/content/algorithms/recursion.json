@@ -1,0 +1,94 @@
+[
+  {
+    "name": "Fibonacci",
+    "description": "The textbook recursion: F(n) = F(n - 1) + F(n - 2) with F(0) = 0, F(1) = 1. Beautiful to read, exponential to run — and the clearest picture of why memoisation exists.",
+    "explanation": "<h3>What it is</h3>\n<p>The recursive Fibonacci implementation translates the mathematical definition almost word for word: two recursive calls, one addition, and base cases that stop the descent. Its call tree is the canonical illustration of overlapping subproblems.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Base case: n <= 1 returns n.</li>\n  <li>Recursive case: return F(n - 1) + F(n - 2).</li>\n  <li>Each call fans out into two — the tree doubles at every level.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>F(5) calls F(4) and F(3); F(4) calls F(3) and F(2) — F(3) is now being computed twice, and lower values far more often. The total number of calls to compute F(n) is 2 x F(n + 1) - 1, which grows by a factor of about 1.6 per increment of n.</p>\n\n<h3>Key insight</h3>\n<p>The recursion tree contains every subproblem a number of times proportional to its own subtree — the definition of exponential. Adding a memo dictionary (or converting to a bottom-up loop) makes each subproblem run exactly once, collapsing the work from about 1.6^n to n. In production, no version is right: you want the iterative or fast-doubling form; the recursion exists to teach, and to show precisely why DP exists.</p>",
+    "whenToUse": {
+      "use": [
+        "Teaching recursion and the shape of overlapping subproblems",
+        "Call-tree and memoisation visualisations (the difference is dramatic and honest)",
+        "Small n (below roughly 30) where the exponential cost is invisible"
+      ],
+      "avoid": [
+        "n beyond 35-40 — call counts explode by a factor of ~1.6 per step",
+        "Anything numeric that runs more than once; memoise or iterate",
+        "Deep recursion in languages with small default stacks"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "No memoisation: both recursive branches recompute their entire subtrees, so the same subproblem is solved exponentially many times.",
+        "fix": "Cache results in a dict/array keyed by n (or switch to the bottom-up loop), reducing the work from about 1.6^n to n."
+      },
+      {
+        "mistake": "Imprecise base case: returning n for n <= 1 works only because F(1) = 1; change the sequence definition and the code silently computes a different recurrence.",
+        "fix": "State and test the base cases explicitly: F(0) = 0, F(1) = 1, F(2) = 1, F(10) = 55."
+      },
+      {
+        "mistake": "Assuming the recursion depth is small because n is small — depth equals n, and n near the interpreter's recursion limit (about 1000 in Python) raises RecursionError even though the tree itself is even more expensive.",
+        "fix": "Prefer iteration for large n; raise the recursion limit only as an explicit, documented trade-off."
+      }
+    ]
+  },
+  {
+    "name": "Factorial",
+    "description": "n! = n x (n - 1) x ... x 1, with 0! = 1. The simplest legitimate recursion: one recursive call per level, no branching, and a clean demonstration of the call stack.",
+    "explanation": "<h3>What it is</h3>\n<p>Factorial is the first function most courses use to introduce recursion because it needs none of recursion's subtleties: a single base case, a single recursive call, and a linear chain from n down to 1.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Base case: n <= 1 returns 1 (covering 0! and 1! at once).</li>\n  <li>Recursive case: return n * factorial(n - 1).</li>\n  <li>The calls stack up n deep, then unwind, multiplying on the way back out.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>factorial(5): the calls descend 5 -> 4 -> 3 -> 2 -> 1, where 1 is returned; unwinding multiplies 2 x 3 x 4 x 5 = 120. The stack held five frames at its deepest — one per level, no more.</p>\n\n<h3>Key insight</h3>\n<p>Time and stack space are both Θ(n), and unlike branching recursions there is nothing to memoise — every subproblem is distinct and used once. The iterative loop is strictly better in space (O(1)) and readability here, which is why factorial is a teaching example rather than a production one. The numbers also grow absurdly fast: 20! is about 2.4 x 10^18 and already past 64-bit integers; Python's arbitrary-precision integers keep going, at the cost of ever-larger multiplications.</p>",
+    "whenToUse": {
+      "use": [
+        "First recursion lesson: base case, recursive case, call stack, unwinding",
+        "Visualising how the call stack grows and unwinds",
+        "Small combinatorics (permutations of a handful of items) where exact integers suffice"
+      ],
+      "avoid": [
+        "Large n: depth exceeds default stack limits and results become astronomically large",
+        "Performance-sensitive code — the loop is cheaper in every dimension",
+        "Fixed-width integer languages beyond 20! — the result overflows silently"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Missing or misplaced base case — recursing below 1 forever until the stack overflows.",
+        "fix": "Return 1 for n <= 1 before any recursive call."
+      },
+      {
+        "mistake": "Negative input unhandled: factorial(-3) descends past zero forever in a hand-written version.",
+        "fix": "Validate n >= 0 up front, or delegate to math.factorial, which raises ValueError."
+      },
+      {
+        "mistake": "Expecting exact results past 20! in fixed-width languages, where the multiplication wraps and returns a plausible wrong number.",
+        "fix": "Use arbitrary-precision integers (Python, BigInteger in Java, BigInt in JS), or work with logarithms or modular arithmetic when only magnitude or a residue is needed."
+      }
+    ]
+  },
+  {
+    "name": "Tower of Hanoi",
+    "description": "Move n disks between pegs, one at a time, never placing a larger disk on a smaller one. The optimal solution takes exactly 2^n - 1 moves and is the cleanest illustration of recursive decomposition.",
+    "explanation": "<h3>What it is</h3>\n<p>The puzzle: n disks of different sizes stacked on one peg, two empty pegs, and the rules — one disk per move, only the top disk of a peg may move, and a larger disk may never rest on a smaller one. The recursive solution is three lines and provably optimal.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Move the top n - 1 disks from the source to the auxiliary peg (recursively).</li>\n  <li>Move the largest disk from source to destination — its only move in the whole solution.</li>\n  <li>Move the n - 1 disks from auxiliary to destination (recursively).</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>n = 3: move disks 1-2 to the auxiliary peg (3 moves), move disk 3 across, move disks 1-2 to join it (3 moves) — 7 moves total = 2^3 - 1. n = 10: 1023 moves. The count is unavoidable: the largest disk must move at least once, and everything above it must move at least twice.</p>\n\n<h3>Key insight</h3>\n<p>The recurrence T(n) = 2T(n - 1) + 1 with T(0) = 0 solves to exactly 2^n - 1 moves: optimality is part of the structure, not an accident. The lesson generalises the other way too — if a problem decomposes into two independent (n - 1) subproblems like this, expect exponential scale, and look for the shared structure that collapses it. The classic n = 64 version needs about 585 billion years at one move per second.</p>",
+    "whenToUse": {
+      "use": [
+        "Teaching recursion structure and induction proofs together",
+        "Making exponential growth concrete (each extra disk doubles the work)",
+        "A warm-up for the divide-and-conquer mindset: reduce to a smaller instance"
+      ],
+      "avoid": [
+        "Any practical n beyond about 30 — 2^n dominates everything",
+        "As a template for problems whose subproblems genuinely overlap; here the exponential part is intrinsic and unremovable"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Moving the n - 1 stack straight to the destination peg, which blocks the largest disk from ever moving — the rule violation is built into the call arguments.",
+        "fix": "The three steps are: (n - 1) from source to auxiliary, largest disk source to destination, (n - 1) from auxiliary to destination."
+      },
+      {
+        "mistake": "Reporting 2^n or n moves instead of 2^n - 1 — an off-by-one that grows exponentially.",
+        "fix": "Prove it from the recurrence: T(n) = 2T(n - 1) + 1, T(0) = 0 gives exactly 2^n - 1."
+      },
+      {
+        "mistake": "No base case for the smallest disk (or no n = 0 case), so recursion never bottoms out.",
+        "fix": "Return immediately for n <= 0; move a single disk when n == 1."
+      }
+    ]
+  }
+]

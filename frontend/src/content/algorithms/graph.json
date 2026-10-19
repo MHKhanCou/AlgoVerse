@@ -1,0 +1,218 @@
+[
+  {
+    "name": "Breadth-First Search",
+    "description": "Explores a graph in layers with a FIFO queue: everything one edge away, then two, and so on. This ordering makes it the standard shortest-path search for unweighted graphs.",
+    "explanation": "<h3>What it is</h3>\n<p>BFS visits vertices in nondecreasing distance from the source. A queue guarantees that vertices discovered at distance k are all processed before distance k + 1, which is what turns a traversal into a shortest-path algorithm.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Enqueue the source and mark it visited immediately — on enqueue, not on dequeue.</li>\n  <li>Dequeue a vertex; for each unvisited neighbour, mark it visited, record dist[v] = dist[u] + 1, and enqueue it.</li>\n  <li>Repeat until the queue is empty. For disconnected graphs, restart from every unvisited vertex.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>From A with edges A-B, A-C, B-D: the queue holds [A]; A is processed and enqueues B and C (distance 1); B enqueues D (distance 2). D's distance 2 is the fewest edges from A, and BFS was the algorithm that established it.</p>\n\n<h3>Key insight</h3>\n<p>With adjacency lists BFS is O(V + E): every vertex enters the queue once and every edge is inspected once. The layering is the whole point — BFS is to unweighted graphs what Dijkstra is to weighted ones. Marking visited at enqueue time is load-bearing: marking at dequeue instead lets a vertex enter the queue many times, multiplying memory and corrupting distances.</p>",
+    "whenToUse": {
+      "use": [
+        "Shortest paths by edge count in unweighted graphs",
+        "Degree-of-separation and reachability-layer questions (social graphs, peer networks)",
+        "Grid flood fill and level-order tree traversal"
+      ],
+      "avoid": [
+        "Weighted graphs — use Dijkstra or Bellman-Ford",
+        "Cycle detection and topological sorting, which DFS answers directly",
+        "Graphs deep and wide enough that the frontier queue's memory matters; consider bidirectional BFS"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Marking vertices visited when they are dequeued: a vertex reachable by several paths gets enqueued (and reprocessed) many times, exploding the queue and giving wrong distances.",
+        "fix": "Set visited the moment a neighbour is enqueued."
+      },
+      {
+        "mistake": "Running BFS from one source and reporting the whole graph — vertices in other components are missing without any error.",
+        "fix": "After the queue empties, start a fresh BFS from any still-unvisited vertex when the full graph matters."
+      },
+      {
+        "mistake": "Overwriting a vertex's distance when another path reaches it later; with a plain BFS queue the first enqueue already carries the shortest distance.",
+        "fix": "Assign distance exactly once, at enqueue time — never on later visits."
+      }
+    ]
+  },
+  {
+    "name": "Depth-First Search",
+    "description": "Follows one branch as deep as possible, then backtracks. Its discovery and finish order is what cycle detection, topological sorting and structural graph analysis are built on.",
+    "explanation": "<h3>What it is</h3>\n<p>DFS explores by committing to one neighbour, going as deep as the graph allows, and only then backing out to try alternatives — a stack discipline, whether the stack is the recursion call stack or an explicit one.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Mark the current vertex visited on entry, before touching neighbours.</li>\n  <li>Recurse (or push) into each unvisited neighbour.</li>\n  <li>When all neighbours are exhausted, back up and continue; optionally record finish times on the way out.</li>\n</ol>\n\n<h3>Key insight</h3>\n<p>DFS is O(V + E) and its value is structural, not metric: while exploring, edges classify into tree, back, forward and cross edges. A back edge means a cycle; reversed finish order gives a topological sort; the same traversal yields bridges, articulation points and strongly connected components. The trade-off is depth — recursion up to V levels overflows the call stack on large graphs.</p>",
+    "whenToUse": {
+      "use": [
+        "Cycle detection in directed graphs (a back edge proves a cycle)",
+        "Topological sorting and dependency analysis",
+        "Structural queries: bridges, articulation points, strongly connected components",
+        "Puzzle and maze exploration where any path beats the shortest path"
+      ],
+      "avoid": [
+        "Shortest paths in unweighted graphs — BFS's ordering is required",
+        "Deep graphs with a recursive implementation; switch to an explicit stack"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Recursive DFS on a large graph: depth can reach V, and a few hundred thousand vertices overflow the default call stack.",
+        "fix": "Convert to an explicit stack — push a vertex with its neighbour iterator, or push vertices in two states (entered/exiting)."
+      },
+      {
+        "mistake": "Marking a vertex visited only after exploring its neighbours, so a cycle re-enters it and the recursion never ends.",
+        "fix": "Mark on first entry, before the neighbour loop."
+      },
+      {
+        "mistake": "Using DFS for shortest paths — it returns a valid path, not the shortest one, and the mistake shows up as an off-by-a-lot distance.",
+        "fix": "Use BFS for unweighted shortest paths; DFS remains the tool for structure, not distances."
+      }
+    ]
+  },
+  {
+    "name": "Dijkstra's Algorithm",
+    "description": "Grows a settled region outward from the source, always expanding the closest unsettled vertex and relaxing its outgoing edges. It computes exact shortest paths when all edge weights are non-negative.",
+    "explanation": "<h3>What it is</h3>\n<p>Dijkstra's algorithm computes distance from a source to every vertex by settling vertices in order of increasing distance. Once a vertex is settled its distance is final — no future path can improve it, because all weights are non-negative.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Set dist[source] = 0 and all others to infinity; push (0, source) onto a priority queue.</li>\n  <li>Pop the minimum-distance entry; skip stale entries whose distance exceeds the recorded one.</li>\n  <li>Relax each outgoing edge: if dist[u] + w(u, v) < dist[v], update dist[v] and push (dist[v], v).</li>\n  <li>Repeat until the queue is empty.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Source A, edges A-B (4), A-C (1), C-B (2): A settles at 0, C settles at 1, relabeling B from 4 to 1 + 2 = 3 before B is ever popped. When B is popped, dist[B] = 3 is already the minimum, so it settles.</p>\n\n<h3>Key insight</h3>\n<p>The greedy choice is safe because non-negative weights mean a path through a farther vertex can never undercut a nearer one — that is the entire correctness argument, and exactly what negative weights destroy. With a binary heap the cost is O((V + E) log V); on dense graphs an O(V²) array implementation without a heap is often faster because it skips the log factor's constants.</p>",
+    "whenToUse": {
+      "use": [
+        "Shortest paths from one source on graphs with non-negative weights",
+        "Routing and navigation where weights are travel times, distances or costs",
+        "As the foundation of A* when no heuristic is available"
+      ],
+      "avoid": [
+        "Graphs with negative edge weights — Bellman-Ford or Johnson's algorithm instead",
+        "Unweighted graphs, where plain BFS is faster and simpler",
+        "All-pairs problems on small dense graphs, where Floyd-Warshall is simpler to write"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Processing every popped entry including outdated ones. Lazy priority-queue deletion leaves stale (higher-distance) entries for vertices that were later improved, and relaxing from them re-relaxes a settled vertex's edges.",
+        "fix": "On pop, skip when the popped distance is greater than the recorded dist[u] — the entry has been superseded."
+      },
+      {
+        "mistake": "Applying Dijkstra's with a negative edge anywhere: settle order assumes no later path can improve a settled vertex, and a negative edge violates exactly that, producing quietly wrong distances.",
+        "fix": "Use Bellman-Ford (single source, O(VE)) or Johnson's (all pairs) whenever negative weights exist."
+      },
+      {
+        "mistake": "Relaxing with the wrong quantity — adding edge count like BFS, or treating the adjacency value as an accumulated distance — so weighted graphs get unweighted answers.",
+        "fix": "Relax with dist[u] + w(u, v): edge weights are per-hop; distances accumulate."
+      }
+    ]
+  },
+  {
+    "name": "Prim's Algorithm",
+    "description": "Builds a minimum spanning tree from a starting vertex outward, repeatedly adding the cheapest edge that connects a vertex outside the tree to one inside it. Natural fit for dense graphs.",
+    "explanation": "<h3>What it is</h3>\n<p>Prim's grows one connected tree. At every step it examines all edges crossing the boundary between the tree and the rest of the graph and takes the cheapest one, extending the tree by exactly one vertex each round.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start from any vertex; mark it visited.</li>\n  <li>Push all its edges to a priority queue keyed by edge weight.</li>\n  <li>Pop the cheapest edge; if its far endpoint is already in the tree, discard and continue; otherwise add it and push the new vertex's edges.</li>\n  <li>Repeat until V - 1 edges are chosen or the queue empties.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Starting at A with edges A-B (4), A-C (1), C-B (2), B-D (5): the tree takes A-C (1), then C-B (2) — cheaper than A-B's 4, even though A-B crosses the same cut — then B-D (5). Total weight 8.</p>\n\n<h3>Key insight</h3>\n<p>Correctness rests on the cut property: the cheapest edge crossing any partition of a connected graph must belong to some minimum spanning tree. Prim's applies it repeatedly to the tree-versus-rest cut. With a binary heap the cost is O(E log V); on dense graphs, the O(V²) array version — which scans all vertices to find the next minimum instead of heapifying — is often faster in practice.</p>",
+    "whenToUse": {
+      "use": [
+        "Minimum spanning trees of dense graphs (V² array implementation is natural)",
+        "Network design problems: connecting sites at minimum total cost",
+        "Use cases that must grow the tree from a specific vertex (a power plant, a depot)"
+      ],
+      "avoid": [
+        "Disconnected graphs — the result is a spanning forest, not a spanning tree",
+        "Sparse graphs, where Kruskal plus union-find is simpler and often faster",
+        "Maximum spanning trees — negate weights or flip the comparison, and be explicit that you did"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Keying the priority queue by accumulated distance like Dijkstra's (dist[u] + w) instead of the single edge weight w — the result then depends on the path taken, not the cheapest cut edge.",
+        "fix": "Candidate priority is the edge weight alone; the tree's total cost is the sum of chosen edges at the end."
+      },
+      {
+        "mistake": "Pushing edges for vertices that are already in the tree and never checking visited on pop — the tree can absorb cycles and include more than V - 1 edges.",
+        "fix": "On pop, skip edges whose far endpoint is already in the tree; stop at V - 1 edges."
+      },
+      {
+        "mistake": "Assuming the algorithm spans everything on a disconnected graph; it silently returns a component's tree with fewer than V - 1 edges.",
+        "fix": "Check the chosen-edge count against V - 1 and report disconnected input."
+      }
+    ]
+  },
+  {
+    "name": "Kruskal's Algorithm",
+    "description": "Sorts all edges by weight and keeps each edge that joins two different components, using union-find to detect cycles. On sparse graphs it is the simplest correct minimum spanning tree algorithm.",
+    "explanation": "<h3>What it is</h3>\n<p>Kruskal's processes edges in weight order and greedily includes every edge that connects two so-far-separate pieces of the forest. Union-find (disjoint set union) answers exactly the question that matters: are these two vertices already connected?</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Sort all edges by weight, ascending.</li>\n  <li>For each edge, check whether its endpoints share a component; if not, take it and union the components.</li>\n  <li>Stop once V - 1 edges are taken; if edges run out first, the graph is disconnected.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Edges sorted as (C-D 1), (A-C 2), (B-D 3), (A-B 4): take C-D, take A-C (joining A to the C-D component), take B-D — now all four vertices are connected with 3 edges. A-B is skipped even though it is next in order, because it would close a cycle.</p>\n\n<h3>Key insight</h3>\n<p>Time is dominated by the sort: O(E log E), then near-constant O(alpha(V)) per union-find operation with path compression and union by rank. Unlike Prim's, Kruskal's has no starting vertex and works fine on disconnected input, producing a spanning forest. Its edge-order processing also powers closely related problems — bottleneck paths and single-linkage clustering — for free.</p>",
+    "whenToUse": {
+      "use": [
+        "Sparse graphs, where the edge sort is comfortably affordable",
+        "Processing graphs as edge lists without building adjacency structures",
+        "Bottleneck-path and clustering variants that need edges in weight order anyway"
+      ],
+      "avoid": [
+        "Dense graphs, where Prim's O(V²) array scan skips the sort entirely",
+        "Input already stored as an adjacency matrix — conversion to an edge list costs more than the win"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Taking an edge without a working cycle check — a naive visited check or no check at all lets the result contain cycles and stop being a tree.",
+        "fix": "Only add edges whose endpoints are in different union-find components, and union them immediately after."
+      },
+      {
+        "mistake": "Union-find without path compression or union by rank: the component trees degenerate and each find walks an ever-longer chain, turning near-O(1) operations into O(V) ones.",
+        "fix": "Implement both optimizations — find with path compression, union by rank or size — or use a library disjoint-set."
+      },
+      {
+        "mistake": "Not checking whether the forest reached V - 1 edges: a disconnected graph then yields a partial forest that is silently treated as an MST.",
+        "fix": "Stop at V - 1 edges and report disconnected input when the edge list runs out first."
+      }
+    ]
+  },
+  {
+    "name": "Topological Sort",
+    "description": "Orders the vertices of a directed acyclic graph so every edge points from earlier to later. Scheduling, build systems and dependency resolution all reduce to this ordering.",
+    "explanation": "<h3>What it is</h3>\n<p>A topological ordering is a linear sequence of a DAG's vertices where every edge u -> v has u before v. Many valid orders can exist; any one of them supports correct dependency processing. A cycle makes the ordering impossible — and detecting that is half the point.</p>\n\n<h3>How it works (Kahn's algorithm)</h3>\n<ol>\n  <li>Compute the in-degree of every vertex.</li>\n  <li>Queue every vertex with in-degree 0 — all of them, not one.</li>\n  <li>Dequeue a vertex into the order, decrement its neighbours' in-degrees, and enqueue any that reach 0.</li>\n  <li>If fewer than V vertices are emitted, the remaining subgraph contains a cycle.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Courses with prerequisites A before C, B before C, C before D: in-degrees enqueue A and B first; both must be emitted before C's count reaches zero; D closes the order. A cycle A -> B -> A would leave both at in-degree 1 forever, and the processed count exposes it.</p>\n\n<h3>Key insight</h3>\n<p>Topological order exists if and only if the graph is acyclic. Both standards — Kahn's BFS-style decay of in-degrees and the DFS variant that reverses finish order — run in O(V + E). The ordering is also the enabling step for other algorithms: shortest and longest paths on DAGs, DAG dynamic programming, and build-system scheduling all process vertices in topological order.</p>",
+    "whenToUse": {
+      "use": [
+        "Dependency ordering: build systems, package managers, course prerequisites",
+        "Cycle detection in directed graphs via Kahn's processed-count check",
+        "Process DAGs in a valid order for DP: longest path, path counting"
+      ],
+      "avoid": [
+        "Graphs containing cycles — no valid order exists; detect and report instead",
+        "Undirected graphs, where the concept is not defined",
+        "Situations that need one specific order among many; topo sort gives any valid order, add tie-breaking yourself"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Seeding Kahn's queue with a single in-degree-0 vertex. Real DAGs often have several independent sources, and the unqueued ones never get processed.",
+        "fix": "Enqueue every vertex with in-degree 0 before the processing loop begins."
+      },
+      {
+        "mistake": "Never checking for cycles: on cyclic input, Kahn's silently stops early and returns a partial order as if it were complete.",
+        "fix": "Compare the emitted count to V; when short, the remainder is cyclic and no topological order exists."
+      },
+      {
+        "mistake": "DFS variant appending vertices on entry (preorder) instead of after all descendants finish, producing an order where dependencies appear after their dependents.",
+        "fix": "Append on the way out (postorder), then reverse the list — or use Kahn's, which avoids the reversal."
+      }
+    ]
+  },
+  {
+    "name": "A* Search",
+    "description": "Ranks frontier nodes by f(n) = g(n) + h(n): cost so far plus an admissible estimate of the remaining cost. With a good heuristic it reaches the goal after exploring far fewer nodes than Dijkstra's.",
+    "explanation": "<h3>What it is</h3>\n<p>A* is Dijkstra's algorithm plus direction. The priority queue is keyed by g(n) + h(n): the exact cost of the best path found to n, plus a lower-bound estimate of the cost from n to the goal. The heuristic biases the search toward the goal without sacrificing correctness — provided it never overestimates.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start with the source at g = 0; the priority queue orders by f = g + h.</li>\n  <li>Expand the minimum-f node; relax its neighbours' g values exactly as in Dijkstra's.</li>\n  <li>A heuristic is admissible when h never overestimates the true remaining cost; it is consistent when h(n) <= w(n, n') + h(n') for every edge — consistency guarantees no node ever needs re-opening.</li>\n  <li>Stop when the goal is popped with its final g.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>On a grid with obstacles, Manhattan distance is an admissible h. A straight line toward the goal expands maybe dozens of cells; Dijkstra's fans out in every direction and expands thousands. Both find the same optimal path.</p>\n\n<h3>Key insight</h3>\n<p>Quality of the heuristic determines everything. With h = 0, A* is exactly Dijkstra's. With h = the true remaining cost, it walks directly to the goal and expands almost nothing. The guarantee holds only for admissible h on non-negative weights — and the memory cost is the frontier, which can grow exponentially for weak heuristics; that is what IDA* and weighted A* (faster but no longer optimal) trade away.</p>",
+    "whenToUse": {
+      "use": [
+        "Shortest paths when a reliable lower-bound heuristic exists: maps, grids, puzzle states",
+        "Goal-directed searches where most of the graph is irrelevant",
+        "Weighted graphs with non-negative weights"
+      ],
+      "avoid": [
+        "No admissible heuristic available — plain Dijkstra's is simpler",
+        "Negative edge weights",
+        "Memory-limited settings with weak heuristics; unbounded frontiers explode"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Inflating the heuristic for speed — multiplying h by a factor, or adding a tie-break term that can push it past the true remaining cost. The search then discards the genuinely better path as if it were worse, and the returned route is suboptimal.",
+        "fix": "Prove h never overestimates the true remaining cost, or use a bounded overestimate deliberately and label the result as Weighted A* (bounded-suboptimal), not exact."
+      },
+      {
+        "mistake": "Ignoring consistency and never re-opening closed nodes: with an inconsistent heuristic, a node can be closed at a worse g than a later discovery, and the final path is suboptimal.",
+        "fix": "Use a consistent heuristic, or allow re-opening (treat a better g on a closed node as a new expansion)."
+      },
+      {
+        "mistake": "Ordering the queue by g or pushing f but comparing g — the frontier must expand minimal f; otherwise the heuristic stops driving the search at all.",
+        "fix": "Key the priority queue on f = g + h and keep g separately for relaxation."
+      }
+    ]
+  }
+]
