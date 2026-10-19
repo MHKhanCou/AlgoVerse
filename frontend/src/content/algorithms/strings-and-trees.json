@@ -120,5 +120,66 @@
         "fix": "Pick one orientation, document it on the class, and use the same comparison in sift-up and sift-down."
       }
     ]
+  },
+  {
+    "name": "BST Search",
+    "description": "Walks from the root comparing the target with each node — smaller goes left, larger goes right — discarding a whole subtree with every comparison. O(log n) on a balanced tree; O(n) when sorted input has turned it into a chain.",
+    "explanation": "<h3>What it is</h3>\n<p>Search in a binary search tree is binary search that survives insertions. The ordering invariant — everything left of a node is smaller, everything right is larger — means a single comparison at each node rules out an entire subtree, so the walk follows one root-to-leaf path instead of scanning. Where a sorted array freezes at build time, the tree keeps the same logarithmic search on a growing set.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start at the root; compare the target with the node's key.</li>\n  <li>Go left when the target is smaller, right when it is larger.</li>\n  <li>Stop on equality — found — or at a null child, which proves the key is absent without exploring anything else.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Tree 50, 30, 70, 20, 40, 60, 80, target 60: 60 &gt; 50 goes right to 70; 60 &lt; 70 goes left to 60 — found in three comparisons, five nodes never touched. Searching 65 instead falls off 60's right child after the same three steps, proving absence just as cheaply.</p>\n\n<h3>Key insight</h3>\n<p>The cost is the height of the tree, not the count of keys: about log2(n) comparisons when balanced, n when the tree has degenerated into a chain — inserting 10, 20, 30, 40 in order builds exactly that chain. The invariant that makes search fast is the thing rebalancing schemes (AVL, red-black, B-trees) spend their rotations protecting. Against a hash table's O(1) average lookup, the BST's edge is order: predecessor, successor, min, max and range queries all fall out of the same walk.</p>",
+    "whenToUse": {
+      "use": [
+        "Ordered lookups where predecessor, successor or range queries must stay available",
+        "Dynamic sets under mixed insert and search workloads",
+        "The search step of ordered-map implementations before rebalancing takes over"
+      ],
+      "avoid": [
+        "Membership-only checks at scale — a hash table does it in O(1) average",
+        "Sorted input without rebalancing — the tree becomes a list",
+        "Static data — sort once and binary search an array"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Recursing but discarding the return value — calling search(node.left, ...) without returning it — so every search claims the key was not found even though the walk was correct.",
+        "fix": "Return the recursive call; or write the loop iteratively, which makes this bug unrepresentable."
+      },
+      {
+        "mistake": "A duplicate policy mismatch: insert sends equal keys one way while search stops at the first equal key coming from the other direction, leaving equal keys unreachable or inconsistently found.",
+        "fix": "Fix one policy — equal keys ignored, counted, or consistently sent right — and apply it in insert, search and delete alike."
+      },
+      {
+        "mistake": "Pruning on comparisons in a tree that does not obey the invariant: running the BST walk over an arbitrary binary tree returns wrong answers.",
+        "fix": "BST search is only valid where the ordering invariant holds; validate the tree before treating it as a search tree."
+      }
+    ]
+  },
+  {
+    "name": "BST In-Order Traversal",
+    "description": "Recursively visits a node's left subtree, the node itself, then its right subtree — and on a binary search tree that fixed skeleton reads the keys out in sorted order. One of three visit positions that define in-order, pre-order and post-order.",
+    "explanation": "<h3>What it is</h3>\n<p>A traversal is an orderly walk of every node: recursion handles the bookkeeping, and where the visit action sits relative to the two recursive calls decides the order. In-order — left subtree, node, right subtree — is the one that makes a BST useful: it reads the tree out as a sorted sequence, which is the ordering invariant restated as an algorithm.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Base case: a null node returns immediately; that is what stops the recursion.</li>\n  <li>Recurse left, visit the node, recurse right. Moving the visit between the two calls yields pre-order (visit first) and post-order (visit last).</li>\n  <li>Iteratively: push ancestors on the way left, pop-and-visit, then descend into the right child — the shape of a BST iterator with O(1) amortised next().</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Tree 50, 30, 70, 20, 40, 60, 80. In-order gives 20, 30, 40, 50, 60, 70, 80 — sorted, in three levels of recursion. Pre-order (visit first) gives 50, 30, 20, 40, 70, 60, 80 — the order that can rebuild the tree. Post-order (visit last) gives 20, 40, 30, 60, 80, 70, 50 — children before parents.</p>\n\n<h3>Key insight</h3>\n<p>Every node is visited exactly once — O(n) — and the auxiliary cost is the recursion depth, O(h). In-order is how a BST is validated (keys must be non-decreasing), how the k-th smallest key is extracted, and how expression trees print infix; pre-order serialises a tree for storage or copying; post-order frees it bottom-up. On a degenerate chain all three recurse n deep, which is why the iterative stack version exists: it moves the frontier from the call stack to the heap, where it can be sized and inspected.</p>",
+    "whenToUse": {
+      "use": [
+        "Reading a BST in sorted order, or its k smallest keys with an early-stopped walk",
+        "Validating a BST: walk in-order and compare each key against the previous one",
+        "Expression trees — in-order prints infix, post-order evaluates"
+      ],
+      "avoid": [
+        "Deep degenerate trees with plain recursion — use the explicit-stack version",
+        "Breadth-first questions (levels, shortest depth) — those need a queue, not recursion"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Putting the visit in the wrong slot — visiting before the left recursion while claiming in-order — which produces output that is almost sorted, harder to spot than an outright failure.",
+        "fix": "Write the skeleton down as left → node → right and pin it with a fixture test on the 20..80 tree."
+      },
+      {
+        "mistake": "Mutating the tree (insert or delete) while the traversal recurses, invalidating the child pointers the recursion still expects to follow.",
+        "fix": "Collect keys or node references first and process them afterwards, or use the explicit-stack iterator that takes each step deliberately."
+      },
+      {
+        "mistake": "Assuming the recursion depth is safe: it equals the tree's height — n on a sorted-input chain, enough to overflow the call stack.",
+        "fix": "Rebalance where possible, or switch to the iterative stack, which allocates the frontier on the heap."
+      }
+    ]
   }
 ]

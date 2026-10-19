@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bubbleSort, selectionSort, insertionSort, mergeSort, quickSort, heapSort } from '../algorithms/sorting';
+import { bubbleSort, selectionSort, insertionSort, mergeSort, quickSort, heapSort, countingSort, shellSort } from '../algorithms/sorting';
 
 describe('Sorting Algorithms', () => {
   const testArray = [64, 34, 25, 12, 22, 11, 90];
@@ -12,6 +12,8 @@ describe('Sorting Algorithms', () => {
     { name: 'Merge Sort', fn: mergeSort },
     { name: 'Quick Sort', fn: quickSort },
     { name: 'Heap Sort', fn: heapSort },
+    { name: 'Counting Sort', fn: countingSort },
+    { name: 'Shell Sort', fn: shellSort },
   ];
 
   algorithms.forEach(({ name, fn }) => {
@@ -85,6 +87,18 @@ describe('Sorting Algorithms', () => {
     it('should handle reverse sorted array', () => {
       const result = bubbleSort([5, 4, 3, 2, 1]);
       expect(result.steps).toBeDefined();
+    });
+
+    it('counting sort should handle an empty array', () => {
+      const result = countingSort([]);
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.metadata.name).toBe('Counting Sort');
+    });
+
+    it('shell sort should handle an empty array', () => {
+      const result = shellSort([]);
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.metadata.name).toBe('Shell Sort');
     });
   });
 });

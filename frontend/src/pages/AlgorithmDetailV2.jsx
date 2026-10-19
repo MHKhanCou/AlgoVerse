@@ -5,13 +5,13 @@ import { ArrowLeft, BookOpen, Code, Play, AlertTriangle, ExternalLink, Shuffle, 
 import { PlaybackEngine } from '../engine/playback';
 import { useVisualizationStore } from '../engine/state';
 import { useAuth } from '../contexts/AuthContext';
-import { mergeSort, bubbleSort, quickSort, insertionSort, selectionSort, heapSort } from '../engine/algorithms/sorting';
-import { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar } from '../engine/algorithms/graph';
+import { mergeSort, bubbleSort, quickSort, insertionSort, selectionSort, heapSort, countingSort, shellSort } from '../engine/algorithms/sorting';
+import { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar, bellmanFord } from '../engine/algorithms/graph';
 import { linearSearch, binarySearch, jumpSearch, exponentialSearch } from '../engine/algorithms/searching';
 import { fibonacciDP, knapsack, lcs, coinChange } from '../engine/algorithms/dp';
 import { fibonacci, factorial, towerOfHanoi } from '../engine/algorithms/recursion';
 import { kmp, rabinKarp } from '../engine/algorithms/string';
-import { bstInsert, heapInsert } from '../engine/algorithms/tree';
+import { bstInsert, heapInsert, bstSearch, bstTraversal } from '../engine/algorithms/tree';
 import ArrayRenderer from '../components/renderers/ArrayRenderer';
 import GraphRenderer, { graphTemplates } from '../components/renderers/GraphRenderer';
 import TreeRenderer from '../components/renderers/TreeRenderer';
@@ -44,6 +44,8 @@ const ALGO_REGISTRY = {
   'merge sort': { fn: mergeSort, type: 'array' },
   'quick sort': { fn: quickSort, type: 'array' },
   'heap sort': { fn: heapSort, type: 'array' },
+  'counting sort': { fn: countingSort, type: 'array' },
+  'shell sort': { fn: shellSort, type: 'array' },
   'linear search': { fn: linearSearch, type: 'search' },
   'binary search': { fn: binarySearch, type: 'search' },
   'jump search': { fn: jumpSearch, type: 'search' },
@@ -51,6 +53,7 @@ const ALGO_REGISTRY = {
   'breadth-first search': { fn: bfs, type: 'graph' },
   'depth-first search': { fn: dfs, type: 'graph' },
   "dijkstra's algorithm": { fn: dijkstra, type: 'graph' },
+  'bellman-ford': { fn: bellmanFord, type: 'graph' },
   "prim's algorithm": { fn: prim, type: 'graph' },
   "kruskal's algorithm": { fn: kruskal, type: 'graph' },
   "topological sort": { fn: topologicalSort, type: 'graph' },
@@ -70,6 +73,8 @@ const ALGO_REGISTRY = {
   'kmp': { fn: kmp, type: 'string' },
   'rabin-karp': { fn: rabinKarp, type: 'string' },
   'bst insert': { fn: bstInsert, type: 'tree' },
+  'bst search': { fn: bstSearch, type: 'tree' },
+  'bst in-order traversal': { fn: bstTraversal, type: 'tree' },
   'heap insert': { fn: heapInsert, type: 'tree' },
 };
 
@@ -212,6 +217,15 @@ const AlgorithmDetailV2 = () => {
     if (typeName.includes('string')) return { type: 'string' };
     if (typeName.includes('recursion')) return { type: 'recursion' };
     return { type: 'array' };
+  }, [algorithm]);
+
+  // Algorithms with a step generator can be animated. Content-only entries
+  // (for example Hash Table) get an honest placeholder instead of a Play
+  // button that silently does nothing.
+  const hasVisualizer = useMemo(() => {
+    if (!algorithm) return false;
+    const name = algorithm.name?.toLowerCase() || '';
+    return Object.keys(ALGO_REGISTRY).some(key => name === key || name.includes(key));
   }, [algorithm]);
 
   // Run algorithm
@@ -364,13 +378,15 @@ const AlgorithmDetailV2 = () => {
         <div className="algo-detail-viz-wrapper">
           {/* Controls Panel */}
           <div className="algo-detail-controls">
-            <button
-              className="algo-detail-controls-toggle"
-              onClick={() => setShowControls(!showControls)}
-            >
-              <Settings size={14} />
-              {showControls ? 'Hide Controls' : 'Input Settings'}
-            </button>
+            {hasVisualizer && (
+              <button
+                className="algo-detail-controls-toggle"
+                onClick={() => setShowControls(!showControls)}
+              >
+                <Settings size={14} />
+                {showControls ? 'Hide Controls' : 'Input Settings'}
+              </button>
+            )}
 
             {showControls && (
               <div className="algo-detail-controls-panel">
@@ -616,34 +632,45 @@ const AlgorithmDetailV2 = () => {
             )}
           </div>
 
-          {/* Visualization Layout */}
-          <VisualizationLayout
-            engine={engine}
-            onStart={handleStart}
-            visualization={
-              algoType?.type === 'graph' ? (
-                <GraphRenderer graph={graphData} interactive={true} />
-              ) : algoType?.type === 'tree' ? (
-                <TreeRenderer treeData={inputArray} />
-              ) : algoType?.type === 'dp' ? (
-                <DPTableRenderer data={[]} rows={dpPlaceholder.rows} cols={dpPlaceholder.cols} />
-              ) : algoType?.type === 'recursion' ? (
-                <RecursionRenderer algorithmName={algorithm?.name || ''} />
-              ) : algoType?.type === 'string' ? (
-                <StringRenderer algorithmName={algorithm?.name || ''} />
-              ) : (
-                <ArrayRenderer
-                  data={algoType?.type === 'search' ? [...inputArray].sort((a, b) => a - b) : inputArray}
-                  style={vizStyle}
-                  showValues={true}
-                />
-              )
-            }
-            code={code || '// No code available'}
-            codeLanguage="python"
-            algorithmType={algoType?.type || 'array'}
-            metadata={metadata}
-          />
+          {/* Visualization Layout; content-only algorithms get a placeholder */}
+          {hasVisualizer ? (
+            <VisualizationLayout
+              engine={engine}
+              onStart={handleStart}
+              visualization={
+                algoType?.type === 'graph' ? (
+                  <GraphRenderer graph={graphData} interactive={true} />
+                ) : algoType?.type === 'tree' ? (
+                  <TreeRenderer treeData={inputArray} />
+                ) : algoType?.type === 'dp' ? (
+                  <DPTableRenderer data={[]} rows={dpPlaceholder.rows} cols={dpPlaceholder.cols} />
+                ) : algoType?.type === 'recursion' ? (
+                  <RecursionRenderer algorithmName={algorithm?.name || ''} />
+                ) : algoType?.type === 'string' ? (
+                  <StringRenderer algorithmName={algorithm?.name || ''} />
+                ) : (
+                  <ArrayRenderer
+                    data={algoType?.type === 'search' ? [...inputArray].sort((a, b) => a - b) : inputArray}
+                    style={vizStyle}
+                    showValues={true}
+                  />
+                )
+              }
+              code={code || '// No code available'}
+              codeLanguage="python"
+              algorithmType={algoType?.type || 'array'}
+              metadata={metadata}
+            />
+          ) : (
+            <div className="algo-detail-viz-coming-soon">
+              <BookOpen size={22} />
+              <h3>Visualization coming soon</h3>
+              <p>
+                A step-by-step animation for {name} is on the way. Meanwhile the Overview
+                tab has the full explanation, when-to-use guidance and common mistakes.
+              </p>
+            </div>
+          )}
         </div>
       ),
     },

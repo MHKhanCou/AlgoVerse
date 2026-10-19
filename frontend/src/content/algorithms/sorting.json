@@ -165,5 +165,67 @@
         "fix": "Track the heap boundary: after swapping out the root, restore the heap over [0..heapSize - 1] only."
       }
     ]
+  },
+  {
+    "name": "Counting Sort",
+    "description": "Sorts integers by counting how often each value occurs, then turning those counts into starting positions with prefix sums, so every element is placed straight into its final slot. Linear time — but only when the value range stays close to the number of elements.",
+    "explanation": "<h3>What it is</h3>\n<p>Counting sort never compares two elements. It treats each value as an address in an auxiliary count array, tallies how often every value appears, converts the tallies into prefix sums, and then writes each element directly to the position computed for it. That escapes the O(n log n) comparison lower bound every comparison sort obeys, but the restriction that pays for it is strict: keys must be small non-negative integers.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Count: for each value v, increment count[v - min] — the offset makes the array work for any minimum, not just 0.</li>\n  <li>Prefix sums: replace each count with the number of elements less than or equal to it, so count[v] now marks the end of v's slot band.</li>\n  <li>Place right to left: walk the input backwards, write each element into its band, and decrement the band pointer. The backwards walk is what keeps equal elements in their original order.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[4, 2, 2, 8, 3, 3, 1] over values 1-8: the counts are [1, 2, 2, 1, 0, 0, 0, 1]; the prefix sums give the 2s the slots 1-2 and the 3s the slots 3-4. Placing right to left produces [1, 2, 2, 3, 3, 4, 8], with both pairs of duplicates still in their original relative order.</p>\n\n<h3>Key insight</h3>\n<p>Time and memory are O(n + k), where k is the size of the value range. When k is O(n) — grades, ages, byte values, small status codes — counting sort is the fastest practical option, and its stability is what makes it the per-digit engine inside radix sort. When k dwarfs n (counting to 10^9 to sort a hundred values), the count array itself becomes the bottleneck, and a comparison sort is the honest choice. No pair of elements is ever compared, so the technique works on any key that can index an array — a shortcut no comparison sort can copy.</p>",
+    "whenToUse": {
+      "use": [
+        "Integer keys from a small, dense range: grades, ages, byte values, small enum codes",
+        "As the stable per-digit pass inside radix sort",
+        "When the value range is close to the element count, making O(n + k) effectively linear"
+      ],
+      "avoid": [
+        "Sparse or huge key ranges — memory scales with the largest value, not the input size",
+        "Non-integer or composite keys without a mapping to consecutive integers",
+        "In-place requirements: it needs a second array at least as long as the input"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Off-by-one in the placement pass: treating raw counts as start positions instead of prefix sums, or decrementing after writing instead of before — elements land one slot off and overwrite each other.",
+        "fix": "Commit to one convention: prefix sums mark band ends, so decrement the band pointer first and write second; test with duplicate values immediately."
+      },
+      {
+        "mistake": "Scanning the input left to right during placement. The output still comes out sorted, but equal elements are reversed relative to their input order — the stability radix sort depends on is silently gone.",
+        "fix": "Iterate the input right to left so the last equal element lands in the highest slot of its band; assert stability with a tagged (key, value) test case."
+      },
+      {
+        "mistake": "Indexing the count array with the raw value when the minimum is not 0 (or when negatives appear), reading or writing outside the array.",
+        "fix": "Size the array max - min + 1 and index with value - min everywhere; unit-test a range that starts below zero."
+      }
+    ]
+  },
+  {
+    "name": "Shell Sort",
+    "description": "An insertion sort that first works on elements far apart and keeps halving the gap: early passes remove long-distance disorder cheaply, leaving the final gap-1 pass with almost nothing to do. In place, and fast in practice despite worst-case bounds that took decades to pin down.",
+    "explanation": "<h3>What it is</h3>\n<p>Shell sort generalises insertion sort along a gap sequence. Insertion sort is fast when elements sit close to where they belong; sorting every gap-th subsequence first moves elements long distances in single swaps, so each later pass meets a more orderly array. The last pass, gap = 1, is a genuine insertion sort over an almost-sorted array — its best case.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Pick a gap sequence — halving from n/2 down to 1 is the original; Knuth's 3h + 1 and Ciura's sequence perform measurably better.</li>\n  <li>For each gap, insertion-sort the subsequences of elements gap apart — one interleaved pass over indices gap..n-1, comparing arr[j] with arr[j - gap].</li>\n  <li>Shrink the gap until it reaches 1; that final pass guarantees the array is fully sorted.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[8, 5, 3, 2, 7, 6, 1, 4] with halving gaps. Gap 4 swaps (8, 7) and (3, 1): [7, 5, 1, 2, 8, 6, 3, 4]. Gap 2 clears most of the rest: [1, 2, 3, 4, 7, 5, 8, 6] — every element is now within one move of home. The gap-1 pass moves only 5 and 6: two cheap fixes on an almost-sorted array.</p>\n\n<h3>Key insight</h3>\n<p>Shell sort was the first algorithm to break the quadratic barrier for general inputs, and its complexity is decided almost entirely by the gap sequence: halving has a quadratic worst case, Knuth's 3h + 1 guarantees O(n^1.5), and Ciura's sequence does roughly O(n^1.3) in practice. Because it stays in place and needs no recursion or auxiliary memory, it survives in small embedded C libraries to this day. The trade-off: it is not stable, and no single gap sequence is known to be optimal for every size — pinning down its bounds took decades of analysis.</p>",
+    "whenToUse": {
+      "use": [
+        "Small, memory-tight codebases: a few lines, in place, no recursion to overflow",
+        "Moderate arrays where its low overhead and adaptivity compete with heavier O(n log n) machinery",
+        "Teaching incremental sorting: insertion sort plus one scheduling idea"
+      ],
+      "avoid": [
+        "Stability-sensitive data — the gapped passes reorder equal keys",
+        "Hard worst-case guarantees — prefer merge or heap sort when the bound must hold",
+        "Large datasets where introsort-style hybrids are simply faster"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Ending the gap sequence above 1 (for example stopping at 2): the array is then only gap-sorted, not sorted, and the bug looks like a handful of stubborn misplaced elements.",
+        "fix": "Every valid gap sequence finishes with 1 — the final pass is the real insertion sort. Assert it in code: gaps[gaps.length - 1] === 1."
+      },
+      {
+        "mistake": "Comparing across a gap without the j >= gap bound, so the look-back reads index -gap on the first element of a subsequence.",
+        "fix": "Loop while j >= gap and arr[j - gap] > arr[j], shrinking j by gap inside the loop."
+      },
+      {
+        "mistake": "Assuming O(n log n) because repeated halving sounds logarithmic: with the halving sequence the worst case is quadratic on adversarial inputs.",
+        "fix": "Choose the sequence deliberately (Knuth's 3h + 1 gives O(n^1.5)) and test adversarial patterns — alternating low/high values — not just random arrays."
+      }
+    ]
   }
 ]

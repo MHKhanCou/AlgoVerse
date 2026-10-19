@@ -177,7 +177,192 @@ export function heapInsert(values) {
   };
 }
 
-export const treeAlgorithms = { bstInsert, heapInsert };
+/**
+ * Convert a BST to a level-order array for the TreeRenderer
+ * (trailing nulls trimmed).
+ */
+function treeToArray(root) {
+  if (!root) return [];
+  const result = [];
+  const queue = [root];
+  while (queue.length) {
+    const node = queue.shift();
+    if (node) {
+      result.push(node.value);
+      queue.push(node.left);
+      queue.push(node.right);
+    } else {
+      result.push(null);
+    }
+  }
+  while (result.length > 0 && result[result.length - 1] === null) result.pop();
+  return result;
+}
+
+/**
+ * Build a BST from a list of values (same placement rule as BST Insert:
+ * smaller left, everything else right).
+ */
+function buildBst(values) {
+  let root = null;
+
+  function insert(node, value) {
+    if (node === null) return { value, left: null, right: null };
+    if (value < node.value) node.left = insert(node.left, value);
+    else node.right = insert(node.right, value);
+    return node;
+  }
+
+  for (const value of values) root = insert(root, value);
+  return root;
+}
+
+/**
+ * BST Search step generator.
+ *
+ * Builds the tree from the given values, then searches for the last value
+ * inserted (a deep target, so the demo shows several decisions).
+ */
+export function bstSearch(values) {
+  const steps = [];
+  const root = buildBst(values);
+  const tree = treeToArray(root);
+  const target = values[values.length - 1];
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 1,
+    description: `Search for ${target} in the BST built from [${values.join(', ')}].`,
+    timestamp: 0,
+    treeData: tree,
+  });
+
+  let current = root;
+  let comparisons = 0;
+  let found = false;
+
+  while (current) {
+    comparisons += 1;
+    if (target === current.value) {
+      steps.push({
+        type: 'found',
+        indices: [current.value],
+        codeLine: 3,
+        description: `Found ${target} after ${comparisons} comparison${comparisons === 1 ? '' : 's'}.`,
+        timestamp: 0,
+        treeData: tree,
+      });
+      found = true;
+      break;
+    }
+
+    const goLeft = target < current.value;
+    steps.push({
+      type: 'compare',
+      indices: [current.value],
+      codeLine: 3,
+      description: `Compare ${target} with ${current.value}: ${target} ${goLeft ? '<' : '>'} ${current.value}, go ${goLeft ? 'left' : 'right'}.`,
+      timestamp: 0,
+      treeData: tree,
+    });
+    current = goLeft ? current.left : current.right;
+  }
+
+  if (!found) {
+    steps.push({
+      type: 'visit',
+      indices: [],
+      codeLine: 5,
+      description: `${target} is not in the tree — the walk ended at a null child.`,
+      timestamp: 0,
+      treeData: tree,
+    });
+  }
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: null,
+    description: 'Each comparison discards one whole subtree: O(log n) steps on a balanced tree, O(n) on a degenerate one.',
+    timestamp: 0,
+    treeData: tree,
+  });
+
+  steps.forEach((s, i) => { s.timestamp = steps.length > 1 ? i / (steps.length - 1) : 0; });
+
+  return {
+    steps,
+    metadata: {
+      name: 'BST Search',
+      timeComplexity: 'O(log n) average, O(n) worst',
+      spaceComplexity: 'O(1)',
+      description: 'Walks from the root, going left for smaller and right for larger keys, until the value is found or a null child ends the search.',
+    },
+  };
+}
+
+/**
+ * BST (in-order) Traversal step generator.
+ *
+ * Visits left subtree, then the node, then the right subtree — which reads
+ * the keys of a BST out in sorted order.
+ */
+export function bstTraversal(values) {
+  const steps = [];
+  const root = buildBst(values);
+  const tree = treeToArray(root);
+  const output = [];
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 1,
+    description: `In-order traversal of the BST built from [${values.join(', ')}]: left subtree, then the node, then the right subtree.`,
+    timestamp: 0,
+    treeData: tree,
+  });
+
+  function inOrder(node) {
+    if (!node) return;
+    inOrder(node.left);
+    output.push(node.value);
+    steps.push({
+      type: 'sorted',
+      indices: [node.value],
+      codeLine: 4,
+      description: `Visit ${node.value} — every smaller key is already out, so it takes position ${output.length} in [${output.join(', ')}].`,
+      timestamp: 0,
+      treeData: tree,
+    });
+    inOrder(node.right);
+  }
+
+  inOrder(root);
+
+  steps.push({
+    type: 'sorted',
+    indices: [...output],
+    codeLine: null,
+    description: `In-order output: [${output.join(', ')}] — sorted, which is the BST ordering invariant restated.`,
+    timestamp: 0,
+    treeData: tree,
+  });
+
+  steps.forEach((s, i) => { s.timestamp = steps.length > 1 ? i / (steps.length - 1) : 0; });
+
+  return {
+    steps,
+    metadata: {
+      name: 'BST In-Order Traversal',
+      timeComplexity: 'O(n)',
+      spaceComplexity: 'O(h) recursion stack',
+      description: 'Visits the left subtree, the node, then the right subtree — producing the keys of a BST in sorted order.',
+    },
+  };
+}
+
+export const treeAlgorithms = { bstInsert, heapInsert, bstSearch, bstTraversal };
 
 export function getTreeAlgorithm(name) {
   const key = name.toLowerCase().replace(/[\s-]/g, '');
