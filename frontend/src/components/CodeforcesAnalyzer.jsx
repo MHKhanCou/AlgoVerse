@@ -23,13 +23,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-// eslint-disable-next-line no-unused-vars
-import { userService } from '../services/userService';
 import { toast } from 'react-toastify';
 import '../styles/CodeforcesAnalyzer.css';
 
 const CodeforcesAnalyzer = () => {
-  // eslint-disable-next-line no-unused-vars
   const { user, updateUser } = useAuth();
   const [userInfo, setUserInfo] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -239,16 +236,20 @@ const CodeforcesAnalyzer = () => {
       return;
     }
 
+    const trimmed = handle.trim();
     try {
-      // Use the correct method to update profile
-      // eslint-disable-next-line no-unused-vars
-      const response = await api.put('/profile/update', {
-        codeforces_handle: handle.trim()
+      await api.put('/profile/update', {
+        codeforces_handle: trimmed
       });
-      
-      const updatedUser = { ...user, codeforces_handle: handle.trim() };
-      await fetchCodeforcesData(handle.trim());
-      setUserInfo(updatedUser);  
+
+      // Refresh the Codeforces profile with the new handle, then sync the
+      // auth context. Writing the auth user into `userInfo` used to wipe the
+      // fetched CF profile: handle, avatar and rating all disappeared until
+      // the next full reload.
+      await fetchCodeforcesData(trimmed);
+      if (user) {
+        await updateUser({ ...user, codeforces_handle: trimmed });
+      }
       setIsEditing(false);
       toast.success('Codeforces handle saved successfully!');
     } catch (err) {
@@ -706,7 +707,8 @@ const CodeforcesAnalyzer = () => {
                       key={index}
                       className="cf-rating-bar"
                       style={{ 
-                        height: `${((contest.newRating - 800) / (3500 - 800)) * 100}%`,
+                        // Clamp: new accounts can sit below 800 and top ratings above 3500.
+                        height: `${Math.max(0, Math.min(100, ((contest.newRating - 800) / (3500 - 800)) * 100))}%`,
                         backgroundColor: contest.newRating > contest.oldRating ? '#10b981' : '#ef4444'
                       }}
                       title={`Contest ${contest.contestId}: ${contest.oldRating} → ${contest.newRating}`}

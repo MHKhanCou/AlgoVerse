@@ -91,11 +91,12 @@ const IconICPC = ({ size = 16 }) => (
 );
 
 // ICPC card styled similarly to contest cards with a special accent
-// eslint-disable-next-line no-unused-vars
 const IcpcCard = ({ ev, nowTick, formatCountdown }) => {
   const start = new Date(ev.start_time);
   // Countdown to 2 PM on start day (start + 14 hours)
   const target = new Date(start.getTime() + 14 * 60 * 60 * 1000);
+  const end = new Date(start.getTime() + Number(ev.duration || 0) * 1000);
+  const isOver = nowTick >= end.getTime();
   return (
     <li
       className="contest-card"
@@ -116,8 +117,17 @@ const IcpcCard = ({ ev, nowTick, formatCountdown }) => {
           <div style={{ width: '100%' }}>
             <div className="contest-name" style={{ fontWeight: 700 }}>{ev.name}</div>
             <div className="icpc-countdown-row" style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginTop: 6 }}>
-              <span className="badge" style={{ background: '#0ea5e9', color: '#001018', padding: '4px 8px', borderRadius: 6, fontWeight: 700 }}>Starts In</span>
-              <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 18, fontWeight: 800 }}>{formatCountdown(target.toISOString())}</span>
+              {isOver ? (
+                <>
+                  <span className="badge" style={{ background: '#334155', color: '#e2e8f0', padding: '4px 8px', borderRadius: 6, fontWeight: 700 }}>Completed</span>
+                  <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 18, fontWeight: 800 }}>{start.toLocaleDateString()}</span>
+                </>
+              ) : (
+                <>
+                  <span className="badge" style={{ background: '#0ea5e9', color: '#001018', padding: '4px 8px', borderRadius: 6, fontWeight: 700 }}>Starts In</span>
+                  <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 18, fontWeight: 800 }}>{formatCountdown(target.toISOString())}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -223,9 +233,11 @@ export default function ContestTracker() {
   // Default selected platforms: CF, CodeChef, AtCoder
   const [sites, setSites] = useState(new Set(['cf','codechef','atcoder']));
 
-  // Cache configuration
+  // Cache configuration. The key includes the selected window: a payload
+  // fetched for one days/recentDays pair must not be served for another
+  // (the recent list comes straight from the server).
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  const CACHE_KEY = 'contest_tracker_cache';
+  const cacheKey = `contest_tracker_cache:${days}:${recentDays}`;
 
   // 1s ticker for live countdowns
   useEffect(() => {
@@ -233,7 +245,8 @@ export default function ContestTracker() {
     return () => clearInterval(id);
   }, []);
 
-  // ICPC contests (hardcoded)
+  // ICPC contests (hardcoded). These are last season's events; refresh the
+  // dates when the regional schedule for the new season is announced.
   const ICPC_EVENTS = [
     {
       name: 'ICPC Dhaka Regional 2025 – Preliminary (BUBT Host)',
@@ -250,20 +263,6 @@ export default function ContestTracker() {
       duration: 2 * 24 * 60 * 60, // 2 days
     },
   ];
-
-  // Determine next ICPC event relative to nowTick
-  // eslint-disable-next-line no-unused-vars
-  const nextIcpcEvent = (() => {
-    const now = new Date(nowTick);
-    // sort by start
-    const sorted = [...ICPC_EVENTS].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
-    for (const ev of sorted) {
-      const st = new Date(ev.start_time);
-      const end = new Date(st.getTime() + (Number(ev.duration||0) * 1000));
-      if (now <= end) return ev; // either before start or during preliminary -> then onsite later
-    }
-    return sorted[sorted.length - 1];
-  })();
 
   const formatCountdown = (targetIso) => {
     const target = new Date(targetIso).getTime();
@@ -283,17 +282,17 @@ export default function ContestTracker() {
   // Load from localStorage cache
   const loadFromCache = () => {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = localStorage.getItem(cacheKey);
       if (!cached) return null;
       const parsed = JSON.parse(cached);
       const age = Date.now() - parsed.timestamp;
       if (age > CACHE_DURATION) {
-        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(cacheKey);
         return null;
       }
       return parsed;
     } catch {
-      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(cacheKey);
       return null;
     }
   };
@@ -307,7 +306,7 @@ export default function ContestTracker() {
         timestamp: Date.now(),
         fetched_at: timestamp
       };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     } catch (e) {
       console.warn('Failed to save to cache:', e);
     }
@@ -383,32 +382,12 @@ export default function ContestTracker() {
     loadContests(true); // Force refresh from API
   };
 
-  // Load contests on mount and when days/recentDays change
+  // Load contests on mount and whenever the window changes. loadContests
+  // serves a fresh cache entry for the current window if one exists and
+  // fetches otherwise, so a single effect covers both paths.
   useEffect(() => {
     loadContests(false); // Use cache if available
   }, [days, recentDays]);
-
-  // Initial load from cache on component mount
-  useEffect(() => {
-    const cached = loadFromCache();
-    if (cached) {
-      setData(cached.data);
-      setCounts(cached.counts);
-      setCacheStatus({ 
-        isCached: true, 
-        timestamp: new Date(cached.fetched_at || cached.timestamp) 
-      });
-      setLastFetchTime(cached.timestamp);
-    } else {
-      loadContests(false);
-    }
-  }, []); // Only run on mount
-
-  // Live countdown ticker (1s)
-  useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   // Group upcoming into buckets when days >= 7
   const groupUpcoming = (items) => {
