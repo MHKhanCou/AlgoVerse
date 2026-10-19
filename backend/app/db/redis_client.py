@@ -12,6 +12,10 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
 # Default expiration time for cache entries (24 hours in seconds)
 DEFAULT_EXPIRY = 60 * 60 * 24
 
+# Timeouts keep an unreachable or hung Redis from stalling every request that
+# touches the cache: without them the client waits on the OS-level TCP timeout.
+SOCKET_TIMEOUT_SECONDS = 1.5
+
 # Create a Redis client instance
 redis_client = Redis(
     host=REDIS_HOST,
@@ -19,6 +23,8 @@ redis_client = Redis(
     db=REDIS_DB,
     password=REDIS_PASSWORD,
     decode_responses=True,  # Automatically decode responses to strings
+    socket_timeout=SOCKET_TIMEOUT_SECONDS,
+    socket_connect_timeout=SOCKET_TIMEOUT_SECONDS,
 )
 
 

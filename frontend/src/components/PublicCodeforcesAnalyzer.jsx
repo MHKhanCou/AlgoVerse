@@ -108,6 +108,7 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
   const calculateStats = (submissions) => {
     const solved = new Set();
     const attempted = new Set();
+    const countedProblems = new Set();
     const languageCount = {};
     const verdictCount = {};
     const tagCount = {};
@@ -128,6 +129,12 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
       // Verdict stats
       verdictCount[submission.verdict] = 
         (verdictCount[submission.verdict] || 0) + 1;
+
+      // Tag and rating stats are per problem: counting them per submission
+      // inflates the charts whenever a problem is retried.
+      const firstTimeSeen = !countedProblems.has(problemKey);
+      countedProblems.add(problemKey);
+      if (!firstTimeSeen) return;
 
       // Tag stats
       if (submission.problem.tags) {
@@ -568,7 +575,8 @@ const PublicCodeforcesAnalyzer = ({ initialHandle = null, initialHandles = [] })
                       key={index}
                       className="cf-rating-bar"
                       style={{ 
-                        height: `${((contest.newRating - 800) / (3500 - 800)) * 100}%`,
+                        // Clamp: new accounts can sit below 800 and top ratings above 3500.
+                        height: `${Math.max(0, Math.min(100, ((contest.newRating - 800) / (3500 - 800)) * 100))}%`,
                         backgroundColor: contest.newRating > contest.oldRating ? '#10b981' : '#ef4444'
                       }}
                       title={`Contest ${contest.contestId}: ${contest.oldRating} → ${contest.newRating}`}

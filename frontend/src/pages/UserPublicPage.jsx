@@ -165,14 +165,14 @@ export default function UserPublicPage() {
               </a>
               <Link
                 className="up-btn secondary"
-                to={`/codeforces-analyzer?handles=${encodeURIComponent(data.codeforces_handle)}`}
+                to={`/codeforces?handles=${encodeURIComponent(data.codeforces_handle)}`}
               >
                 Open CF Analyzer
               </Link>
               {isAuthenticated && authUser?.codeforces_handle && (
                 <Link
                   className="up-btn secondary"
-                  to={`/codeforces-analyzer?handles=${encodeURIComponent(data.codeforces_handle)},${encodeURIComponent(authUser.codeforces_handle)}`}
+                  to={`/codeforces?handles=${encodeURIComponent(data.codeforces_handle)},${encodeURIComponent(authUser.codeforces_handle)}`}
                 >
                   Compare with me
                 </Link>
