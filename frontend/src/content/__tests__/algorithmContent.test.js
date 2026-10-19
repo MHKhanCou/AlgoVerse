@@ -2,26 +2,31 @@ import { describe, it, expect } from 'vitest';
 import { allAlgorithmContent, getAlgorithmContent } from '../algorithms';
 
 /**
- * The 28 algorithms present in the production database, by exact name.
+ * The 34 algorithms present in the production database, by exact name.
  * If this list and the content disagree, the learning panels would silently
  * render nothing (or worse, the wrong algorithm) — so this is asserted, not
- * assumed. The Python checker backend/scripts/check_algorithm_content.py
+ * assumed. The Python checker backend/scripts/algorithm_content.py
  * verifies the other direction against a live database.
  */
 const CANONICAL_NAMES = [
   '0/1 Knapsack',
   'A* Search',
+  'BST In-Order Traversal',
   'BST Insert',
+  'BST Search',
+  'Bellman-Ford',
   'Binary Search',
   'Breadth-First Search',
   'Bubble Sort',
   'Coin Change',
+  'Counting Sort',
   'Depth-First Search',
   "Dijkstra's Algorithm",
   'Exponential Search',
   'Factorial',
   'Fibonacci',
   'Fibonacci DP',
+  'Hash Table',
   'Heap Insert',
   'Heap Sort',
   'Insertion Sort',
@@ -35,6 +40,7 @@ const CANONICAL_NAMES = [
   'Quick Sort',
   'Rabin-Karp',
   'Selection Sort',
+  'Shell Sort',
   'Topological Sort',
   'Tower of Hanoi',
 ];

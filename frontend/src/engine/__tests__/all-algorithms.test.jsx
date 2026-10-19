@@ -10,13 +10,13 @@ import TreeRenderer from '../../components/renderers/TreeRenderer';
 import RecursionRenderer from '../../components/renderers/RecursionRenderer';
 import StringRenderer from '../../components/renderers/StringRenderer';
 
-import { mergeSort, bubbleSort, quickSort, insertionSort, selectionSort, heapSort } from '../algorithms/sorting';
-import { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar } from '../algorithms/graph';
+import { mergeSort, bubbleSort, quickSort, insertionSort, selectionSort, heapSort, countingSort, shellSort } from '../algorithms/sorting';
+import { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar, bellmanFord } from '../algorithms/graph';
 import { linearSearch, binarySearch, jumpSearch, exponentialSearch } from '../algorithms/searching';
 import { fibonacciDP, knapsack, lcs, coinChange } from '../algorithms/dp';
 import { fibonacci, factorial, towerOfHanoi } from '../algorithms/recursion';
 import { kmp, rabinKarp } from '../algorithms/string';
-import { bstInsert, heapInsert } from '../algorithms/tree';
+import { bstInsert, heapInsert, bstSearch, bstTraversal } from '../algorithms/tree';
 
 /**
  * Every algorithm in the registry, driven through its renderer for every
@@ -43,6 +43,8 @@ const CASES = [
   ['merge sort', () => mergeSort(ARR), () => <ArrayRenderer data={ARR} />],
   ['quick sort', () => quickSort(ARR), () => <ArrayRenderer data={ARR} />],
   ['heap sort', () => heapSort(ARR), () => <ArrayRenderer data={ARR} />],
+  ['counting sort', () => countingSort(ARR), () => <ArrayRenderer data={ARR} />],
+  ['shell sort', () => shellSort(ARR), () => <ArrayRenderer data={ARR} />],
 
   ['linear search', () => linearSearch(SORTED, 8), () => <ArrayRenderer data={SORTED} />],
   ['binary search', () => binarySearch(SORTED, 8), () => <ArrayRenderer data={SORTED} />],
@@ -52,6 +54,7 @@ const CASES = [
   ['bfs', () => bfs(GRAPH, 'A'), () => <GraphRenderer graph={GRAPH} />],
   ['dfs', () => dfs(GRAPH, 'A'), () => <GraphRenderer graph={GRAPH} />],
   ['dijkstra', () => dijkstra(GRAPH, 'A'), () => <GraphRenderer graph={GRAPH} />],
+  ['bellman-ford', () => bellmanFord(GRAPH, 'A'), () => <GraphRenderer graph={GRAPH} />],
   ['prim', () => prim(GRAPH, 'A'), () => <GraphRenderer graph={GRAPH} />],
   ['kruskal', () => kruskal(GRAPH), () => <GraphRenderer graph={GRAPH} />],
   ['topological sort', () => topologicalSort(DAG), () => <GraphRenderer graph={DAG} />],
@@ -71,6 +74,8 @@ const CASES = [
 
   ['bst insert', () => bstInsert([50, 30, 70, 20, 40]), () => <TreeRenderer treeData={[50, 30, 70, 20, 40]} />],
   ['heap insert', () => heapInsert([50, 30, 70, 20, 40]), () => <TreeRenderer treeData={[50, 30, 70, 20, 40]} />],
+  ['bst search', () => bstSearch([50, 30, 70, 20, 40]), () => <TreeRenderer treeData={[50, 30, 70, 20, 40]} />],
+  ['bst in-order traversal', () => bstTraversal([50, 30, 70, 20, 40]), () => <TreeRenderer treeData={[50, 30, 70, 20, 40]} />],
 ];
 
 describe('every registered algorithm renders through all of its steps', () => {

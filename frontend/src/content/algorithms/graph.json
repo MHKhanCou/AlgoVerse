@@ -214,5 +214,36 @@
         "fix": "Key the priority queue on f = g + h and keep g separately for relaxation."
       }
     ]
+  },
+  {
+    "name": "Bellman-Ford",
+    "description": "Relaxes every edge V - 1 times, because any shortest path uses at most V - 1 edges; one extra sweep afterwards detects negative cycles. Slower than Dijkstra's, but correct exactly where Dijkstra's is not — with negative edge weights.",
+    "explanation": "<h3>What it is</h3>\n<p>Bellman-Ford answers the single-source shortest-path question without Dijkstra's non-negative requirement. Its engine is one primitive — relaxation: check an edge, and whenever the destination can be reached more cheaply through it, lower that distance. Sweep every edge V - 1 times and the distances stop changing, for a structural reason: no shortest path can contain more than V - 1 edges without repeating a vertex.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Initialise: dist[source] = 0, every other distance infinity.</li>\n  <li>Sweep all edges V - 1 times; for each edge (u, v, w), lower dist[v] to dist[u] + w whenever that is smaller. The order of edges within a sweep does not matter — later sweeps repair earlier unlucky orders.</li>\n  <li>Early exit: if a sweep changes nothing, the distances are final and the remaining sweeps can be skipped.</li>\n  <li>Negative-cycle check: run one more sweep; any update proves a reachable negative cycle, and 'shortest' paths through it do not exist.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>Edges A→B (4), A→C (5), B→C (-3): the first sweep sets B = 4, then C = 5, then — later in the same sweep — improves C to 4 + (-3) = 1. The second sweep changes nothing and the run exits early. Add an edge C→B (-4) instead and every extra sweep keeps shaving the cycle: distances fall without bound, and the final check sweep flags it.</p>\n\n<h3>Key insight</h3>\n<p>The V - 1 bound is a proof about path structure, and it buys two things Dijkstra's cannot offer: tolerance for negative edge weights, and negative-cycle detection — the arbitrage-detection use case in disguise, since a negative cycle is an opportunity to make money out of nothing. The cost is O(V·E) against Dijkstra's O((V + E) log V), so it only earns its keep when the weights demand it. Its relaxations are also order-insensitive and need no global priority queue, which is exactly how distance-vector routing protocols distribute it across independent routers.</p>",
+    "whenToUse": {
+      "use": [
+        "Graphs with negative edge weights, where Dijkstra's greedy settlement is invalid",
+        "Negative-cycle detection: arbitrage checks, infeasible difference-constraint systems",
+        "Distributed settings where relaxations happen without a central priority queue (distance-vector routing)"
+      ],
+      "avoid": [
+        "Non-negative weights — Dijkstra's is faster for the same answer",
+        "Very large dense graphs where O(V·E) is prohibitive and no negative weights exist",
+        "Latency-critical weighted maps where A* or Dijkstra's dominate"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Stopping after one or two sweeps because the distances 'look' final: a distance can need up to V - 1 rounds of updates, and a premature stop returns too-large answers.",
+        "fix": "Bound the loop at V - 1 sweeps; stop early only after a full sweep that changes nothing."
+      },
+      {
+        "mistake": "Skipping the negative-cycle check and reporting the resulting numbers as exact distances — around a negative cycle they can always be shaved, so there is no answer to report.",
+        "fix": "Run the extra sweep; any successful relaxation means a reachable negative cycle. Report that instead of distances."
+      },
+      {
+        "mistake": "Relaxing edges out of an unreachable source, so 'infinity plus weight' produces garbage distances in fixed-width arithmetic.",
+        "fix": "Skip edges whose source is still unreachable — if dist[u] == INF, continue — before computing dist[u] + w."
+      }
+    ]
   }
 ]

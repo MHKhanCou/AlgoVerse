@@ -576,6 +576,233 @@ export function heapSort(inputArray) {
   };
 }
 
+/**
+ * Generate counting sort animation steps.
+ *
+ * The renderer shows one array, so the three real phases run over the same
+ * bars: tally counts, fold them into prefix sums, then place every element
+ * into its final slot right-to-left (which is what keeps the sort stable).
+ * @param {number[]} inputArray
+ * @returns {import('../types').AlgorithmResult}
+ */
+export function countingSort(inputArray) {
+  const arr = [...inputArray];
+  const steps = [];
+  const n = arr.length;
+
+  const emptyResult = () => ({
+    steps: [{
+      type: 'message',
+      indices: [],
+      codeLine: null,
+      description: 'Empty array — nothing to sort.',
+      timestamp: 0,
+    }],
+    metadata: {
+      name: 'Counting Sort',
+      timeComplexity: 'O(n + k)',
+      spaceComplexity: 'O(n + k)',
+      description: 'Counts occurrences of each value, then places every element directly into its final slot using prefix sums.',
+    },
+  });
+
+  if (n === 0) return emptyResult();
+
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  const range = max - min + 1;
+  const count = new Array(range).fill(0);
+  const source = [...arr];
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 1,
+    description: `Counting sort on [${arr.join(', ')}]: values span ${min} to ${max}, so the count array needs ${range} slot${range === 1 ? '' : 's'}.`,
+    timestamp: 0,
+  });
+
+  // Phase 1 — count occurrences.
+  for (let i = 0; i < n; i++) {
+    count[source[i] - min] += 1;
+    steps.push({
+      type: 'compare',
+      indices: [i],
+      codeLine: 4,
+      description: `Value ${source[i]}: count[${source[i]}] is now ${count[source[i] - min]}.`,
+      timestamp: 0,
+    });
+  }
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 6,
+    description: `Counts for values ${min}..${max}: [${count.join(', ')}]. A prefix sum turns each count into the end of that value's slot band.`,
+    timestamp: 0,
+  });
+
+  // Phase 2 — prefix sums in place.
+  let running = 0;
+  for (let v = 0; v < range; v++) {
+    running += count[v];
+    count[v] = running;
+  }
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 7,
+    description: `Prefix sums: [${count.join(', ')}]. Value v's elements occupy the slots just before index count[v].`,
+    timestamp: 0,
+  });
+
+  // Phase 3 — stable placement, right to left.
+  for (let i = n - 1; i >= 0; i--) {
+    const value = source[i];
+    count[value - min] -= 1;
+    const pos = count[value - min];
+    steps.push({
+      type: 'set',
+      indices: [pos],
+      values: [value],
+      codeLine: 10,
+      description: `Take ${value} (from index ${i}) and write it to its final slot ${pos}.`,
+      timestamp: 0,
+    });
+    steps.push({
+      type: 'sorted',
+      indices: [pos],
+      codeLine: null,
+      description: `Slot ${pos} holds ${value} for good — counting sort never revisits a position.`,
+      timestamp: 0,
+    });
+  }
+
+  steps.push({
+    type: 'sorted',
+    indices: Array.from({ length: n }, (_, i) => i),
+    codeLine: null,
+    description: 'Array is sorted!',
+    timestamp: 0,
+  });
+
+  steps.forEach((step, i) => {
+    step.timestamp = steps.length > 1 ? i / (steps.length - 1) : 0;
+  });
+
+  return {
+    steps,
+    metadata: {
+      name: 'Counting Sort',
+      timeComplexity: 'O(n + k)',
+      spaceComplexity: 'O(n + k)',
+      description: 'Counts occurrences of each value, then places every element directly into its final slot using prefix sums.',
+    },
+  };
+}
+
+/**
+ * Generate Shell sort animation steps.
+ *
+ * Insertion sort over a shrinking gap sequence: each pass sorts the
+ * subsequences of elements `gap` apart, so by the time gap reaches 1 the
+ * array is nearly ordered and the final pass barely moves anything.
+ * @param {number[]} inputArray
+ * @returns {import('../types').AlgorithmResult}
+ */
+export function shellSort(inputArray) {
+  const arr = [...inputArray];
+  const steps = [];
+  const n = arr.length;
+
+  const metadata = {
+    name: 'Shell Sort',
+    timeComplexity: 'O(n^1.5) typical, O(n²) worst',
+    spaceComplexity: 'O(1)',
+    description: 'Insertion sort over a shrinking gap sequence: long-distance passes remove most disorder before the final gap-1 pass.',
+  };
+
+  if (n === 0) {
+    return {
+      steps: [{
+        type: 'message',
+        indices: [],
+        codeLine: null,
+        description: 'Empty array — nothing to sort.',
+        timestamp: 0,
+      }],
+      metadata,
+    };
+  }
+
+  const gaps = [];
+  for (let gap = Math.floor(n / 2); gap >= 1; gap = Math.floor(gap / 2)) {
+    gaps.push(gap);
+  }
+
+  steps.push({
+    type: 'visit',
+    indices: [],
+    codeLine: 1,
+    description: `Shell sort on [${arr.join(', ')}]: sort elements ${gaps[0]} apart first, then halve the gap until 1.`,
+    timestamp: 0,
+  });
+
+  for (const gap of gaps) {
+    steps.push({
+      type: 'visit',
+      indices: [],
+      codeLine: 3,
+      description: `Gap ${gap}: insertion-sort every subsequence of elements ${gap} apart (one interleaved pass).`,
+      timestamp: 0,
+    });
+
+    for (let i = gap; i < n; i++) {
+      let j = i;
+      while (j >= gap) {
+        steps.push({
+          type: 'compare',
+          indices: [j - gap, j],
+          codeLine: 6,
+          description: `Compare ${arr[j - gap]} and ${arr[j]} (${gap} apart).`,
+          timestamp: 0,
+        });
+
+        if (arr[j - gap] > arr[j]) {
+          const a = arr[j - gap];
+          const b = arr[j];
+          [arr[j - gap], arr[j]] = [arr[j], arr[j - gap]];
+          steps.push({
+            type: 'swap',
+            indices: [j - gap, j],
+            values: [arr[j - gap], arr[j]],
+            codeLine: 7,
+            description: `${a} > ${b} at distance ${gap} — swap and keep moving ${b} left.`,
+            timestamp: 0,
+          });
+          j -= gap;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  steps.push({
+    type: 'sorted',
+    indices: Array.from({ length: n }, (_, i) => i),
+    codeLine: null,
+    description: 'Array is sorted!',
+    timestamp: 0,
+  });
+
+  steps.forEach((step, i) => {
+    step.timestamp = steps.length > 1 ? i / (steps.length - 1) : 0;
+  });
+
+  return { steps, metadata };
+}
+
 /** Map of all sorting algorithms */
 export const sortingAlgorithms = {
   bubbleSort,
@@ -584,6 +811,8 @@ export const sortingAlgorithms = {
   quickSort,
   mergeSort,
   heapSort,
+  countingSort,
+  shellSort,
 };
 
 /** Get algorithm by name */

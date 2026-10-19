@@ -1,0 +1,33 @@
+[
+  {
+    "name": "Hash Table",
+    "description": "Stores key-value pairs in buckets picked by a hash function, so a lookup jumps close to the data instead of searching for it. Insert, search and delete are O(1) on average, with chaining or open addressing settling the collisions.",
+    "explanation": "<h3>What it is</h3>\n<p>A hash table is an array plus a hash function that turns every key into an index. If the function spreads keys evenly, each key lands in its own bucket and every operation costs a constant number of steps. Two keys landing in the same bucket — a collision — is not an error to prevent, but a case to handle: chaining stores a list per bucket; open addressing probes for the next free slot.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Index: i = hash(key) mod capacity.</li>\n  <li>Insert, search and delete all begin at bucket i — walking the chain, or probing linearly or quadratically until the key or an empty slot appears.</li>\n  <li>Watch the load factor n/m; past roughly 0.75, grow the table (usually double) and rehash every key into the new capacity.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>A table of 8 buckets with hash = key mod 8: insert 18 (bucket 2), 26 (bucket 2 again — collision, appended to the chain), 41 (bucket 1). Searching 26 recomputes bucket 2 once and walks a two-element chain; searching 41 hits in one step. Load factor 3/8 is well under the resize threshold.</p>\n\n<h3>Key insight</h3>\n<p>O(1) is an average-case claim whose assumptions are concrete: a hash that spreads keys, a load factor kept low, and — for open addressing — probing that does not pile keys into clusters. Adversaries can break the first assumption on purpose, which is why many runtimes seed hash functions randomly to head off flooding attacks. The trade the table makes is order: iteration comes out scrambled, and ordered questions (predecessor, min, max, range) belong to sorted structures such as balanced trees.</p>",
+    "whenToUse": {
+      "use": [
+        "Lookup-dominated workloads: caches, symbol tables, indexes, deduplication (dict, Map, HashMap)",
+        "Counting frequencies and grouping records by key in a single pass",
+        "Membership tests where order is irrelevant and O(1) average is the goal"
+      ],
+      "avoid": [
+        "Ordered operations — range scans, sorted iteration, predecessor queries",
+        "Adversarial input over a predictable hash function without randomised seeding",
+        "Tight memory budgets: capacity must exceed the element count to keep probes short"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Using mutable keys: change a field the hash depends on and the pair sits under an index the table will never revisit — unreachable, and duplicated by any re-insert.",
+        "fix": "Keep keys immutable, or freeze the fields used for hashing; document identity-versus-value semantics for object keys."
+      },
+      {
+        "mistake": "Breaking the equals/hash duality — keys that compare equal but hash differently, or the reverse — so lookups miss, inserts duplicate and deletes fail.",
+        "fix": "Derive equality and hash from the same fields and unit-test both directions: equal means same hash; hash collision means equality decides."
+      },
+      {
+        "mistake": "Deleting from an open-addressed table by clearing the slot: the probe chain breaks, and keys that collided past the hole become unfindable.",
+        "fix": "Write a tombstone marker that probing skips but insertion reuses; clear tombstones on the next resize."
+      }
+    ]
+  }
+]

@@ -448,3 +448,36 @@
 .algo-detail-discussion {
   padding: 16px;
 }
+
+/* Placeholder for content-only algorithms without a step generator */
+.algo-detail-viz-coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 320px;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px dashed var(--border-primary, #cbd5e1);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.algo-detail-viz-coming-soon svg {
+  color: var(--primary, #6366f1);
+}
+
+.algo-detail-viz-coming-soon h3 {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  color: var(--text-primary, #0f172a);
+}
+
+.algo-detail-viz-coming-soon p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}

@@ -4,6 +4,7 @@ import graph from './graph.json';
 import dynamicProgramming from './dynamic-programming.json';
 import recursion from './recursion.json';
 import stringsAndTrees from './strings-and-trees.json';
+import hashing from './hashing.json';
 
 /**
  * Canonical algorithm content.
@@ -11,11 +12,11 @@ import stringsAndTrees from './strings-and-trees.json';
  * This directory is the single source of truth for what each algorithm page
  * says: description, explanation, when-to-use guidance and common mistakes.
  * - The learning panels (WhenToUse, CommonMistakes) read from here.
- * - backend/scripts/update_algorithm_content.py pushes description and
+ * - backend/scripts/algorithm_content.py pushes description and
  *   explanation into the database from these same files.
  *
  * If you add or rename an algorithm, add it here and run
- * backend/scripts/check_algorithm_content.py — it verifies content and
+ * backend/scripts/algorithm_content.py --check — it verifies content and
  * database agree in both directions.
  */
 const ALL = [
@@ -25,6 +26,7 @@ const ALL = [
   ...dynamicProgramming,
   ...recursion,
   ...stringsAndTrees,
+  ...hashing,
 ];
 
 /**

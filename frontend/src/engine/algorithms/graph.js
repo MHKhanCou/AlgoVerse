@@ -747,7 +747,134 @@ export function aStar(graph, startId, endId) {
 }
 
 /** Map of all graph algorithms */
-export const graphAlgorithms = { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar };
+/**
+ * Bellman-Ford step generator.
+ *
+ * Relaxes every edge V - 1 times (order within a sweep does not matter),
+ * exits early when a sweep changes nothing, then runs one extra sweep as
+ * the negative-cycle check. The demo graphs are undirected, so each edge
+ * is relaxed in both directions.
+ * @param {{ nodes: Array, edges: Array }} graph
+ * @param {string|number} startId
+ * @returns {import('../types').AlgorithmResult}
+ */
+export function bellmanFord(graph, startId) {
+  const { nodes, edges } = graph;
+  const steps = [];
+  const dist = {};
+  const prev = {};
+  nodes.forEach(n => { dist[n.id] = Infinity; });
+  dist[startId] = 0;
+
+  steps.push({
+    type: 'visit',
+    nodeIds: [startId],
+    codeLine: 4,
+    description: `Initialize: distance to ${startId} = 0, every other node = ∞.`,
+    timestamp: 0,
+  });
+
+  const relaxSweep = (round) => {
+    let changed = false;
+
+    for (const edge of edges) {
+      const weight = edge.weight || 1;
+      const candidates = [
+        { source: edge.source, target: edge.target, w: weight },
+        { source: edge.target, target: edge.source, w: weight },
+      ];
+
+      for (const { source, target, w } of candidates) {
+        if (dist[source] === Infinity) continue;
+        const newDist = dist[source] + w;
+
+        steps.push({
+          type: 'compare',
+          nodeIds: [source, target],
+          edge: { source, target },
+          codeLine: 9,
+          description: `Sweep ${round}: check ${source} → ${target}: ${dist[source]} + ${w} = ${newDist} vs ${dist[target] === Infinity ? '∞' : dist[target]}.`,
+          timestamp: 0,
+        });
+
+        if (newDist < dist[target]) {
+          dist[target] = newDist;
+          prev[target] = source;
+          changed = true;
+          steps.push({
+            type: 'relax',
+            nodeIds: [target],
+            edge: { source, target },
+            codeLine: 10,
+            description: `Update ${target}: distance ${newDist} via ${source}.`,
+            timestamp: 0,
+          });
+        }
+      }
+    }
+
+    return changed;
+  };
+
+  const maxSweeps = Math.max(1, nodes.length - 1);
+  let usedSweeps = 0;
+
+  for (let round = 1; round <= maxSweeps; round++) {
+    usedSweeps = round;
+    if (!relaxSweep(round)) break;
+  }
+
+  if (usedSweeps < maxSweeps) {
+    steps.push({
+      type: 'message',
+      nodeIds: [],
+      codeLine: 12,
+      description: `Sweep ${usedSweeps} changed nothing — distances are final; the remaining sweeps are skipped.`,
+      timestamp: 0,
+    });
+  }
+
+  const cycleChanged = relaxSweep(maxSweeps + 1);
+  steps.push({
+    type: 'message',
+    nodeIds: [],
+    codeLine: 14,
+    description: cycleChanged
+      ? `Sweep ${maxSweeps + 1} still improved a distance — a reachable negative cycle exists, so no finite shortest paths.`
+      : `Sweep ${maxSweeps + 1} made no update — no negative cycle; the distances are exact.`,
+    timestamp: 0,
+  });
+
+  const pathEdges = [];
+  Object.keys(prev).forEach(nodeId => {
+    pathEdges.push({ source: prev[nodeId], target: nodeId });
+  });
+
+  steps.push({
+    type: 'path',
+    nodeIds: Object.keys(dist).filter(id => dist[id] < Infinity),
+    pathEdges,
+    codeLine: null,
+    description: 'Bellman-Ford complete!',
+    timestamp: 0,
+  });
+
+  steps.forEach((step, i) => {
+    step.timestamp = steps.length > 1 ? i / (steps.length - 1) : 0;
+  });
+
+  return {
+    steps,
+    metadata: {
+      name: 'Bellman-Ford',
+      timeComplexity: 'O(V·E)',
+      spaceComplexity: 'O(V)',
+      description: 'Relaxes every edge V − 1 times to find shortest paths even with negative weights, and detects negative cycles with one extra sweep.',
+    },
+  };
+}
+
+export const graphAlgorithms = { bfs, dfs, dijkstra, prim, kruskal, topologicalSort, aStar, bellmanFord };
 
 /** Get algorithm by name */
 export function getGraphAlgorithm(name) {
