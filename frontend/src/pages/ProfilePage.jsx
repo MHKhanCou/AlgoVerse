@@ -32,6 +32,13 @@ const formatRelativeTime = (dateString) => {
   return date.toLocaleDateString();
 };
 
+const MY_BLOGS_EMPTY_MESSAGES = {
+  all: "You haven't created any blogs yet.",
+  approved: "You don't have any approved blogs.",
+  pending: "You don't have any blogs awaiting review.",
+  rejected: "You don't have any rejected blogs.",
+};
+
 const ProfilePage = () => {
   const { user, setUser, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -57,7 +64,7 @@ const ProfilePage = () => {
   const [emailSectionOpen, setEmailSectionOpen] = useState(true);
   const [passwordSectionOpen, setPasswordSectionOpen] = useState(false);
   const [dangerSectionOpen, setDangerSectionOpen] = useState(false);
-  const [myBlogsStatusFilter, setMyBlogsStatusFilter] = useState('approved'); // 'all' | 'approved' | 'unapproved'
+  const [myBlogsStatusFilter, setMyBlogsStatusFilter] = useState('approved'); // 'all' | 'approved' | 'pending' | 'rejected'
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
 
@@ -112,14 +119,6 @@ const ProfilePage = () => {
           setRecentActivity([]);
         }
 
-        if (isAuthenticated) {
-          const params = {};
-          if (myBlogsStatusFilter !== 'all') {
-            params.status_filter = myBlogsStatusFilter;
-          }
-          const response = await api.get('/profile/my-blogs', { params });
-          setBlogs(response.data);
-        }
       } catch (err) {
         setError('Failed to load profile data');
         toast.error(err.message || 'Failed to load profile data');
@@ -129,7 +128,25 @@ const ProfilePage = () => {
     };
 
     fetchProfileData();
-  }, [setUser, isAuthenticated, myBlogsStatusFilter]);
+  }, [setUser, isAuthenticated]);
+
+  // Blog-filter changes only refetch the blog list, not the whole profile.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchMyBlogs = async () => {
+      try {
+        const params = {};
+        if (myBlogsStatusFilter !== 'all') {
+          params.status_filter = myBlogsStatusFilter;
+        }
+        const response = await api.get('/profile/my-blogs', { params });
+        setBlogs(response.data);
+      } catch {
+        toast.error('Failed to load your blogs');
+      }
+    };
+    fetchMyBlogs();
+  }, [isAuthenticated, myBlogsStatusFilter]);
 
   const validateForm = () => {
     const errors = {};
@@ -657,22 +674,22 @@ const ProfilePage = () => {
                   Approved
                 </button>
                 <button
-                  className={`segmented-button ${myBlogsStatusFilter === 'unapproved' ? 'active' : ''}`}
-                  onClick={() => setMyBlogsStatusFilter('unapproved')}
+                  className={`segmented-button ${myBlogsStatusFilter === 'pending' ? 'active' : ''}`}
+                  onClick={() => setMyBlogsStatusFilter('pending')}
                 >
                   Pending
+                </button>
+                <button
+                  className={`segmented-button ${myBlogsStatusFilter === 'rejected' ? 'active' : ''}`}
+                  onClick={() => setMyBlogsStatusFilter('rejected')}
+                >
+                  Rejected
                 </button>
               </div>
             </div>
             <div className="blogs-list">
               {blogs.length === 0 ? (
-                <p>
-                  {myBlogsStatusFilter === 'all'
-                    ? "You haven't created any blogs yet."
-                    : myBlogsStatusFilter === 'approved'
-                      ? "You don't have any approved blogs."
-                      : "You don't have any pending blogs."}
-                </p>
+                <p>{MY_BLOGS_EMPTY_MESSAGES[myBlogsStatusFilter]}</p>
               ) : (
                 blogs.map((blog) => (
                   <div key={blog.id} className="blog-card">
@@ -682,6 +699,9 @@ const ProfilePage = () => {
                       <p className="blog-status" style={{ marginTop: '6px' }}>
                         Status: <strong>{String(blog.status).toUpperCase()}</strong>
                       </p>
+                    )}
+                    {blog.admin_feedback && (
+                      <p className="blog-feedback">Reviewer feedback: {blog.admin_feedback}</p>
                     )}
                   </div>
                 ))
