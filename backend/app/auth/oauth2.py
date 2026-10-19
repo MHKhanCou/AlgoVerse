@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -34,4 +36,23 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         # Return 401 instead of 404 to avoid user enumeration
         raise credentials_exception
     return user
+
+# Optional variant for routes that are public but richer for signed-in
+# callers (e.g. an author previewing their own unpublished blog post).
+# Missing or invalid tokens yield None instead of a 401.
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=token_url, auto_error=False)
+
+def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+):
+    if not token:
+        return None
+    try:
+        email = verify_access_token(token)
+    except JWTError:
+        return None
+    if email is None:
+        return None
+    return get_user_by_email(db, email)
     

@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+
 from .. import models, schemas
 from ..auth import oauth2
 from ..db import get_db
-from ..repositories.blog_repo import if_user_owns_blog, get_blog_by_id
 from ..repositories import blog_repo
+from ..repositories.blog_repo import get_blog_visible_to
 
 router = APIRouter(prefix="/blogs", tags=["Blog"])
 
@@ -24,12 +26,8 @@ def update(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user)
 ):
-    blog = get_blog_by_id(db, id)
-    if blog.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update your own blogs or if you are an admin"
-        )
+    # Ownership checks and the "an author's edit of a live post returns it to
+    # review" rule live in the repository.
     return blog_repo.update_blog(db, request, id, current_user.id)
 
 @router.get("/", response_model=List[schemas.ShowBlog])
@@ -52,9 +50,12 @@ def user_blogs(
 @router.get("/{id}", response_model=schemas.ShowBlog)
 def show(
     id: int, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(oauth2.get_current_user_optional),
 ):
-    return get_blog_by_id(db, id)
+    # Approved posts are public; drafts are visible to their author and to
+    # admins. Everyone else gets the same 404 as a missing post.
+    return get_blog_visible_to(db, id, current_user)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(
@@ -62,12 +63,6 @@ def delete(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user)
 ):
-    blog = get_blog_by_id(db, id)
-    if blog.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete your own blogs or if you are an admin"
-        )
     blog_repo.delete_blog(db, id, current_user.id)
     return None
 

@@ -26,7 +26,6 @@ const Blogs = () => {
   const { searchQuery } = useSearch();
   const [blogs, setBlogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState('list'); // Default to list
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,13 +46,11 @@ const Blogs = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const search = params.get('search');
-    const status = params.get('status');
     const sort = params.get('sort');
     const view = params.get('view') || 'list'; // Default to list
     const page = parseInt(params.get('page')) || 1;
 
     if (search) setSearchTerm(search);
-    if (status) setSelectedStatus(status);
     if (sort) setSortBy(sort);
     setViewMode(view);
     setCurrentPage(page);
@@ -110,29 +107,23 @@ const Blogs = () => {
   const handleSearchChange = (value) => {
     setSearchTerm(value);
     setCurrentPage(1);
-    updateURL({ search: value, status: selectedStatus, sort: sortBy, view: viewMode, page: 1 });
-  };
-
-  const handleStatusChange = (value) => {
-    setSelectedStatus(value);
-    setCurrentPage(1);
-    updateURL({ search: searchTerm, status: value, sort: sortBy, view: viewMode, page: 1 });
+    updateURL({ search: value, sort: sortBy, view: viewMode, page: 1 });
   };
 
   const handleSortChange = (value) => {
     setSortBy(value);
     setCurrentPage(1);
-    updateURL({ search: searchTerm, status: selectedStatus, sort: value, view: viewMode, page: 1 });
+    updateURL({ search: searchTerm, sort: value, view: viewMode, page: 1 });
   };
 
   const handleViewChange = (value) => {
     setViewMode(value);
-    updateURL({ search: searchTerm, status: selectedStatus, sort: sortBy, view: value, page: currentPage });
+    updateURL({ search: searchTerm, sort: sortBy, view: value, page: currentPage });
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    updateURL({ search: searchTerm, status: selectedStatus, sort: sortBy, view: viewMode, page });
+    updateURL({ search: searchTerm, sort: sortBy, view: viewMode, page });
   };
 
   const handleCreateBlog = async (e) => {
@@ -147,11 +138,11 @@ const Blogs = () => {
     }
     try {
       await api.post('/blogs/', { title, body });
-      toast.success('Blog created successfully');
+      toast.success('Submitted for review — an admin will publish it shortly.');
       setTitle('');
       setBody('');
       setShowCreateForm(false);
-      fetchBlogs(); // Refresh the blog list
+      navigate('/my-blogs');
     } catch (error) {
       console.error('Error creating blog:', error);
       toast.error(error.response?.data?.detail || 'Failed to create blog');
@@ -173,10 +164,7 @@ const Blogs = () => {
         });
       }
 
-      // Status filter
-      const matchesStatus = selectedStatus === 'all' || blog.status === selectedStatus;
-
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     });
 
     // Sorting
@@ -195,7 +183,7 @@ const Blogs = () => {
     });
 
     return filtered;
-  }, [blogs, searchTerm, selectedStatus, sortBy]);
+  }, [blogs, searchTerm, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedBlogs.length / itemsPerPage);
@@ -203,24 +191,6 @@ const Blogs = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'approved': return 'difficulty-easy';
-      case 'pending': return 'difficulty-medium';
-      case 'rejected': return 'difficulty-hard';
-      default: return 'difficulty-medium';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'approved': return 'Published';
-      case 'pending': return 'Pending';
-      case 'rejected': return 'Rejected';
-      default: return 'Unknown';
-    }
-  };
 
   if (loading) {
     return (
@@ -287,9 +257,13 @@ const Blogs = () => {
                       style={{ width: '100%', resize: 'vertical' }}
                     />
                   </div>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+                    Posts are reviewed by an admin before they appear publicly. You can
+                    track the status under My Blogs.
+                  </p>
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button type="submit" className="cf-btn cf-btn-primary">
-                      Submit Blog
+                      Submit for Review
                     </button>
                     <button
                       type="button"
@@ -322,22 +296,6 @@ const Blogs = () => {
 
             {/* Filters */}
             <div className="filters-group">
-              <div className="filter-group select-with-icon">
-                <span className="select-leading-icon">
-                  <Clock />
-                </span>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="filter-select has-icon"
-                >
-                  <option value="all">All Status</option>
-                  <option value="approved">Published</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
-
               <div className="filter-group select-with-icon">
                 <span className="select-leading-icon">
                   <Calendar />
@@ -382,11 +340,6 @@ const Blogs = () => {
         {/* Results */}
         <div className="results-info">
           Showing {Math.min(itemsPerPage, filteredAndSortedBlogs.length - (currentPage - 1) * itemsPerPage)} of {filteredAndSortedBlogs.length} blogs
-          {selectedStatus !== 'all' && (
-            <span>
-              {' '}with <strong>{getStatusText(selectedStatus)}</strong> status
-            </span>
-          )}
           {searchTerm && (
             <span>
               {' '}matching "<strong>{searchTerm}</strong>"
@@ -407,9 +360,6 @@ const Blogs = () => {
                   <div className="algorithm-info">
                     <h3 className="algorithm-title">{blog.title}</h3>
                     <div className="algorithm-badges">
-                      <span className={`difficulty-badge ${getStatusClass(blog.status)}`}>
-                        {getStatusText(blog.status)}
-                      </span>
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
                         {blog.author_id ? (
@@ -452,9 +402,6 @@ const Blogs = () => {
                   <div className="algorithm-list-header">
                     <h3 className="algorithm-list-title">{blog.title}</h3>
                     <div className="algorithm-list-stats">
-                      <span className={`difficulty-badge ${getStatusClass(blog.status)}`}>
-                        {getStatusText(blog.status)}
-                      </span>
                       <span className="category-badge">
                         <User className="cf-icon-sm" />
                         {blog.author_id ? (

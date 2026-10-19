@@ -82,6 +82,20 @@
   overflow-wrap: break-word;
 }
 
+/* Moderation state banner (visible to the author and admins only). */
+.review-banner {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.9rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+.review-banner p { margin: 0.25rem 0; }
+.review-banner.status-pending { border-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.review-banner.status-rejected { border-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+.review-feedback { font-style: italic; }
+.edit-review-hint { color: #9ca3af; font-size: 0.9rem; margin: 0.25rem 0 0.75rem; }
+
 .blog-actions {
   display: flex;
   gap: 1rem;

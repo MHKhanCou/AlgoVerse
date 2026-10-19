@@ -54,7 +54,7 @@ export const adminService = {
 
   async fetchBlogs() {
     try {
-      const response = await api.get(`${ADMIN_URL}/blogs/`);
+      const response = await api.get(`${ADMIN_URL}/blogs/`, { params: { limit: 100 } });
       console.log('Fetched Blogs:', response.data);
       return response.data;
     } catch (error) {
@@ -63,13 +63,13 @@ export const adminService = {
     }
   },
 
-  async updateBlogStatus(blogId, data) {
+  async updateBlogStatus(blogId, { status, feedback = null } = {}) {
     try {
       const response = await api.post(
         `${ADMIN_URL}/blogs/${blogId}/moderate`,
         {
-          status: data.status,
-          admin_feedback: data.status === 'approved' ? 'Approved by admin' : 'Rejected by admin'
+          status,
+          admin_feedback: feedback
         }
       );
       return response.data;
