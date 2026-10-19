@@ -1,0 +1,113 @@
+[
+  {
+    "name": "Linear Search",
+    "description": "Scans from the first element until the target is found or the array ends. It is the only search that needs no ordering, and the fastest choice for very small or repeatedly-changing collections.",
+    "explanation": "<h3>What it is</h3>\n<p>Linear search compares the target against every element in order and returns the first match. It is the baseline that all faster searches are measured against, and the only exact search that works on unsorted data.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start at index 0 and compare each element with the target.</li>\n  <li>Return the index of the first match.</li>\n  <li>If the scan finishes without a match, return -1 (or the convention your codebase uses — but pick exactly one).</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[4, 2, 7, 1, 9, 3] with target 7: the scan checks 4, then 2, then 7 and stops at index 2 — three comparisons out of a possible six.</p>\n\n<h3>Key insight</h3>\n<p>Cost is O(n): up to n comparisons on a miss, n/2 on average for a hit. Because it only needs to iterate forward, it works on linked lists, files and streams where random access is unavailable. For one-off lookups on small data it is genuinely the right tool; the mistake is reaching for it in a loop over large data.</p>",
+    "whenToUse": {
+      "use": [
+        "Small collections (a few dozen elements) where building an index costs more than scanning",
+        "Unsorted data that is queried once or twice",
+        "Sequential-only structures: linked lists, streams, files read front to back"
+      ],
+      "avoid": [
+        "Repeated lookups over large collections — sort once or use a hash set instead",
+        "Sorted arrays, where binary search is available and far cheaper"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Testing the element before the bound: writing arr[i] == target && i < n relies on short-circuit order that some languages do not guarantee, reading past the end on a miss.",
+        "fix": "Check the bound first (while i < n && arr[i] != target), or iterate over the collection directly."
+      },
+      {
+        "mistake": "Inconsistent miss marker: returning 0 somewhere, None elsewhere, and -1 in a third place, so callers cannot distinguish not found from index 0.",
+        "fix": "Define one miss convention (commonly -1) and document it where the function is declared."
+      }
+    ]
+  },
+  {
+    "name": "Binary Search",
+    "description": "Halves a sorted range by comparing its middle element with the target. One million sorted values need at most 20 comparisons — but only on ordered data that supports random access.",
+    "explanation": "<h3>What it is</h3>\n<p>Binary search maintains a range known to contain the target (if it exists at all) and discards half of it after every comparison. The correctness argument is an invariant: everything outside the range is provably not the answer.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Start with low = 0 and high = n - 1 (inclusive bounds).</li>\n  <li>Compare the middle element arr[mid] with the target.</li>\n  <li>On a match, return mid; if arr[mid] < target, search right with low = mid + 1; otherwise search left with high = mid - 1.</li>\n  <li>When low > high, the target is not present.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>[1, 3, 5, 7, 9, 11, 13] with target 9: mid = 7 (too small, search right), mid = 11 (too large, search left), mid = 9 — found at index 4 in three comparisons.</p>\n\n<h3>Key insight</h3>\n<p>The cost is O(log n) comparisons because every step halves the remaining range: 10 elements need at most 4, a million need at most 20. The precondition is strict — sorted data with random access — and the variants matter: lower-bound and upper-bound search answer first/last occurrence and insertion-point questions, and binary search on the answer solves monotone feasibility problems like capacity minimisation.</p>",
+    "whenToUse": {
+      "use": [
+        "Sorted arrays with repeated lookups (sort once, search many times)",
+        "Finding first/last occurrence or insertion points (lower/upper bound variants)",
+        "Binary searching a monotone predicate's answer space, not just an array"
+      ],
+      "avoid": [
+        "Unsorted data — the invariant does not hold",
+        "Linked lists or streams: no O(1) random access, so each mid costs O(n)",
+        "Collections that change constantly; a balanced tree or hash map fits better"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "(low + high) / 2 overflows for large indices in fixed-width integer languages, producing a negative mid and a crash or wrong result.",
+        "fix": "Use mid = low + (high - low) // 2; it is arithmetically identical and cannot overflow."
+      },
+      {
+        "mistake": "Non-terminating loop: updating bounds to mid instead of mid - 1 / mid + 1 can leave a two-element range unchanged forever.",
+        "fix": "With inclusive bounds always move past the tested element: low = mid + 1, high = mid - 1."
+      },
+      {
+        "mistake": "Assuming the search returns the first occurrence of a duplicated value — plain binary search returns some occurrence, in no fixed position.",
+        "fix": "Narrow on equality instead of returning (keep searching left for a lower bound), or use a library bisect function."
+      }
+    ]
+  },
+  {
+    "name": "Jump Search",
+    "description": "Skips ahead in blocks of about the square root of n on sorted data, then scans the block that may hold the target. The optimal block size balances jump count against scan length at O(sqrt n) comparisons.",
+    "explanation": "<h3>What it is</h3>\n<p>Jump search trades the per-element walk of linear search for bigger strides: jump through a sorted array in fixed-size blocks until the block that must contain the target is found, then scan that block element by element.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Fix the block size at floor(sqrt(n)) once, up front.</li>\n  <li>Jump forward by whole blocks while the block's last element is smaller than the target.</li>\n  <li>Walk linearly from the previous block boundary to the current one, or to the array's end, whichever comes first.</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>16 elements with step 4: the jumps touch indices 3, 7, 11 and stop at 15 if the target is larger; the scan then covers the last block, at most 4 elements. At most about 8 comparisons total, versus up to 16 for a linear scan.</p>\n\n<h3>Key insight</h3>\n<p>With block size sqrt(n), the cost is at most sqrt(n) jumps plus sqrt(n) comparisons inside the block, so O(sqrt(n)) total — worse than binary search's O(log n) asymptotically, better than linear search, and with a much simpler inner loop than binary search. Its historical motivation is storage where jumping forward is cheap but seeking backward is not.</p>",
+    "whenToUse": {
+      "use": [
+        "Sorted data where forward movement is cheap and backward seeks are expensive",
+        "Small-to-medium arrays where a simple O(sqrt n) iteration beats recursive halving",
+        "Teaching the block-decomposition idea behind chunked search and skip lists"
+      ],
+      "avoid": [
+        "Unsorted data",
+        "Large arrays where O(log n) binary search is straightforwardly better",
+        "When the block size cannot be tuned to the data (skewed block costs)"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Using one block size for jumping and a different one for scanning, so block boundaries do not line up and elements between boundaries are never examined.",
+        "fix": "Compute step = floor(sqrt(n)) once and use it for both the jumps and the scan start."
+      },
+      {
+        "mistake": "Scanning a full block unconditionally: the final block is usually shorter than step, so the scan reads past the array's end.",
+        "fix": "Clamp both the jump target and the scan end to n - 1."
+      }
+    ]
+  },
+  {
+    "name": "Exponential Search",
+    "description": "Doubles its bound (1, 2, 4, 8, ...) until it overshoots the target, then runs binary search inside the found range. Ideal when the sorted data's size is unknown or the target sits near the front.",
+    "explanation": "<h3>What it is</h3>\n<p>Exponential search has two phases: find a range that must contain the target by doubling an index, then binary search that range. The doubling phase costs O(log i) where i is the target's position, so it beats plain binary search when the target is close to the front.</p>\n\n<h3>How it works</h3>\n<ol>\n  <li>Check index 0 directly, then set bound = 1.</li>\n  <li>While bound < n and arr[bound] is still smaller than the target, double the bound.</li>\n  <li>Binary search the interval [bound // 2, min(bound, n) - 1].</li>\n</ol>\n\n<h3>Worked example</h3>\n<p>A million-element sorted array with the target at index 3: plain binary search compares about 20 times; exponential search compares arr[0], arr[1], arr[2], arr[3] (doubling stops), then binary searches a two-element range — a handful of comparisons instead of 20.</p>\n\n<h3>Key insight</h3>\n<p>The doubling phase cannot pass the target's position by more than a factor of two, so the total work is O(log i) with a small constant. That is asymptotically the same as binary search when i is anywhere in the array, but four to five times cheaper when i is near the start — and it works on unbounded or streaming sorted data, where no upper index exists to halve.</p>",
+    "whenToUse": {
+      "use": [
+        "Unbounded or streaming sorted data where the length is unknown or infinite",
+        "Targets likely near the front of a large sorted array",
+        "Sorted structures that support forward iteration but not direct random access"
+      ],
+      "avoid": [
+        "Unsorted data",
+        "Tiny arrays where plain binary search is simpler with the same result",
+        "Targets reliably deep in the array; plain binary search avoids the doubling overhead"
+      ]
+    },
+    "commonMistakes": [
+      {
+        "mistake": "Doubling the bound without capping it at the array's length, so the binary-search interval extends past the end and reads out of range.",
+        "fix": "Cap the interval end at n - 1: search [bound // 2, min(bound, n) - 1]."
+      },
+      {
+        "mistake": "Starting the binary-search range at index 1 and never testing index 0, so a target stored first in the array is reported missing.",
+        "fix": "Compare arr[0] directly before the doubling phase, or make the first interval include index 0."
+      }
+    ]
+  }
+]
