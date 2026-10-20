@@ -1,15 +1,24 @@
-uvicorn
-fastapi
-sqlalchemy
-alembic
-pydantic[email]
-pydantic-settings
-bcrypt
-psycopg2-binary
-python-jose[cryptography]
-python-dotenv
-python-multipart
+# Runtime dependencies for the FastAPI backend.
+#
+# Versions are pinned to the exact set the test suite is verified against, so a
+# deploy cannot pick up a new major release of FastAPI/SQLAlchemy/Pydantic by
+# accident. To move a pin, change it here, install into a fresh virtualenv, and
+# run `python -m pytest tests/` before merging.
+#
+# Test-only tools live in backend/requirements-dev.txt.
+
+uvicorn==0.40.0
+fastapi==0.128.0
+sqlalchemy==2.0.45
+alembic==1.18.1
+pydantic[email]==2.12.5
+pydantic-settings==2.12.0
+bcrypt==5.0.0
+psycopg2-binary==2.9.11
+python-jose[cryptography]==3.5.0
+python-dotenv==1.2.1
+python-multipart==0.0.21
 beautifulsoup4==4.12.2
 requests==2.31.0
 redis==4.5.1
-slowapi
+slowapi==0.1.10

@@ -1,21 +1,15 @@
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException, status
 import requests
-import os
-import re
-import json
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Optional
 from pathlib import Path
-from ..db.redis_client import get_redis, set_cache, get_cache, delete_cache
-from redis import Redis
+import os
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 def _load_dotenv_into_environ():
     """Minimal .env loader: reads key=value lines and sets os.environ if unset."""
     try:
-        # project root assumed one level up from this file's directory
-        root = Path(__file__).resolve().parents[1]
-        env_path = root / ".env"
+        env_path = ENV_FILE
         if not env_path.exists():
             return
         for raw in env_path.read_text(encoding="utf-8").splitlines():
@@ -31,9 +25,31 @@ def _load_dotenv_into_environ():
         # Fail silently; env vars may already be set another way
         pass
 
+
 _load_dotenv_into_environ()
 
+from ..models import User
+from ..middleware.admin_dependencies import get_current_admin
+import re
+import json
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, timezone
+from typing import List, Dict, Optional
+from ..db.redis_client import get_redis, set_cache, get_cache, delete_cache
+from redis import Redis
+from concurrent.futures import ThreadPoolExecutor
+
+
 router = APIRouter()
+
+# Sources aggregated by GET /contests. AtCoder is fetched through
+# _fetch_atcoder(), which reports its stats under the "atcoder" key.
+CONTEST_SOURCES = ("codeforces", "atcoder", "leetcode", "codechef", "topcoder")
+
+# Cache TTLs: relative to a full successful fetch, partial results expire much
+# sooner so a judge that was briefly down gets retried quickly.
+CACHE_TTL_SECONDS = 60 * 60
+CACHE_TTL_PARTIAL_SECONDS = 5 * 60
 
 CODEFORCES_API = "https://codeforces.com/api/contest.list?gym=false"
 ATCODER_CONTESTS_URL = "https://kenkoooo.com/atcoder/resources/contests.json"
@@ -734,6 +750,11 @@ def fetch_kontests(platform: str) -> List[Dict]:
         return []
 
 
+def _fetch_atcoder() -> List[Dict]:
+    # Prefer HTML scraping for AtCoder for freshness
+    return fetch_atcoder_html() or fetch_atcoder_kenkoooo()
+
+
 @router.get("/contests")
 def get_contests(
     days: int = Query(7, ge=1), 
@@ -766,15 +787,24 @@ def get_contests(
     if not refresh:
         cached_data = get_cache(cache_key)
         if cached_data:
+            # get_cache deserializes a fresh copy, so marking it here is safe.
+            cached_data["cached"] = True
             return cached_data
     
-    # If no cache or refresh requested, fetch from sources
-    cf = fetch_codeforces()
-    # Prefer HTML scraping for AtCoder for freshness
-    atc = fetch_atcoder_html() or fetch_atcoder_kenkoooo()
-    lc = fetch_leetcode_graphql()
-    cc = fetch_codechef()
-    tc = fetch_topcoder()
+    # Fetch every source concurrently: a page load should take as long as the
+    # slowest judge, not the sum of five upstream HTTP round-trips (sequential
+    # fetches could take close to a minute when judges were slow).
+    for source in CONTEST_SOURCES:
+        last_fetch_stats[source] = {"ok": None}  # stats for THIS request only
+    with ThreadPoolExecutor(max_workers=len(CONTEST_SOURCES)) as pool:
+        futures = [
+            pool.submit(fetch_codeforces),
+            pool.submit(_fetch_atcoder),
+            pool.submit(fetch_leetcode_graphql),
+            pool.submit(fetch_codechef),
+            pool.submit(fetch_topcoder),
+        ]
+        cf, atc, lc, cc, tc = (future.result() for future in futures)
     # Skip HackerEarth for now in aggregation to avoid unnecessary requests
     merged = cf + atc + lc + cc + tc
     counts = {
@@ -801,15 +831,30 @@ def get_contests(
         "cached": False
     }
     
-    # Cache the response data (expires in 1 hour)
-    set_cache(cache_key, response_data, expiry=60*60)
+    # Cache the response data. Never cache an all-sources-failed payload: the
+    # next visitor should trigger a retry instead of getting "no contests" for
+    # an hour. Partial results get a much shorter TTL.
+    ok_sources = [
+        source for source in CONTEST_SOURCES
+        if last_fetch_stats.get(source, {}).get("ok") is True
+    ]
+    if len(ok_sources) == len(CONTEST_SOURCES):
+        set_cache(cache_key, response_data, expiry=CACHE_TTL_SECONDS)
+    elif ok_sources:
+        set_cache(cache_key, response_data, expiry=CACHE_TTL_PARTIAL_SECONDS)
     
     return response_data
 
 
-@router.get("/contests/debug")
-def contests_debug():
-    """Return last fetch stats for each source to aid debugging."""
+@router.get("/contests/debug", include_in_schema=False)
+def contests_debug(
+    _admin: User = Depends(get_current_admin),
+):
+    """Return last fetch stats for each source to aid debugging.
+
+    Admin-only: it exposes internal scraping state, including when each source
+    last ran and whether it failed.
+    """
     return {"sources": last_fetch_stats}
 
 
@@ -844,9 +889,12 @@ def get_contests_by_source(
     if not refresh:
         cached_data = get_cache(cache_key)
         if cached_data:
+            # get_cache deserializes a fresh copy, so marking it here is safe.
+            cached_data["cached"] = True
             return cached_data
     
     # Fetch data based on source
+    last_fetch_stats[source] = {"ok": None}  # stats for THIS request only
     contests = []
     if source == "codeforces":
         contests = fetch_codeforces()
@@ -876,7 +924,9 @@ def get_contests_by_source(
         "cached": False
     }
     
-    # Cache the response data (expires in 1 hour)
-    set_cache(cache_key, response_data, expiry=60*60)
+    # Cache the response data unless the fetch itself failed: caching a
+    # failure would serve an empty list for an hour.
+    if last_fetch_stats.get(source, {}).get("ok") is not False:
+        set_cache(cache_key, response_data, expiry=CACHE_TTL_SECONDS)
     
     return response_data

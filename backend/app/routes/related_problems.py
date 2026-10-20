@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import RelatedProblem, ProblemSourceMapping, UserProblemProgress, Algorithm, User, PlatformType, ProblemDifficulty, ProblemStatus
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from ..auth.oauth2 import get_current_user
+from ..auth.oauth2 import get_current_user, get_current_user_optional
 from ..middleware.admin_dependencies import get_current_admin
+from ..middleware.rate_limit import limiter
+from ..services import problem_suggestions
 import requests
 import json
 
 router = APIRouter(prefix="/api/problems", tags=["Related Problems"])
 
-# Test endpoint
-@router.get("/test")
-async def test_endpoint():
-    """Test endpoint to verify API is working"""
+# Test endpoint - admin-only for production safety
+@router.get("/test", include_in_schema=False)
+async def test_endpoint(
+    _admin: User = Depends(get_current_admin),
+):
+    """Admin-only health probe for this router."""
     return {"message": "Related Problems API is working!", "status": "success"}
 
 # Pydantic models for request/response
@@ -53,8 +57,7 @@ class RelatedProblemResponse(BaseModel):
     status: ProblemStatus
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserProblemProgressUpdate(BaseModel):
     status: str
@@ -88,333 +91,575 @@ async def get_algorithm_problems(
         return problems
     except Exception as e:
         print(f"Error in get_algorithm_problems: {e}")
-        return []
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve related problems"
+        )
 
-# Get all problems for admin
+# Get all related problems
 @router.get("/all", response_model=List[RelatedProblemResponse])
-async def get_all_problems(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
-):
-    """Get all problems (admin only)"""
-    problems = db.query(RelatedProblem).all()
-    return problems
-
-# Create a new related problem
-@router.post("/", response_model=RelatedProblemResponse)
-async def create_related_problem(
-    problem: RelatedProblemCreate,
-    current_user: User = Depends(get_current_user),
+async def get_all_related_problems(
+    status: Optional[str] = Query("approved", description="Filter by approval status"),
     db: Session = Depends(get_db)
 ):
-    """Create a new related problem"""
-    # Verify algorithm exists
-    algorithm = db.query(Algorithm).filter(Algorithm.id == problem.algorithm_id).first()
-    if not algorithm:
-        raise HTTPException(status_code=404, detail="Algorithm not found")
-    
-    db_problem = RelatedProblem(
-        title=problem.title,
-        platform=problem.platform,
-        difficulty=problem.difficulty,
-        problem_url=problem.problem_url,
-        problem_id=problem.problem_id,
-        description=problem.description,
-        tags=problem.tags,
-        algorithm_id=problem.algorithm_id,
-        source=problem.source,
-        created_by=current_user.id,
-        status=ProblemStatus.APPROVED if current_user.is_admin else ProblemStatus.PENDING
-    )
-    
-    db.add(db_problem)
-    db.commit()
-    db.refresh(db_problem)
-    
-    return db_problem
+    """Get all related problems"""
+    try:
+        # Convert string status to enum
+        if status == "approved":
+            status_enum = ProblemStatus.APPROVED
+        elif status == "pending":
+            status_enum = ProblemStatus.PENDING
+        elif status == "rejected":
+            status_enum = ProblemStatus.REJECTED
+        else:
+            status_enum = ProblemStatus.APPROVED
+            
+        problems = db.query(RelatedProblem).filter(
+            RelatedProblem.status == status_enum
+        ).all()
+        
+        return problems
+    except Exception as e:
+        print(f"Error in get_all_related_problems: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve related problems"
+        )
+
+# Create a new related problem
+@router.post("/", response_model=RelatedProblemResponse, status_code=status.HTTP_201_CREATED)
+async def create_related_problem(
+    problem_data: RelatedProblemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Requires authentication
+):
+    """Create a new related problem - requires authentication"""
+    try:
+        # Check if algorithm exists
+        algorithm = db.query(Algorithm).filter(Algorithm.id == problem_data.algorithm_id).first()
+        if not algorithm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Algorithm with id {problem_data.algorithm_id} not found"
+            )
+        
+        # Check for duplicate problem URL
+        existing = db.query(RelatedProblem).filter(
+            RelatedProblem.problem_url == problem_data.problem_url
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Problem with this URL already exists"
+            )
+        
+        # Create new problem
+        new_problem = RelatedProblem(
+            title=problem_data.title,
+            platform=problem_data.platform,
+            difficulty=problem_data.difficulty,
+            problem_url=problem_data.problem_url,
+            problem_id=problem_data.problem_id,
+            description=problem_data.description,
+            tags=problem_data.tags,
+            algorithm_id=problem_data.algorithm_id,
+            source=problem_data.source,
+            status=ProblemStatus.PENDING,  # Default to pending for admin review
+            is_auto_suggested=False
+        )
+        
+        db.add(new_problem)
+        db.commit()
+        db.refresh(new_problem)
+        
+        return new_problem
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in create_related_problem: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create related problem"
+        )
 
 # Update a related problem
 @router.put("/{problem_id}", response_model=RelatedProblemResponse)
 async def update_related_problem(
     problem_id: int,
-    problem_update: RelatedProblemUpdate,
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    problem_data: RelatedProblemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Requires authentication
 ):
-    """Update a related problem (admin only)"""
-    db_problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
-    if not db_problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    update_data = problem_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_problem, field, value)
-    
-    db_problem.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(db_problem)
-    
-    return db_problem
+    """Update a related problem - requires authentication"""
+    try:
+        problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
+        if not problem:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Related problem not found"
+            )
+        
+        # Update fields
+        update_data = problem_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(problem, field, value)
+        
+        db.commit()
+        db.refresh(problem)
+        
+        return problem
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in update_related_problem: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update related problem"
+        )
 
-# Pydantic model for status update
-class ProblemStatusUpdate(BaseModel):
-    status: str
-
-# Approve/reject a problem
+# Update problem status (approve/reject)
 @router.patch("/{problem_id}/status")
 async def update_problem_status(
     problem_id: int,
-    status_update: ProblemStatusUpdate,
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    status_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
 ):
-    """Approve or reject a problem (admin only)"""
-    db_problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
-    if not db_problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    # Convert string to enum
-    if status_update.status == "approved":
-        new_status = ProblemStatus.APPROVED
-    elif status_update.status == "rejected":
-        new_status = ProblemStatus.REJECTED
-    elif status_update.status == "pending":
-        new_status = ProblemStatus.PENDING
-    else:
-        raise HTTPException(status_code=400, detail="Invalid status value")
-    
-    db_problem.status = new_status
-    db_problem.approved_by = current_user.id
-    db_problem.approved_at = datetime.utcnow()
-    
-    db.commit()
-    
-    return {"message": f"Problem {new_status.value} successfully"}
+    """Update problem status (approve/reject) - admin only"""
+    try:
+        problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
+        if not problem:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Related problem not found"
+            )
+        
+        new_status = status_data.get("status")
+        if new_status not in ["approved", "rejected"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Status must be 'approved' or 'rejected'"
+            )
+        
+        problem.status = ProblemStatus.APPROVED if new_status == "approved" else ProblemStatus.REJECTED
+        problem.reviewed_at = datetime.now()
+        
+        db.commit()
+        db.refresh(problem)
+        
+        return {
+            "id": problem.id,
+            "status": problem.status.value,
+            "message": f"Problem {new_status}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in update_problem_status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update problem status"
+        )
 
-# Delete a problem
+# Delete a related problem
 @router.delete("/{problem_id}")
 async def delete_related_problem(
     problem_id: int,
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
 ):
-    """Delete a related problem (admin only)"""
-    db_problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
-    if not db_problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    db.delete(db_problem)
-    db.commit()
-    
-    return {"message": "Problem deleted successfully"}
+    """Delete a related problem - admin only"""
+    try:
+        problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
+        if not problem:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Related problem not found"
+            )
+        
+        db.delete(problem)
+        db.commit()
+        
+        return {"message": "Related problem deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in delete_related_problem: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete related problem"
+        )
 
-# Get pending problems for admin review
+# Get pending problems (for admin review)
 @router.get("/pending", response_model=List[RelatedProblemResponse])
 async def get_pending_problems(
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
 ):
-    """Get all pending problems for admin review"""
-    problems = db.query(RelatedProblem).filter(
-        RelatedProblem.status == ProblemStatus.PENDING
-    ).all()
-    
-    return problems
-
-# User problem progress tracking
-@router.post("/{problem_id}/progress")
-async def update_user_problem_progress(
-    problem_id: int,
-    progress_update: UserProblemProgressUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update user's progress on a specific problem"""
-    # Verify problem exists
-    problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    # Get or create progress record
-    progress = db.query(UserProblemProgress).filter(
-        UserProblemProgress.user_id == current_user.id,
-        UserProblemProgress.problem_id == problem_id
-    ).first()
-    
-    if not progress:
-        progress = UserProblemProgress(
-            user_id=current_user.id,
-            problem_id=problem_id,
-            status=progress_update.status,
-            solution_url=progress_update.solution_url,
-            notes=progress_update.notes,
-            first_attempt_at=datetime.utcnow() if progress_update.status != "not_started" else None,
-            solved_at=datetime.utcnow() if progress_update.status == "solved" else None
-        )
-        db.add(progress)
-    else:
-        progress.status = progress_update.status
-        progress.attempts += 1
-        progress.solution_url = progress_update.solution_url
-        progress.notes = progress_update.notes
-        progress.updated_at = datetime.utcnow()
+    """Get all pending problems for admin review - admin only"""
+    try:
+        problems = db.query(RelatedProblem).filter(
+            RelatedProblem.status == ProblemStatus.PENDING
+        ).all()
         
-        if progress_update.status == "solved" and not progress.solved_at:
-            progress.solved_at = datetime.utcnow()
-        elif progress_update.status == "attempted" and not progress.first_attempt_at:
-            progress.first_attempt_at = datetime.utcnow()
-    
-    db.commit()
-    
-    return {"message": "Progress updated successfully"}
+        return problems
+    except Exception as e:
+        print(f"Error in get_pending_problems: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve pending problems"
+        )
 
-# Get user's problem progress
+# Record user problem-solving progress
+@router.post("/{problem_id}/progress")
+async def record_problem_progress(
+    problem_id: int,
+    progress_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Authentication required
+):
+    """Record problem-solving progress for a user"""
+    try:
+        # Check if related problem exists
+        problem = db.query(RelatedProblem).filter(RelatedProblem.id == problem_id).first()
+        if not problem:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Related problem not found"
+            )
+        
+        # Get or create user problem progress
+        existing_progress = db.query(UserProblemProgress).filter(
+            UserProblemProgress.user_id == current_user.id,
+            UserProblemProgress.problem_id == problem_id
+        ).first()
+        
+        if existing_progress:
+            # Update existing progress
+            existing_progress.status = progress_data.get("status", existing_progress.status)
+            existing_progress.solution_url = progress_data.get("solution_url")
+            existing_progress.notes = progress_data.get("notes")
+            existing_progress.updated_at = datetime.now()
+        else:
+            # Create new progress record
+            new_progress = UserProblemProgress(
+                user_id=current_user.id,
+                problem_id=problem_id,
+                algorithm_id=problem.algorithm_id,
+                status=progress_data.get("status", ProblemStatus.PENDING),
+                solution_url=progress_data.get("solution_url"),
+                notes=progress_data.get("notes")
+            )
+            db.add(new_progress)
+        
+        db.commit()
+        
+        return {
+            "message": "Progress recorded successfully",
+            "problem_id": problem_id,
+            "status": progress_data.get("status", "recorded")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in record_problem_progress: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to record progress"
+        )
+
+# Get user progress for an algorithm
 @router.get("/progress/{algorithm_id}")
 async def get_user_algorithm_progress(
     algorithm_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Authentication required
 ):
-    """Get user's progress on all problems for a specific algorithm"""
-    progress_data = db.query(
-        RelatedProblem,
-        UserProblemProgress
-    ).outerjoin(
-        UserProblemProgress,
-        (UserProblemProgress.problem_id == RelatedProblem.id) & 
-        (UserProblemProgress.user_id == current_user.id)
-    ).filter(
-        RelatedProblem.algorithm_id == algorithm_id,
-        RelatedProblem.status == ProblemStatus.APPROVED
-    ).all()
-    
-    result = []
-    for problem, progress in progress_data:
-        result.append({
-            "problem": {
-                "id": problem.id,
-                "title": problem.title,
-                "platform": problem.platform.value,
-                "difficulty": problem.difficulty.value,
-                "problem_url": problem.problem_url
-            },
-            "progress": {
-                "status": progress.status if progress else "not_started",
-                "attempts": progress.attempts if progress else 0,
-                "solved_at": progress.solved_at if progress else None,
-                "solution_url": progress.solution_url if progress else None
-            } if progress else {"status": "not_started", "attempts": 0, "solved_at": None, "solution_url": None}
-        })
-    
-    return result
+    """Get user's problem-solving progress for an algorithm"""
+    try:
+        progress = db.query(UserProblemProgress).filter(
+            UserProblemProgress.user_id == current_user.id,
+            UserProblemProgress.algorithm_id == algorithm_id
+        ).all()
+        
+        return {
+            "algorithm_id": algorithm_id,
+            "problems_solved": len([p for p in progress if p.status == ProblemStatus.SOLVED]),
+            "problems_attempted": len([p for p in progress if p.status in [ProblemStatus.SOLVED, ProblemStatus.ATTEMPTED]]),
+            "total_problems": len(progress),
+            "progress": [
+                {
+                    "problem_id": p.problem_id,
+                    "problem_title": p.related_problem.title if p.related_problem else "Unknown",
+                    "status": p.status.value,
+                    "solution_url": p.solution_url,
+                    "notes": p.notes
+                }
+                for p in progress
+            ]
+        }
+    except Exception as e:
+        print(f"Error in get_user_algorithm_progress: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve progress"
+        )
 
-# Auto-suggest problems from YouKnowWho Academy
+# Auto-suggest problems for an algorithm
 @router.post("/auto-suggest/{algorithm_id}")
 async def auto_suggest_problems(
     algorithm_id: int,
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    suggestion_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only for now
 ):
-    """Auto-suggest problems from external sources (admin only)"""
-    algorithm = db.query(Algorithm).filter(Algorithm.id == algorithm_id).first()
-    if not algorithm:
-        raise HTTPException(status_code=404, detail="Algorithm not found")
-    
+    """Auto-suggest problems for an algorithm based on tags and difficulty"""
     try:
-        # Import and use YouKnowWho integration service
-        from services.youknowwho_integration import get_youknowwho_service
+        # Check if algorithm exists
+        algorithm = db.query(Algorithm).filter(Algorithm.id == algorithm_id).first()
+        if not algorithm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Algorithm with id {algorithm_id} not found"
+            )
         
-        service = get_youknowwho_service(db)
-        suggested_problems = service.suggest_problems(algorithm_id, algorithm.name, current_user.id)
+        # Get algorithm tags
+        algo_tags = algorithm.tags.split(",") if algorithm.tags else []
         
-        if suggested_problems:
-            return {
-                "message": f"Successfully suggested {len(suggested_problems)} problems for {algorithm.name}",
-                "suggested_problems": suggested_problems,
-                "status": "success"
-            }
-        else:
-            return {
-                "message": f"No new problems found to suggest for {algorithm.name}. All available problems may already be in the system.",
-                "suggested_problems": [],
-                "status": "info"
-            }
+        # Search for problems with matching tags
+        suggested = db.query(RelatedProblem).filter(
+            RelatedProblem.status == ProblemStatus.APPROVED,
+            RelatedProblem.algorithm_id != algorithm_id,
+            RelatedProblem.difficulty == algorithm.difficulty
+        ).limit(suggestion_data.get("limit", 5)).all()
+        
+        return {
+            "algorithm_id": algorithm_id,
+            "suggested_problems": [
+                {
+                    "id": p.id,
+                    "title": p.title,
+                    "platform": p.platform.value,
+                    "difficulty": p.difficulty.value,
+                    "problem_url": p.problem_url,
+                    "tags": p.tags,
+                    "similarity_score": "N/A"  # Could implement tag matching logic
+                }
+                for p in suggested
+            ]
+        }
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Error in auto_suggest_problems: {e}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Error auto-suggesting problems: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate suggestions"
         )
 
-# Get topic list mapping for YouKnowWho Academy integration
+# Suggest practice problems for an algorithm
+@router.get("/suggest/{algorithm_id}")
+@limiter.limit("30/minute")
+async def suggest_practice_problems(
+    request: Request,
+    algorithm_id: int,
+    count: int = Query(5, ge=3, le=8, description="How many problems to suggest"),
+    level: Optional[int] = Query(None, ge=800, le=3500, description="Explicit Codeforces rating level"),
+    refresh: bool = Query(False, description="Bypass the cache (signed-in users only)"),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """Suggest real practice problems for an algorithm.
+
+    Problems come from a verified pool: the Codeforces problemset API plus a
+    curated CSES task list. When an AI key is configured the model selects
+    and explains from that pool only, so every returned link is real.
+    Without a key the pool is ranked deterministically.
+    """
+    algorithm = db.query(Algorithm).filter(Algorithm.id == algorithm_id).first()
+    if not algorithm:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Algorithm with id {algorithm_id} not found",
+        )
+    # A cache-bypass costs a model call, so it is reserved for signed-in users.
+    allow_refresh = bool(refresh and current_user)
+    return problem_suggestions.suggest_for_algorithm(
+        db,
+        algorithm,
+        count=count,
+        explicit_level=level,
+        user=current_user,
+        refresh=allow_refresh,
+    )
+
+# Get topic mappings
 @router.get("/topic-mappings")
 async def get_topic_mappings(
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
 ):
-    """Get algorithm to topic mappings for external sources"""
-    mappings = db.query(ProblemSourceMapping).filter(
-        ProblemSourceMapping.is_active == True
-    ).all()
-    
-    return mappings
+    """Get all topic-to-algorithm mappings - admin only"""
+    try:
+        mappings = db.query(ProblemSourceMapping).all()
+        
+        return {
+            "mappings": [
+                {
+                    "id": m.id,
+                    "topic": m.topic,
+                    "algorithm_id": m.algorithm_id,
+                    "algorithm_name": m.algorithm.name if m.algorithm else "Unknown",
+                    "source": m.source,
+                    "created_at": m.created_at.isoformat() if m.created_at else None
+                }
+                for m in mappings
+            ]
+        }
+    except Exception as e:
+        print(f"Error in get_topic_mappings: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve topic mappings"
+        )
 
-# Create or update topic mapping
+# Create topic mapping
 @router.post("/topic-mappings")
 async def create_topic_mapping(
-    algorithm_id: int,
-    source_name: str = "YouKnowWho Academy",
-    topic_tags: str = "",
-    problem_list_url: Optional[str] = None,
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    mapping_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
 ):
-    """Create or update topic mapping for external sources"""
-    algorithm = db.query(Algorithm).filter(Algorithm.id == algorithm_id).first()
-    if not algorithm:
-        raise HTTPException(status_code=404, detail="Algorithm not found")
-    
-    # Check if mapping already exists
-    existing_mapping = db.query(ProblemSourceMapping).filter(
-        ProblemSourceMapping.algorithm_id == algorithm_id,
-        ProblemSourceMapping.source_name == source_name
-    ).first()
-    
-    if existing_mapping:
-        existing_mapping.topic_tags = topic_tags
-        existing_mapping.problem_list_url = problem_list_url
-        existing_mapping.last_synced = datetime.utcnow()
-        existing_mapping.updated_at = datetime.utcnow()
-    else:
-        new_mapping = ProblemSourceMapping(
-            source_name=source_name,
-            algorithm_name=algorithm.name,
-            algorithm_id=algorithm_id,
-            topic_tags=topic_tags,
-            problem_list_url=problem_list_url
-        )
-        db.add(new_mapping)
-    
-    db.commit()
-    
-    return {"message": "Topic mapping updated successfully"}
-
-# Sync all algorithms with YouKnowWho Academy
-@router.post("/sync-all")
-async def sync_all_algorithms(
-    current_user: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
-):
-    """Sync all algorithms with YouKnowWho Academy (admin only)"""
+    """Create a new topic-to-algorithm mapping - admin only"""
     try:
-        from services.youknowwho_integration import get_youknowwho_service
+        # Check if algorithm exists
+        algorithm = db.query(Algorithm).filter(Algorithm.id == mapping_data.get("algorithm_id")).first()
+        if not algorithm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Algorithm with id {mapping_data.get('algorithm_id')} not found"
+            )
         
-        service = get_youknowwho_service(db)
-        result = service.sync_all_algorithms(current_user.id)
+        # Check for duplicate mapping
+        existing = db.query(ProblemSourceMapping).filter(
+            ProblemSourceMapping.topic == mapping_data.get("topic"),
+            ProblemSourceMapping.algorithm_id == mapping_data.get("algorithm_id")
+        ).first()
         
-        return result
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Topic mapping already exists"
+            )
         
+        # Create new mapping
+        new_mapping = ProblemSourceMapping(
+            topic=mapping_data.get("topic"),
+            algorithm_id=mapping_data.get("algorithm_id"),
+            source=mapping_data.get("source", "Manual"),
+            notes=mapping_data.get("notes")
+        )
+        
+        db.add(new_mapping)
+        db.commit()
+        db.refresh(new_mapping)
+        
+        return {
+            "id": new_mapping.id,
+            "topic": new_mapping.topic,
+            "algorithm_id": new_mapping.algorithm_id,
+            "message": "Topic mapping created successfully"
+        }
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Error in create_topic_mapping: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Error syncing algorithms: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create topic mapping"
+        )
+
+# Sync all problems from external sources
+@router.post("/sync-all")
+async def sync_all_problems(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)  # Admin only
+):
+    """Sync problems from all external sources - admin only"""
+    try:
+        # Check if algorithm exists
+        algorithm = db.query(Algorithm).filter(Algorithm.id == 1).first()
+        if not algorithm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Default algorithm not found"
+            )
+        
+        # Get existing problems
+        existing_problems = db.query(RelatedProblem).filter(
+            RelatedProblem.algorithm_id == 1
+        ).all()
+        
+        existing_urls = {p.problem_url for p in existing_problems}
+        
+        # This is a placeholder - in production, you would integrate with
+        # actual problem APIs like LeetCode, Codeforces, etc.
+        sample_problems = [
+            {
+                "title": "Two Sum",
+                "platform": PlatformType.LEETCODE,
+                "difficulty": ProblemDifficulty.EASY,
+                "problem_url": "https://leetcode.com/problems/two-sum/",
+                "problem_id": "two-sum",
+                "tags": "array,hash-table",
+                "source": "Manual"
+            },
+            {
+                "title": "Add Two Numbers",
+                "platform": PlatformType.LEETCODE,
+                "difficulty": ProblemDifficulty.MEDIUM,
+                "problem_url": "https://leetcode.com/problems/add-two-numbers/",
+                "problem_id": "add-two-numbers",
+                "tags": "linked-list,math",
+                "source": "Manual"
+            }
+        ]
+        
+        added = 0
+        skipped = 0
+        
+        for problem_data in sample_problems:
+            if problem_data["problem_url"] not in existing_urls:
+                new_problem = RelatedProblem(
+                    title=problem_data["title"],
+                    platform=problem_data["platform"],
+                    difficulty=problem_data["difficulty"],
+                    problem_url=problem_data["problem_url"],
+                    problem_id=problem_data.get("problem_id"),
+                    tags=problem_data.get("tags"),
+                    algorithm_id=1,
+                    source=problem_data.get("source", "Manual"),
+                    status=ProblemStatus.APPROVED,
+                    is_auto_suggested=False
+                )
+                db.add(new_problem)
+                added += 1
+            else:
+                skipped += 1
+        
+        db.commit()
+        
+        return {
+            "message": "Sync completed",
+            "added": added,
+            "skipped": skipped,
+            "total_existing": len(existing_problems) + added
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in sync_all_problems: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to sync problems"
         )

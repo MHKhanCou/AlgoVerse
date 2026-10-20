@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas
+from ..models import User
 from ..repositories import user_repo
-from ..db import get_db  
+from ..db import get_db
+from ..middleware.admin_dependencies import get_current_admin
 
 router = APIRouter(
     prefix="/users",
@@ -11,22 +13,34 @@ router = APIRouter(
 )
 
 # 🔹 Get all users
-@router.get("/", response_model=List[schemas.ShowUser])
+# Anonymous. Returns a public projection: no email, no is_admin.
+@router.get("/", response_model=List[schemas.PublicUser])
 def get_all_users(db: Session = Depends(get_db)):
     return user_repo.get_all_users(db)
 
 # 🔹 Get user by ID
-@router.get("/{user_id}", response_model=schemas.ShowUser)
+@router.get("/{user_id}", response_model=schemas.PublicUser)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     return user_repo.get_user_by_id(db, user_id)
 
-# 🔹 Register a new user
-@router.post("/", response_model=schemas.ShowUser, status_code=status.HTTP_201_CREATED)
-def create_user(request: schemas.RegisterUser, db: Session = Depends(get_db)):
+# 🔹 Create a user directly (no OTP mail).
+# Admin-only: this bypasses /register's 3/minute limit and its verification
+# email, so leaving it anonymous gave anyone an unlimited, unverified account
+# factory next to the rate-limited registration endpoint.
+@router.post(
+    "/",
+    response_model=schemas.PublicUser,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_user(
+    request: schemas.RegisterUser,
+    db: Session = Depends(get_db),
+    _current_admin: User = Depends(get_current_admin),
+):
     return user_repo.create_user(db, request)
 
 # 🔹 Get user profile (includes progress)
-@router.get("/{user_id}/profile", response_model=schemas.UserProfile)
+@router.get("/{user_id}/profile", response_model=schemas.PublicUserWithProgress)
 def get_user_profile(user_id: int, db: Session = Depends(get_db)):
     return user_repo.get_user_profile(db, user_id)
 

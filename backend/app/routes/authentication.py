@@ -142,7 +142,7 @@ async def admin_login(
         }
     }
 
-@router.post("/register", response_model=schemas.APIResponse)
+@router.post("/register", response_model=schemas.RegisterResponse)
 @limiter.limit("3/minute")
 async def register(request: Request, user_data: schemas.RegisterUser, db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
     # Check if user already exists
