@@ -13,14 +13,14 @@ const PROD_API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_P
 // Automatic URL selection based on environment
 const API_BASE_URL = isProduction ? PROD_API_BASE_URL : DEV_API_BASE_URL;
 
-console.log('🚀 AlgoVerse API Configuration:');
-console.log(`   MODE: ${import.meta.env.MODE}`);
-console.log(`   VITE_ENVIRONMENT: ${import.meta.env.VITE_ENVIRONMENT}`);
-console.log(`   VITE_API_URL: ${import.meta.env.VITE_API_URL}`);
-console.log(`   VITE_PROD_API_BASE_URL: ${import.meta.env.VITE_PROD_API_BASE_URL}`);
-console.log(`   isProduction: ${isProduction}`);
-console.log(`   API Base URL: ${API_BASE_URL}`);
-console.log('='.repeat(50));
+// Dev-only. import.meta.env.DEV is replaced with `false` by Vite in a
+// production build, so this whole block is dead code there and the resolved
+// base URL never reaches a visitor's console.
+if (import.meta.env.DEV) {
+  console.debug(
+    `[api] mode=${import.meta.env.MODE} env=${import.meta.env.VITE_ENVIRONMENT ?? '-'} base=${API_BASE_URL}`
+  );
+}
 
 // Create axios instance with environment-based configuration
 const api = axios.create({
@@ -37,9 +37,12 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Adding auth token to request:', config.url);
-    } else {
-      console.log('⚠️ No auth token found for request:', config.url);
+    }
+    if (import.meta.env.DEV) {
+      // Says whether a token was attached, never what it was.
+      console.debug(
+        `[api] ${config.method?.toUpperCase() ?? 'GET'} ${config.url} auth=${token ? 'yes' : 'no'}`
+      );
     }
     return config;
   },
@@ -51,17 +54,28 @@ api.interceptors.request.use(
 // Response interceptor - handle common errors
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response successful:', response.config.url, response.status);
+    if (import.meta.env.DEV) {
+      console.debug(`[api] ${response.status} ${response.config.url}`);
+    }
     return response;
   },
   (error) => {
-    console.error('❌ API Response error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message
-    });
+    // Failures are worth logging in production too, but the response body is
+    // not: it can echo back submitted fields. Keep the full dump to dev and
+    // log only the routing facts a visitor would see in the Network tab.
+    if (import.meta.env.DEV) {
+      console.error('[api] request failed', {
+        url: error.config?.url,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+    } else {
+      console.error(
+        `[api] request failed: ${error.response?.status ?? 'no response'} ${error.config?.url ?? ''}`
+      );
+    }
     return Promise.reject(error);
   }
 );

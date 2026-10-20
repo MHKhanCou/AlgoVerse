@@ -9,7 +9,7 @@ const SignUpPage = () => {
   // Make sure you're destructuring register from useAuth
   const { register } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,13 +23,11 @@ const SignUpPage = () => {
 
   const checkPasswordStrength = (password) => {
     if (!password) return '';
-    
     const hasLower = /[a-z]/.test(password);
     const hasUpper = /[A-Z]/.test(password);
     const hasNumber = /\d/.test(password);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const isLongEnough = password.length >= 8;
-
     const strength = [hasLower, hasUpper, hasNumber, hasSpecial, isLongEnough]
       .filter(Boolean).length;
 
@@ -40,7 +38,7 @@ const SignUpPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value
     }));
@@ -60,31 +58,34 @@ const SignUpPage = () => {
 
     setLoading(true);
     try {
-      // Make sure you're calling register with the correct parameters
       const res = await register(formData.name, formData.email, formData.password);
-      console.log('Registration successful:', res);
-      
+
       if (res.success) {
-        toast.success('🎉 Registration successful!');
-        
-        if (res.email_sent) {
-          toast.info('📧 A verification code has been sent to your email.', {
+        toast.success('🎉 Account created.');
+
+        // The /register response tells the UI whether the one-time verification code
+        // was queued. email_sent was previously stripped by the response model; see
+        // backend/app/schemas.RegisterResponse + backend/ROUTES_DOCUMENTATION.md.
+        const codeQueued = res.email_sent;
+        if (codeQueued) {
+          toast.info('📧 A 6-digit verification code was sent to your email.', {
             autoClose: 6000
           });
         } else {
-          toast.warning('⚠️ Verification email could not be sent. You can verify your email later from profile settings.', {
-            autoClose: 6000
-          });
+          toast.warning(
+            '⚠️ Verification code could not be queued. You can request one later from profile settings.',
+            { autoClose: 6000 }
+          );
         }
-        
-        // Log the user in immediately (allow browsing without verification)
+
+        // The app lets newly registered users browse before verifying, so log them in
+        // immediately. If that fails (e.g. the backend changes), fall back to /login.
         try {
           const loginRes = await authService.login(formData.email, formData.password);
           localStorage.setItem('token', loginRes.access_token);
-          window.location.href = '/'; // Redirect to home
+          window.location.href = '/';
         } catch {
-          // If login fails, redirect to login page
-          toast.info('You can now log in with your credentials');
+          toast.info('You can now sign in with your email and password.');
           navigate('/login');
         }
       }
@@ -100,7 +101,7 @@ const SignUpPage = () => {
     <div className="signup-container">
       <div className="signup-card">
         <h2 className="signup-title">Create Account</h2>
-        
+
         {/* Removed the inline error message div */}
 
         <form onSubmit={handleSubmit}>
@@ -113,6 +114,7 @@ const SignUpPage = () => {
               onChange={handleChange}
               disabled={loading}
               required
+              autoComplete="name"
             />
           </div>
 
@@ -125,6 +127,7 @@ const SignUpPage = () => {
               onChange={handleChange}
               disabled={loading}
               required
+              autoComplete="email"
             />
             {formData.email && !/\S+@\S+\.\S+/.test(formData.email) && (
               <div className="validation-hint">Enter a valid email address</div>
@@ -141,10 +144,11 @@ const SignUpPage = () => {
                 onChange={handleChange}
                 disabled={loading}
                 required
+                autoComplete="new-password"
               />
               <span
                 className="toggle-password"
-                onClick={() => setShowPassword(prev => !prev)}
+                onClick={() => setShowPassword((prev) => !prev)}
                 role="button"
                 tabIndex={0}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -168,7 +172,7 @@ const SignUpPage = () => {
               <div className={`password-strength ${passwordStrength}`}>
                 {passwordStrength && (
                   <>
-                    <div className="strength-bar"></div>
+                    <div className="strength-bar" />
                     <span className="strength-text">
                       Password strength: {passwordStrength}
                     </span>
@@ -188,10 +192,11 @@ const SignUpPage = () => {
                 onChange={handleChange}
                 disabled={loading}
                 required
+                autoComplete="new-password"
               />
               <span
                 className="toggle-password"
-                onClick={() => setShowConfirmPassword(prev => !prev)}
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
                 role="button"
                 tabIndex={0}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
@@ -212,12 +217,12 @@ const SignUpPage = () => {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="signup-btn"
             disabled={loading}
           >
-            {loading ? <span className="spinner"></span> : 'Sign Up'}
+            {loading ? <span className="spinner" /> : 'Sign Up'}
           </button>
         </form>
 

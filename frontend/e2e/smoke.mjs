@@ -32,6 +32,27 @@ await page.goto(BASE, { waitUntil: 'networkidle' });
 const rootHtml = await page.$eval('#root', el => el.innerHTML.length);
 check('home page mounts React (non-empty #root)', rootHtml > 200, `${rootHtml} chars`);
 
+// ---- 1b. Sign-in entry point is reachable and shows the form ----
+await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+const title = await page.title();
+const signinHeading = await page.$eval('.signin-title, .password-title, h2', el => el.textContent.trim());
+check('sign-in page renders', title.length > 0 && signinHeading.length > 0, `title="${title}", heading="${signinHeading}"`);
+
+const passwordField = await page.$('input[type="password"]');
+check('password field present on sign-in page', !!passwordField);
+
+const emailField = await page.$('input[type="email"]');
+check('email field present on sign-in page', !!emailField);
+
+// ---- 1c. Two-factor-style code entry is reachable from sign-up/verify path ----
+// /verify-otp redirects to /signup unless it knows which address is being
+// verified, so seed the key the signup flow normally sets before navigating.
+await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+await page.evaluate(() => sessionStorage.setItem('registeredEmail', 'smoke-test@example.com'));
+await page.goto(`${BASE}/verify-otp`, { waitUntil: 'networkidle' });
+const otpField = await page.$('.otp-input');
+check('one-time-code field present on /verify-otp', !!otpField);
+
 // ---- 2. Favicon is a real image, not the SPA fallback ----
 const favicon = await page.evaluate(async () => {
   const res = await fetch('/vite.svg');
