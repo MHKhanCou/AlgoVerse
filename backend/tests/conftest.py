@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.db.database import Base, get_db
+from app.middleware.rate_limit import limiter
 from app.models import User
 from app.auth.password_utils import hash_password
 
@@ -25,6 +26,27 @@ def setup_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limiting():
+    """
+    Turn off slowapi for the duration of every test.
+
+    The limiter is process-global and keyed on the client address. TestClient
+    always reports the same address, so without this the whole session shares
+    a single bucket: /register allows 3/minute, and once the suite has made
+    three registration calls every later call gets a 429. The test_user
+    fixture then finds no user to verify and blows up in an unrelated test,
+    which is why the failures only appeared in a full run and never for a
+    single test file on its own.
+    """
+    previously_enabled = limiter.enabled
+    limiter.enabled = False
+    limiter.reset()
+    yield
+    limiter.reset()
+    limiter.enabled = previously_enabled
 
 
 @pytest.fixture
@@ -58,6 +80,10 @@ def test_user(client):
     # Manually verify in DB
     db = TestSession()
     user = db.query(User).filter(User.email == "test@example.com").first()
+    assert user is not None, (
+        "test_user fixture could not find the account it just registered - "
+        "registration did not return 2xx (rate limit, or the endpoint failed)"
+    )
     user.is_verified = True
     db.commit()
     db.close()

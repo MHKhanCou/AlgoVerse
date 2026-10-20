@@ -1,0 +1,13 @@
+# Test and development dependencies.
+#
+#   pip install -r backend/requirements-dev.txt
+#
+# This file existed only implicitly before: pytest and httpx were installed by
+# hand, so `pytest tests/` failed on a clean checkout and CI had nothing to run.
+# pytest provides the runner; httpx is what fastapi.testclient uses to drive the
+# app, so both are required to execute the suite at all.
+
+-r ../requirements.txt
+
+pytest==9.1.1
+httpx==0.28.1

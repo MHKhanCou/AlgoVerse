@@ -2,8 +2,6 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware import Middleware
-from starlette.middleware.errors import ServerErrorMiddleware
 
 import time
 
@@ -11,13 +9,22 @@ from .db import engine
 from . import models
 from .routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments, algorithm_comments, contests
 from .middleware.rate_limit import limiter
+from .middleware.security_headers import SecurityHeadersMiddleware
 from .core.config import settings
+
+# Fails the boot rather than starting a production deployment that would sign
+# tokens with an empty key. See Settings.validate_for_production.
+settings.validate_for_production()
 
 app = FastAPI()
 
 # Rate limiting
 app.state.limiter = limiter
-app.add_middleware(ServerErrorMiddleware)
+
+# Security headers live in their own middleware. ServerErrorMiddleware is NOT
+# added here: FastAPI already installs one when it builds the middleware stack,
+# so the previous add_middleware() call only registered a second no-op copy.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS origins from settings
 app.add_middleware(
