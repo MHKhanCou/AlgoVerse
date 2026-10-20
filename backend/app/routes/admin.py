@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..schemas import ShowAlgorithm, AddAlgorithm, UpdateAlgorithm, ShowAlgorithmType, AddAlgorithmType, UpdateAlgorithmType, ShowBlog, AddBlog, UpdateBlog, ShowUser, ShowUserProgress, AddUserProgress, UpdateUserProgress, BlogModerationAction
@@ -6,6 +6,7 @@ from ..models import User, AlgorithmType, Algorithm, Blog, UserProgress, BlogSta
 from .. import models
 from ..db import get_db
 from ..middleware.admin_dependencies import get_current_admin
+from ..middleware.rate_limit import limiter
 from ..repositories import algo_repo, algo_types_repo, user_repo, user_progress_repo, blog_repo
 import logging
 
@@ -33,7 +34,8 @@ async def get_all_users(db: Session = Depends(get_db), admin: User = Depends(get
     return user_repo.get_all_users(db)
 
 @router_users.put("/{user_id}/make-admin", response_model=ShowUser)
-async def make_admin(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def make_admin(request: Request, user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     user = user_repo.if_exists(db, user_id)
     user.is_admin = True
     db.commit()
@@ -41,7 +43,8 @@ async def make_admin(user_id: int, db: Session = Depends(get_db), admin: User = 
     return user
 
 @router_users.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def delete_user(request: Request, user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     user_repo.delete_user(db, user_id)
     return None
 
@@ -51,15 +54,18 @@ async def get_all_algorithm_types(db: Session = Depends(get_db), admin: User = D
     return algo_types_repo.get_all_algorithm_types(db)
 
 @router_algo_types.post("/", response_model=ShowAlgorithmType, status_code=status.HTTP_201_CREATED)
-async def create_algorithm_type(algo_type: AddAlgorithmType, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("20/minute")
+async def create_algorithm_type(request: Request, algo_type: AddAlgorithmType, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return algo_types_repo.create_algorithm_type(db, algo_type)
 
 @router_algo_types.put("/{type_id}", response_model=ShowAlgorithmType, status_code=status.HTTP_200_OK)
-async def update_algorithm_type(type_id: int, algo_type: UpdateAlgorithmType, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("30/minute")
+async def update_algorithm_type(request: Request, type_id: int, algo_type: UpdateAlgorithmType, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return algo_types_repo.update_algorithm_type(db, type_id, algo_type)
 
 @router_algo_types.delete("/{type_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_algorithm_type(type_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def delete_algorithm_type(request: Request, type_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     algo_types_repo.delete_algorithm_type(db, type_id)
     return None
 
@@ -69,15 +75,18 @@ async def get_all_algorithms(db: Session = Depends(get_db), admin: User = Depend
     return algo_repo.get_all_algorithms(db)
 
 @router_algorithms.post("/", response_model=ShowAlgorithm, status_code=status.HTTP_201_CREATED)
-async def create_algorithm(algo: AddAlgorithm, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("20/minute")
+async def create_algorithm(request: Request, algo: AddAlgorithm, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return algo_repo.create_algorithm(db, algo)
 
 @router_algorithms.put("/{algo_id}", response_model=ShowAlgorithm, status_code=status.HTTP_200_OK)
-async def update_algorithm(algo_id: int, algo: UpdateAlgorithm, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("30/minute")
+async def update_algorithm(request: Request, algo_id: int, algo: UpdateAlgorithm, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return algo_repo.update_algorithm(db, algo_id, algo)
 
 @router_algorithms.delete("/{algo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_algorithm(algo_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def delete_algorithm(request: Request, algo_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     algo_repo.delete_algorithm(db, algo_id)
     return None
 
@@ -104,7 +113,9 @@ async def get_pending_blogs(
     return blog_repo.get_pending_blogs(db, skip, limit)
 
 @router_blogs.post("/{blog_id}/moderate", response_model=ShowBlog)
+@limiter.limit("30/minute")
 async def moderate_blog(
+    request: Request,
     blog_id: int, 
     moderation: BlogModerationAction,
     db: Session = Depends(get_db), 
@@ -114,11 +125,13 @@ async def moderate_blog(
     return blog_repo.moderate_blog(db, blog_id, moderation.status, admin.id, moderation.admin_feedback)
 
 @router_blogs.put("/{blog_id}", response_model=ShowBlog, status_code=status.HTTP_200_OK)
-async def update_blog(blog_id: int, blog: UpdateBlog, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("30/minute")
+async def update_blog(request: Request, blog_id: int, blog: UpdateBlog, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     return blog_repo.update_blog(db=db, request=blog, blog_id=blog_id, user_id=admin.id)
 
 @router_blogs.delete("/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_blog(blog_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def delete_blog(request: Request, blog_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     blog_repo.delete_blog(db=db, blog_id=blog_id, user_id=admin.id)
     return None
 
@@ -128,12 +141,14 @@ async def get_all_progress(db: Session = Depends(get_db), admin: User = Depends(
     return user_progress_repo.get_all(db)
 
 @router_progress.delete("/{progress_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_progress(progress_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("30/minute")
+async def delete_progress(request: Request, progress_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     user_progress_repo.delete(db, progress_id)
     return None
 
 @router_progress.delete("/user/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_progress(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+@limiter.limit("10/minute")
+async def delete_user_progress(request: Request, user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     user_progress_repo.delete(db, user_id)
     return None
 

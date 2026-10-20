@@ -128,7 +128,9 @@ async def get_all_related_problems(
 
 # Create a new related problem
 @router.post("/", response_model=RelatedProblemResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("20/minute")
 async def create_related_problem(
+    request: Request,
     problem_data: RelatedProblemCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)  # Requires authentication
@@ -184,7 +186,9 @@ async def create_related_problem(
 
 # Update a related problem
 @router.put("/{problem_id}", response_model=RelatedProblemResponse)
+@limiter.limit("30/minute")
 async def update_related_problem(
+    request: Request,
     problem_id: int,
     problem_data: RelatedProblemUpdate,
     db: Session = Depends(get_db),
@@ -219,7 +223,9 @@ async def update_related_problem(
 
 # Update problem status (approve/reject)
 @router.patch("/{problem_id}/status")
+@limiter.limit("30/minute")
 async def update_problem_status(
+    request: Request,
     problem_id: int,
     status_data: dict,
     db: Session = Depends(get_db),
@@ -263,7 +269,9 @@ async def update_problem_status(
 
 # Delete a related problem
 @router.delete("/{problem_id}")
+@limiter.limit("20/minute")
 async def delete_related_problem(
+    request: Request,
     problem_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)  # Admin only
@@ -312,7 +320,9 @@ async def get_pending_problems(
 
 # Record user problem-solving progress
 @router.post("/{problem_id}/progress")
+@limiter.limit("120/minute")
 async def record_problem_progress(
+    request: Request,
     problem_id: int,
     progress_data: dict,
     db: Session = Depends(get_db),
@@ -407,7 +417,9 @@ async def get_user_algorithm_progress(
 
 # Auto-suggest problems for an algorithm
 @router.post("/auto-suggest/{algorithm_id}")
+@limiter.limit("5/minute")
 async def auto_suggest_problems(
+    request: Request,
     algorithm_id: int,
     suggestion_data: dict,
     db: Session = Depends(get_db),
@@ -525,7 +537,9 @@ async def get_topic_mappings(
 
 # Create topic mapping
 @router.post("/topic-mappings")
+@limiter.limit("10/minute")
 async def create_topic_mapping(
+    request: Request,
     mapping_data: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)  # Admin only
@@ -581,7 +595,9 @@ async def create_topic_mapping(
 
 # Sync all problems from external sources
 @router.post("/sync-all")
+@limiter.limit("2/minute")
 async def sync_all_problems(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)  # Admin only
 ):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import List
 from .. import schemas
@@ -6,6 +6,7 @@ from ..models import User
 from ..repositories import user_repo
 from ..db import get_db
 from ..middleware.admin_dependencies import get_current_admin
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(
     prefix="/users",
@@ -32,12 +33,14 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     response_model=schemas.PublicUser,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("10/minute")
 def create_user(
-    request: schemas.RegisterUser,
+    request: Request,
+    user_data: schemas.RegisterUser,
     db: Session = Depends(get_db),
     _current_admin: User = Depends(get_current_admin),
 ):
-    return user_repo.create_user(db, request)
+    return user_repo.create_user(db, user_data)
 
 # 🔹 Get user profile (includes progress)
 @router.get("/{user_id}/profile", response_model=schemas.PublicUserWithProgress)

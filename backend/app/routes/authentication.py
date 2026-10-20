@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from pydantic import EmailStr
 from ..auth.email_utils import generate_token, generate_otp, send_verification_email, send_verification_otp_email, send_password_reset_email, send_password_reset_otp_email, get_token_expiry_time, is_token_expired
 from ..auth.cleanup_users import cleanup_expired_unverified_users, cleanup_expired_otps, get_unverified_user_stats
@@ -27,29 +28,28 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Login attempt for email: {form_data.username}")
+    logger.info("Login attempt")
     
     user = get_user_by_email(db, form_data.username)
     
     if not user:
-        logger.warning(f"User not found: {form_data.username}")
+        # Deliberately no email here: logs are shipped off-box and a failure
+        # record must not become an enumeration oracle.
+        logger.warning("Login failed: account not found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    logger.info(f"User found: {user.email}, verified: {user.is_verified}")
-    
     try:
         password_ok = verify_password(form_data.password, user.password)
-        logger.info(f"Password verification result: {password_ok}")
-    except Exception as e:
+    except Exception:
         logger.exception("Password verification failed")
         password_ok = False
     
     if not password_ok:
-        logger.warning(f"Password verification failed for: {form_data.username}")
+        logger.warning("Login failed: invalid password")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -58,11 +58,11 @@ async def login(
     
     # Allow unverified users to login (they can browse the site)
     # Email verification is optional for basic access
-    logger.info(f"User login successful: {form_data.username}, verified: {user.is_verified}")
+    logger.info("Login succeeded: user_id=%s verified=%s", user.id, user.is_verified)
         
     try:
-        access_token = create_access_token(data={"sub": user.email})
-        logger.info(f"Token created successfully for: {form_data.username}")
+        access_token = create_access_token(data={"sub": user.email, "ver": user.token_version})
+        logger.info("Access token issued: user_id=%s", user.id)
     except HTTPException:
         raise
     except Exception as e:
@@ -121,7 +121,7 @@ async def admin_login(
         )
 
     try:
-        access_token = create_access_token(data={"sub": user.email})
+        access_token = create_access_token(data={"sub": user.email, "ver": user.token_version})
     except HTTPException:
         raise
     except Exception as e:
@@ -144,7 +144,7 @@ async def admin_login(
 
 @router.post("/register", response_model=schemas.RegisterResponse)
 @limiter.limit("3/minute")
-async def register(request: Request, user_data: schemas.RegisterUser, db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
+async def register(request: Request, user_data: schemas.RegisterUser, db: Session = Depends(get_db)):
     # Check if user already exists
     existing_user = get_user_by_email(db, user_data.email)
     if existing_user:
@@ -156,13 +156,29 @@ async def register(request: Request, user_data: schemas.RegisterUser, db: Sessio
             existing_user.reset_token_expires = get_token_expiry_time(10) # 10-minute expiry
             db.commit()
 
-            # Add email sending to background tasks
-            background_tasks.add_task(send_verification_otp_email, existing_user.email, existing_user.name, new_otp)
-            
+            # Send on a worker thread so a slow SMTP server cannot block the
+            # event loop, then report what actually happened.
+            email_sent = await run_in_threadpool(
+                send_verification_otp_email,
+                existing_user.email,
+                existing_user.name,
+                new_otp,
+            )
+            if email_sent:
+                message = (
+                    "This email is already registered but not verified. "
+                    f"A new verification code has been sent to {existing_user.email}."
+                )
+            else:
+                message = (
+                    "This email is already registered but not verified. "
+                    "A new verification code could not be sent; please try again shortly."
+                )
+
             return {
                 "success": True,
-                "email_sent": True,
-                "message": f"This email is already registered but not verified. A new verification code has been sent to {existing_user.email}.",
+                "email_sent": bool(email_sent),
+                "message": message,
                 "data": {
                     "user_id": existing_user.id,
                     "email": existing_user.email,
@@ -194,17 +210,22 @@ async def register(request: Request, user_data: schemas.RegisterUser, db: Sessio
     db.commit()
     db.refresh(user)
     
-    # Add email sending to background tasks (non-blocking)
-    background_tasks.add_task(send_verification_otp_email, user.email, user.name, verification_otp)
-    email_status = "sent"
-    email_message = f"A 6-digit verification code has been sent to {user.email}."
-    
-    # Note: If email sending fails in background, user can still verify later from profile
-    
-    # Return success immediately, don't wait for email
+    # Send on a worker thread (SMTP is blocking) and report the real result
+    # rather than assuming the message left the building.
+    email_sent = await run_in_threadpool(
+        send_verification_otp_email, user.email, user.name, verification_otp
+    )
+    if email_sent:
+        email_message = f"A 6-digit verification code has been sent to {user.email}."
+    else:
+        email_message = (
+            "The verification code could not be sent. "
+            "You can request a new code from your profile."
+        )
+
     return {
         "success": True,
-        "email_sent": email_status == "sent",
+        "email_sent": bool(email_sent),
         "message": f"Registration successful! {email_message} The code will expire in 10 minutes.",
         "data": {
             "user_id": user.id,
@@ -369,6 +390,7 @@ def reset_password(request: Request, password_data: schemas.ResetPassword, db: S
     
     # Update password and clear reset token
     user.password = hash_password(password_data.new_password)
+    user.token_version = (user.token_version or 0) + 1
     user.reset_token = None
     user.reset_token_expires = None
     

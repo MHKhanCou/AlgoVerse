@@ -229,6 +229,8 @@ def update_password(db: Session, user_id: int, password_data: UpdatePassword):
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         user.password = hash_password(password_data.new_password)
+        # Any token minted before this point must stop working.
+        user.token_version = (user.token_version or 0) + 1
         db.commit()
         db.refresh(user)
         return user

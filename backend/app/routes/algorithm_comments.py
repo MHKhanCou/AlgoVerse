@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from ..models import AlgorithmComment, Algorithm, User
 from ..schemas import AddAlgorithmComment, UpdateAlgorithmComment, ShowAlgorithmComment
 from ..db import get_db
 from ..auth.oauth2 import get_current_user
+from ..middleware.rate_limit import limiter
 from datetime import datetime
 import logging
 
@@ -44,9 +45,11 @@ def get_algorithm_comments(
         raise HTTPException(status_code=500, detail="Failed to fetch comments")
 
 @router.post("/algorithm/{algorithm_id}", response_model=ShowAlgorithmComment, status_code=status.HTTP_201_CREATED)
+@limiter.limit("20/minute")
 def create_algorithm_comment(
     algorithm_id: int,
-    request: AddAlgorithmComment,
+    request: Request,
+    comment_data: AddAlgorithmComment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -61,9 +64,9 @@ def create_algorithm_comment(
             )
         
         # If parent_id is provided, check if parent comment exists
-        if request.parent_id:
+        if comment_data.parent_id:
             parent_comment = db.query(AlgorithmComment).filter(
-                AlgorithmComment.id == request.parent_id,
+                AlgorithmComment.id == comment_data.parent_id,
                 AlgorithmComment.algorithm_id == algorithm_id
             ).first()
             if not parent_comment:
@@ -76,8 +79,8 @@ def create_algorithm_comment(
         comment = AlgorithmComment(
             algorithm_id=algorithm_id,
             user_id=current_user.id,
-            content=request.content,
-            parent_id=request.parent_id
+            content=comment_data.content,
+            parent_id=comment_data.parent_id
         )
         
         db.add(comment)
@@ -98,9 +101,11 @@ def create_algorithm_comment(
         raise HTTPException(status_code=500, detail="Failed to create comment")
 
 @router.put("/algorithm/{comment_id}", response_model=ShowAlgorithmComment)
+@limiter.limit("30/minute")
 def update_algorithm_comment(
     comment_id: int,
-    request: UpdateAlgorithmComment,
+    request: Request,
+    comment_data: UpdateAlgorithmComment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -124,7 +129,7 @@ def update_algorithm_comment(
             )
         
         # Update comment
-        comment.content = request.content
+        comment.content = comment_data.content
         comment.updated_at = datetime.utcnow()
         comment.is_edited = True
         
@@ -140,8 +145,10 @@ def update_algorithm_comment(
         raise HTTPException(status_code=500, detail="Failed to update comment")
 
 @router.delete("/algorithm/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
 def delete_algorithm_comment(
     comment_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
