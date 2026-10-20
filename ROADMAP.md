@@ -57,20 +57,38 @@ Fixed and verified in the current working tree:
 Re-verify with:
 
 ```bash
-cd backend && python -m pytest tests/ -q          # expect: 31 passed
+cd backend && python -m pytest tests/ -q          # expect: 73 passed
 cd frontend && npm run lint                       # expect: 0 errors
-cd frontend && npm run test:run                   # expect: 113 passed
-cd frontend && npm run build                      # expect: exit 0
+cd frontend && npm run test:run                   # expect: 275 passed
+cd frontend && npm run build                      # expect: exit 0, no .map files
 ```
+
+## Launch-readiness pass (2026-10-21)
+
+The remaining open P0/P1 items were fixed on `slop-reduction` and are covered by
+`backend/tests/test_production_readiness.py`:
+
+| Item | Fix |
+| --- | --- |
+| P0 #3 `email_sent` was hard-coded | registration sends on a worker thread and returns the real delivery result |
+| P0 #4 no token revocation | `users.token_version` + JWT `ver`; reset/change increment it (migration `c3f1a9b27d64`) |
+| P1 #6 liveness-only `/health` | runs `SELECT 1`; returns 503 when the database is unreachable |
+| P1 #8 login logs carried emails | failures log a reason, successes log `user_id` |
+| P1 #9 partial, per-process limits | storage via `RATE_LIMIT_STORAGE_URI`/`REDIS_URL`; write endpoints limited; real 429 handler |
+| P1 #10 dead refresh-token code | helpers and setting removed |
+| P1 #11 source maps shipped | production builds emit none |
+
+P0 #5 (rotating credentials that were committed to the repository) remains an
+operational step; it cannot be completed from code.
 
 ---
 
 ## P0
 
 Items 1 and 2 (the anonymous email leak and the `/users/` registration bypass)
-were fixed in this pass — entries 1 and 2 in the status table. What follows are
-the P0 items that are still open; numbering is kept stable so existing
-cross-references stay valid.
+were fixed in the earlier pass; item 5 is the only P0 item still open. Items 3
+and 4 were fixed in the launch-readiness pass. Numbering is kept stable so
+existing cross-references stay valid.
 
 ### 1. Anonymous `/users` reads exposed every account's email — **FIXED**
 
@@ -112,7 +130,7 @@ path. The response is also a public projection, so it no longer echoes the new
 row's email. Covered by
 `tests/test_hardening.py::TestDirectUserCreation`.
 
-### 3. `/register` always reports `email_sent: true`, even when SMTP fails
+### 3. `/register` always reports `email_sent: true`, even when SMTP fails — **FIXED**
 
 `app/routes/authentication.py:199` sets `email_status = "sent"` a line after
 queueing the send, then derives the response from it at line 207. Nothing
@@ -136,7 +154,7 @@ anything.
 outcome on the user row and expose a real "resend" state. The honest minimum is
 to stop claiming success: return `email_sent: false` when the send raises.
 
-### 4. A password change does not invalidate existing tokens
+### 4. A password change does not invalidate existing tokens — **FIXED**
 
 Tokens carry only `sub` and `exp` (`app/auth/jwt_token.py:17`), and nothing
 looks up a token version or denylist — `grep -rn "token_version\|revoked" app/`
@@ -178,7 +196,7 @@ stray `git add -f` or a zipped project folder, not history.
 
 ## P1 — worth fixing soon
 
-### 6. `/health` returns 200 with a dead database
+### 6. `/health` returns 200 with a dead database — **FIXED**
 
 `app/main.py` reports `{status, uptime_seconds, version}` and touches nothing
 else. It answers "is the process alive", not "can it serve requests", so an
@@ -196,7 +214,7 @@ failure, and point the platform health check at that instead.
 
 Both should be admin-gated or compiled out in production.
 
-### 8. Login logging carries PII and a user-enumeration side channel
+### 8. Login logging carries PII and a user-enumeration side channel — **FIXED**
 
 `app/routes/authentication.py:30,42,46,61` log the submitted email, whether the
 account exists, and whether the password matched. The HTTP responses are
@@ -205,7 +223,7 @@ anyone with log access can enumerate accounts — and every login writes an emai
 address to stdout. Downgrade the per-step logs to `debug`, or drop the address
 and keep only a hashed identifier.
 
-### 9. Rate limiting is partial, per-process, and ignores the available Redis
+### 9. Rate limiting is partial, per-process, and ignores the available Redis — **FIXED**
 
 Only seven endpoints are limited (all in `authentication.py`), and the limiter
 uses slowapi's default in-memory storage — `Limiter(key_func=get_remote_address)`
@@ -220,7 +238,7 @@ Redis is already a dependency with a working client (`app/db/redis_client.py`)
 and is not wired into the limiter. Point slowapi at it and extend the limits to
 the write endpoints.
 
-### 10. There is a refresh-token config and helper but no refresh flow
+### 10. There is a refresh-token config and helper but no refresh flow — **FIXED**
 
 `REFRESH_TOKEN_EXPIRE_DAYS`, `create_refresh_token` and `verify_refresh_token`
 all exist, and no route issues or accepts a refresh token. Users are logged out
@@ -245,7 +263,7 @@ failing fast, and a missing cache is indistinguishable from a cache miss.
 Cause is a one-line path bug (`parents[1]` → `parents[2]`); fix is one line;
 failure mode was silent because of the swallowed exceptions.
 
-### 11. Production builds publish sourcemaps
+### 11. Production builds publish sourcemaps — **FIXED**
 
 `build.sourcemap` is `true` in `frontend/vite.config.js`, so `dist/` ships the
 full original source. That is a reasonable debugging trade-off; it should be a
