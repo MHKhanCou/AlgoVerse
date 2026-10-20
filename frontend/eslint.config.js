@@ -6,6 +6,15 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 export default [
   { ignores: ['dist'] },
   {
+    // Tooling config files run in Node, not in the browser. Without their own
+    // globals block, the browser globals below make `process.cwd()` in
+    // vite.config.js an undefined-reference error.
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,

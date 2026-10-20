@@ -39,12 +39,14 @@ AlgoVerse is a full-stack web application for algorithm learning and competitive
 - JWT Authentication
 - Alembic migrations
 
-The API is versioned under `/api` where applicable.
+Routes are flat and unversioned; only the contests and related-problem routers
+live under `/api`. [backend/ROUTES_DOCUMENTATION.md](backend/ROUTES_DOCUMENTATION.md)
+lists every endpoint with its auth requirement and rate limit.
 
 ### Frontend
-- React 18 (Vite)
-- React Router
-- Context API
+- React 19 (Vite 6)
+- React Router 7
+- Context API + Zustand
 - Axios
 
 ---
@@ -65,6 +67,9 @@ venv\Scripts\activate       # Windows
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Optional: test tooling (pytest + httpx)
+pip install -r backend/requirements-dev.txt
 
 # Setup environment variables
 cp backend/.env.example backend/.env
@@ -90,6 +95,7 @@ Alembic is used for schema migrations in both development and production.
 ```bash
 cd frontend
 npm install
+cp .env.example .env    # optional - the defaults work as-is
 npm run dev
 ```
 
@@ -118,20 +124,31 @@ npm run dev
 AlgoVerse/
 ├── backend/                    # FastAPI backend
 │   ├── app/
-│   │   ├── main.py            # Application entry point
-│   │   ├── models.py          # SQLAlchemy models
-│   │   ├── schemas.py         # Pydantic schemas
-│   │   ├── routes/            # API endpoints
-│   │   ├── auth/              # Authentication utilities
-│   │   ├── repositories/      # Data access layer
-│   │   ├── services/          # Business logic
-│   │   └── middleware/        # Custom middleware
-│   ├── alembic.ini
-│   ├── alembic_migrations/    # Database migrations
+│   │   ├── main.py             # App assembly: routers, CORS, middleware
+│   │   ├── models.py           # SQLAlchemy models
+│   │   ├── schemas.py          # Pydantic request/response schemas
+│   │   ├── core/config.py      # Environment-based settings
+│   │   ├── db/                 # Engine, session factory, Redis client
+│   │   ├── auth/               # JWT, password hashing, email/OTP
+│   │   ├── repositories/       # Data access layer
+│   │   ├── services/           # Contest + problem integrations
+│   │   ├── middleware/         # Rate limiting, admin guards, security headers
+│   │   └── routes/             # 12 routers
+│   ├── alembic_migrations/     # Schema migrations
+│   ├── tests/                  # pytest suite (in-memory SQLite)
+│   ├── pytest.ini
+│   ├── requirements-dev.txt    # pytest + httpx
 │   └── .env.example
-├── frontend/                  # React application
-├── requirements.txt           # Backend dependencies
-└── README.md                  # This file
+├── frontend/                   # React application
+│   ├── src/
+│   │   ├── engine/             # Visualization engine + its unit tests
+│   │   └── pages/, components/, contexts/, services/
+│   ├── e2e/                    # Playwright suites
+│   ├── .env.example
+│   └── vercel.json             # SPA rewrite rule
+├── .github/workflows/          # frontend.yml + backend.yml
+├── requirements.txt            # Pinned backend runtime dependencies
+└── ROADMAP.md                  # Production readiness roadmap
 ```
 
 ---
@@ -140,23 +157,56 @@ AlgoVerse/
 
 ### Backend
 
-* `DATABASE_URL` — Database connection string
-* `SECRET_KEY` — JWT secret key
-* `SMTP_HOST` — Email server host
-* `SMTP_USER` — Email username
-* `SMTP_PASSWORD` — Email password
+Copy `backend/.env.example` to `backend/.env` and fill in what you need.
 
-The database backend is selected via `DATABASE_URL` (SQLite for development, PostgreSQL for production).
+* `ENVIRONMENT` — `development` or `production`. A `postgresql://` `DATABASE_URL`
+  is also treated as production.
+* `DATABASE_URL` — Wins over the two below. Render sets this automatically.
+* `DEV_DATABASE_URL` / `PROD_DATABASE_URL` — Used only when `DATABASE_URL` is unset.
+  Development defaults to a local SQLite file.
+* `JWT_SECRET_KEY` — Signs access tokens. **Required in production**: the app
+  refuses to start without it rather than issue tokens signed with an empty key.
+* `PROD_CORS_ORIGINS` — Comma-separated allowed origins. Deliberately excludes
+  localhost, because the API sends credentials.
+* `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `FROM_EMAIL` — Gmail
+  app-password OTP delivery. `DISABLE_EMAIL=true` skips sending entirely.
+* `AUTO_CREATE_TABLES` — Off in production by default. Use Alembic.
 
 ### Frontend
 
-* `VITE_API_BASE_URL` — Backend API base URL
+* `VITE_API_URL` — Backend API base URL for a production build. The name is
+  historical: it is the *API's* URL, not this app's.
+* `VITE_PROD_API_BASE_URL` — Fallback used when `VITE_API_URL` is unset.
+* `VITE_ENVIRONMENT` — Label only. The dev/prod choice comes from Vite's build
+  mode, not from this variable.
+
+`src/services/api.js` is the only module that reads them. Development always
+calls `http://localhost:8000` no matter what is configured.
+
+---
+
+## Testing
+
+```bash
+# Backend - run from backend/
+python -m pytest tests/ -q
+
+# Frontend - run from frontend/
+npm run test:run    # unit + visualization engine tests
+npm run lint        # eslint over the whole tree
+npm run e2e         # Playwright against the production build
+```
+
+The backend suite uses in-memory SQLite and overrides the database dependency,
+so it needs no PostgreSQL instance and no secrets.
 
 ---
 
 ## Documentation
 
-* [API Docs](https://algoverse-kpwz.onrender.com/docs)
+* [Interactive API docs](https://algoverse-kpwz.onrender.com/docs) — Swagger UI, also at `/redoc`
+* [API route reference](backend/ROUTES_DOCUMENTATION.md) — every endpoint, its auth requirement and its rate limit
+* [Production readiness roadmap](ROADMAP.md) — open gaps, ranked, with the evidence for each
 
 ---
 

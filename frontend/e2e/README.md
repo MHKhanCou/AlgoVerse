@@ -21,9 +21,11 @@ npm run build
 npm run e2e
 ```
 
-`npm run e2e` starts `vite preview`, waits for it to answer, runs all three
-suites, and always tears the server down. It exits non-zero if any suite
-fails, and CI gates on it (see `.github/workflows/frontend.yml`).
+`npm run e2e` starts `vite preview` on port 5190, waits for it to answer, runs
+all five suites in turn, and always tears the server down. It exits non-zero if
+any suite fails, and CI gates on it (see `.github/workflows/frontend.yml`).
+Each suite still has its own default port (`5191`–`5195`) so it can be run
+alone; `run-all.mjs` overrides them via `E2E_BASE`.
 
 Screenshots are written to `e2e-output/` (gitignored). CI uploads them as an
 artifact when a run fails, so failures are diagnosable without reproducing
@@ -55,3 +57,16 @@ E2E_BASE=http://localhost:5190 node e2e/tabs.mjs
 - Hostile `explanation` HTML is sanitized: no `onerror` survives and no
   script executes
 - The Visualize tab paints a canvas and playback advances
+
+`mobile-audit.mjs`
+- Runs an iPhone SE viewport over `/`, `/algorithms`, `/topics`, `/demo`,
+  `/blogs` and `/login`
+- Reports horizontal overflow, elements wider than the viewport (naming the
+  widest offenders), tap targets under the 44px minimum, and text below 12px
+  — the classes of bug fixed by `8dcf89f`
+
+`mobile-tabs.mjs`
+- On a phone viewport, every `/demo` category tab (Sorting, Searching, Graph,
+  DP, Recursion, String) is reachable by scrolling the tab strip and usable
+  once tapped
+- Fails on any uncaught page error while switching tabs

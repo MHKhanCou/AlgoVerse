@@ -1,79 +1,116 @@
 # AlgoVerse Frontend
 
-This is the frontend for AlgoVerse, built with React 18 and Vite.
+React 19 + Vite 6 single-page app. It renders the algorithm library, the
+step-by-step visualizer, the blog/comment surfaces, and the admin dashboard,
+and talks to the FastAPI backend in `../backend`.
 
-## 🚀 Getting Started
+## Requirements
 
-### Prerequisites
-- Node.js 16+
-- npm or yarn
+- Node.js 20 (what CI uses) and npm
+- The backend running at `http://localhost:8000` for anything outside `/api`
 
-### Installation
+## Setup
 
-1. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+```bash
+npm install
+cp .env.example .env    # optional - the defaults work as-is
+npm run dev
+```
 
-2. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Update the API base URL if needed:
-     ```
-     VITE_API_BASE_URL=http://localhost:8000
-     ```
+The dev server is pinned to **http://localhost:5173** (`strictPort: true`, so it
+fails loudly instead of drifting to 5174 and missing the backend's CORS list).
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-   The app will be available at `http://localhost:3000`
+### How the API URL is chosen
 
-## 🏗️ Project Structure
+`src/services/api.js` is the only module that reads the environment:
+
+| Mode | Base URL |
+| --- | --- |
+| `npm run dev` | `http://localhost:8000` (hardcoded) |
+| `npm run build` | `VITE_API_URL` → `VITE_PROD_API_BASE_URL` → `https://algoverse-kpwz.onrender.com` |
+
+Despite its name, `VITE_API_URL` holds the *backend* URL. `.env.production` is
+committed and sets it; `.env.example` documents the rest. In development,
+`vite.config.js` also proxies `/api/*` to the production backend, so contest and
+related-problem calls work without a local server.
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Vite dev server with HMR on port 5173 |
+| `npm run build` | Production build to `dist/` (sourcemaps, manual chunks) |
+| `npm run preview` | Serve the built output locally |
+| `npm run lint` | ESLint over the whole tree |
+| `npm run test` | Vitest in watch mode |
+| `npm run test:run` | Vitest once — 113 tests across 13 files |
+| `npm run e2e` | Playwright suites in `e2e/` against the production build |
+
+There is no formatter script: the project does not use Prettier. Formatting is
+handled by ESLint plus editor defaults.
+
+## Testing
+
+```bash
+npm run test:run
+npm run lint
+
+# e2e needs a browser binary the first time
+npx playwright install chromium
+npm run build && npm run e2e
+```
+
+Most tests live in `src/engine/__tests__/` and drive the visualization engine
+directly: every registered algorithm is stepped through and rendered, and
+`deploy-config.test.js` re-checks that no asset path the built `index.html`
+references would be swallowed by the SPA rewrite in `vercel.json`.
+
+The e2e layer exists because jsdom cannot see canvas painting, real layout, or
+runtime errors in minified code. See `e2e/README.md`.
+
+## Structure
 
 ```
 src/
-├── components/     # Reusable UI components
-├── contexts/      # React context providers
-├── pages/         # Page components
-├── services/      # API service functions
-└── styles/        # CSS modules and global styles
+├── engine/          # Algorithm step generation and playback
+│   ├── algorithms/  # One generator per algorithm
+│   ├── state.js     # Step/state model
+│   ├── playback.js  # Timeline, speed, stepping
+│   ├── keyboard.js  # Keyboard control bindings
+│   └── __tests__/   # 13 test files
+├── pages/           # 25 route-level pages
+├── components/      # renderers/, editors/, learning/, admin/, common/
+├── contexts/        # AuthContext, SearchContext
+├── services/        # api.js + one service per resource
+├── test/setup.js    # Vitest setup (jsdom)
+└── App.jsx          # Route table; heavy routes are lazy-loaded
 ```
 
-## 📦 Available Scripts
+## State management
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
+- **Zustand** for the visualization engine's step state
+- **React Context** (`AuthContext`, `SearchContext`) for cross-cutting concerns
+- Local `useState` for everything else
 
-## 🔧 Development
+## Access control
 
-- Uses Vite for fast development with HMR
-- ESLint and Prettier for code quality
-- React Router for navigation
-- Context API for state management
+`AdminRoute.jsx` guards the `/admin/*` tree. Route-level protection is a UX
+convenience only — every admin API endpoint enforces admin rights server-side
+too.
 
-## 🔐 Authentication
+## Build notes
 
-The app uses JWT for authentication. See `src/contexts/AuthContext.jsx` for implementation details.
+`vite.config.js` splits the bundle into `react`, `vendor`, `monaco`,
+`graphflow`, `charts`, `animation` and `syntax` chunks. Without those, chart and
+animation code landed in the entry chunk (~577 kB) and every visitor paid for it
+on the home page. Keep new heavy dependencies out of the entry graph, or add
+them to an existing chunk.
 
-## 📝 Environment Variables
+`build.sourcemap` is on. That is deliberate for now (it makes production
+stack traces usable) and is listed in `../ROADMAP.md` as a decision to revisit.
 
-Create a `.env` file in the frontend directory with:
-```
-VITE_API_BASE_URL=your_api_url_here
-```
+## Deployment
 
-## 🔄 Deployment
-
-Build for production:
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory, ready to be served by any static file server.
+Vercel, configured by `vercel.json`: every path that is not an asset is
+rewritten to `index.html` so client-side routing works on deep links.
+`.env.production` supplies the production API URL.
