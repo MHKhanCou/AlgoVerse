@@ -31,11 +31,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Lints the whole tree, not just src/ and e2e/, so tooling config files
+      # are covered too - the two errors that lived in vite.config.js (an
+      # unused parameter and an undefined `process`) were invisible here
+      # because this step used to skip that file.
       # --max-warnings is deliberately generous: the repo carries 19 advisory
       # react-hooks/react-refresh warnings. Errors are gated at zero so no new
       # undefined reference or unused binding can land.
       - name: Lint
-        run: npx eslint src/ e2e/ --max-warnings 25
+        run: npx eslint . --max-warnings 25
 
       - name: Run tests
         run: npm run test:run
