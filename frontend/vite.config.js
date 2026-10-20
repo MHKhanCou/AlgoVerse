@@ -28,7 +28,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      // Never publish source maps: Vercel serves every file in dist, so
+      // "hidden" maps would still be downloadable at their .map URLs.
+      sourcemap: false,
       rollupOptions: {
         output: {
           manualChunks: {
