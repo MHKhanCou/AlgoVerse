@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 /**
@@ -45,6 +45,8 @@ vi.mock('../../components/editors/CodeEditor', () => ({
 }));
 
 import AlgorithmDetailV2 from '../../pages/AlgorithmDetailV2';
+import { algorithmService } from '../../services/algorithmService';
+import useVisualizationStore from '../state';
 
 describe('AlgorithmDetailV2 page smoke test', () => {
   beforeEach(() => {
@@ -91,5 +93,110 @@ describe('AlgorithmDetailV2 page smoke test', () => {
     }
     expect(container.innerHTML).not.toContain('onerror');
     expect(window.__XSS__).toBeUndefined();
+  });
+});
+
+/**
+ * Wave-2 algorithms, exercised through the real page rather than the engine:
+ * registry wiring, the play-through path for the array/tree/graph branches,
+ * and the content-only placeholder for Hash Table.
+ */
+describe('AlgorithmDetailV2 — new algorithms through the page', () => {
+  beforeEach(() => {
+    useVisualizationStore.setState({
+      steps: [], currentStep: -1, status: 'idle', speed: 1,
+      stats: { comparisons: 0, swaps: 0, accesses: 0 }, metadata: null,
+    });
+  });
+
+  const typeOf = (name) => {
+    if (name.startsWith('BST')) return 'Tree';
+    if (name === 'Bellman-Ford') return 'Graph';
+    if (name === 'Hash Table') return 'Hashing';
+    return 'Sorting';
+  };
+
+  const serve = (name) => {
+    algorithmService.getById.mockResolvedValue({
+      id: 29,
+      name,
+      description: `${name} — description served by the mocked API.`,
+      explanation: '<p>Safe text</p>',
+      code: '',
+      difficulty: 'easy',
+      complexity: 'O(n)',
+      type_name: typeOf(name),
+    });
+  };
+
+  const renderPage = () => render(
+    <MemoryRouter initialEntries={['/algorithms/29']}>
+      <Routes>
+        <Route path="/algorithms/:id" element={<AlgorithmDetailV2 />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  const waitLoaded = () => waitFor(() => {
+    expect(screen.queryByText('Loading algorithm...')).toBeNull();
+  });
+
+  it.each(['Counting Sort', 'Shell Sort', 'BST Search', 'BST In-Order Traversal', 'Bellman-Ford'])(
+    '%s: the Visualize tab offers playback controls, not the coming-soon placeholder',
+    async (name) => {
+      serve(name);
+      renderPage();
+      await waitLoaded();
+
+      // The learning panels resolve through the content map for this name.
+      expect(screen.getByText(`When to Use: ${name}`)).toBeTruthy();
+
+      fireEvent.click(screen.getByText('Visualize'));
+      expect(await screen.findByLabelText('Visualization playback controls')).toBeTruthy();
+      expect(screen.getByText('Input Settings')).toBeTruthy();
+      expect(screen.queryByText('Visualization coming soon')).toBeNull();
+    }
+  );
+
+  it.each(['Counting Sort', 'BST In-Order Traversal', 'Bellman-Ford'])(
+    '%s: pressing Play runs the real generator and loads steps into the store',
+    async (name) => {
+      serve(name);
+      renderPage();
+      await waitLoaded();
+
+      // The DB description is served verbatim on the page.
+      expect(
+        screen.getAllByText(`${name} — description served by the mocked API.`).length
+      ).toBeGreaterThan(0);
+
+      fireEvent.click(screen.getByText('Visualize'));
+      fireEvent.click(await screen.findByLabelText('Play visualization'));
+
+      await waitFor(() => {
+        expect(useVisualizationStore.getState().steps.length).toBeGreaterThan(0);
+      });
+      const { metadata } = useVisualizationStore.getState();
+      expect(metadata?.name).toBeTruthy();
+      expect(metadata?.timeComplexity).toBeTruthy();
+
+      // Stop the timeline so it cannot tick after the assertions.
+      fireEvent.click(screen.getByLabelText('Reset visualization'));
+    }
+  );
+
+  it('Hash Table: shows the honest placeholder instead of a dead Play button', async () => {
+    serve('Hash Table');
+    renderPage();
+    await waitLoaded();
+
+    // Its content panels still resolve — the entry is not silently missing.
+    expect(screen.getByText('When to Use: Hash Table')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Visualize'));
+    expect(screen.getByText('Visualization coming soon')).toBeTruthy();
+    expect(screen.queryByText('Input Settings')).toBeNull();
+    expect(screen.queryByLabelText('Visualization playback controls')).toBeNull();
+    expect(screen.queryByLabelText('Play visualization')).toBeNull();
   });
 });
