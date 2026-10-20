@@ -1,34 +1,39 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, Request, status, Query
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..auth import oauth2
 from ..db import get_db
+from ..middleware.rate_limit import limiter
 from ..repositories import blog_repo
 from ..repositories.blog_repo import get_blog_visible_to
 
 router = APIRouter(prefix="/blogs", tags=["Blog"])
 
 @router.post("/", response_model=schemas.ShowBlog)
+@limiter.limit("10/minute")
 def create(
-    request: schemas.AddBlog, 
+    request: Request,
+    blog_data: schemas.AddBlog, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user)
 ):
-    return blog_repo.create_blog(db, request, current_user.id)
+    return blog_repo.create_blog(db, blog_data, current_user.id)
 
 @router.put("/{id}", response_model=schemas.ShowBlog)
+@limiter.limit("20/minute")
 def update(
+    request: Request,
     id: int, 
-    request: schemas.UpdateBlog, 
+    blog_data: schemas.UpdateBlog, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user)
 ):
     # Ownership checks and the "an author's edit of a live post returns it to
     # review" rule live in the repository.
-    return blog_repo.update_blog(db, request, id, current_user.id)
+    return blog_repo.update_blog(db, blog_data, id, current_user.id)
 
 @router.get("/", response_model=List[schemas.ShowBlog])
 def all(
@@ -58,7 +63,9 @@ def show(
     return get_blog_visible_to(db, id, current_user)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("20/minute")
 def delete(
+    request: Request,
     id: int, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user)

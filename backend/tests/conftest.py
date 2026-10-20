@@ -8,6 +8,7 @@ from app.main import app
 from app.db.database import Base, get_db
 from app.middleware.rate_limit import limiter
 from app.models import User
+from app.auth import email_utils
 from app.auth.password_utils import hash_password
 
 # In-memory SQLite for tests
@@ -29,6 +30,12 @@ def setup_db():
 
 
 @pytest.fixture(autouse=True)
+def disable_email_delivery(monkeypatch):
+    """Never let the suite open an SMTP connection to a real provider."""
+    monkeypatch.setattr(email_utils, "DISABLE_EMAIL", True)
+
+
+@pytest.fixture(autouse=True)
 def disable_rate_limiting():
     """
     Turn off slowapi for the duration of every test.
@@ -47,6 +54,26 @@ def disable_rate_limiting():
     yield
     limiter.reset()
     limiter.enabled = previously_enabled
+
+
+@pytest.fixture
+def db_session():
+    """Direct session on the same in-memory database the API uses."""
+    db = TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def rate_limits_active():
+    """Re-enable slowapi for a test that asserts a 429 (the suite disables it)."""
+    limiter.reset()
+    limiter.enabled = True
+    yield
+    limiter.reset()
+    limiter.enabled = False
 
 
 @pytest.fixture

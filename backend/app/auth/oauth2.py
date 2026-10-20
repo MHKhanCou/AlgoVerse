@@ -24,16 +24,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     
     try:
-        email = verify_access_token(token)
-        if email is None:
-            raise credentials_exception
-        token_data = schemas.TokenData(email=email)
-    except JWTError:
+        payload = verify_access_token(token)
+        token_data = schemas.TokenData(email=payload["sub"])
+    except (JWTError, KeyError):
         raise credentials_exception
         
     user = get_user_by_email(db, token_data.email)
     if user is None:
         # Return 401 instead of 404 to avoid user enumeration
+        raise credentials_exception
+    # Tokens minted before the user's latest password change are dead.
+    if payload.get("ver") != user.token_version:
         raise credentials_exception
     return user
 
@@ -49,10 +50,13 @@ def get_current_user_optional(
     if not token:
         return None
     try:
-        email = verify_access_token(token)
+        payload = verify_access_token(token)
     except JWTError:
         return None
-    if email is None:
+    if not payload.get("sub"):
         return None
-    return get_user_by_email(db, email)
+    user = get_user_by_email(db, payload["sub"])
+    if user is None or payload.get("ver") != user.token_version:
+        return None
+    return user
     

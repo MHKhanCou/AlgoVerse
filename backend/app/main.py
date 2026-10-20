@@ -1,11 +1,16 @@
 
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 import time
 
-from .db import engine
+from .db import engine, get_db
 from . import models
 from .routes import admin, authentication, profile, user, algo_types, algorithm, user_progress, blog, related_problems, comments, algorithm_comments, contests
 from .middleware.rate_limit import limiter
@@ -20,6 +25,7 @@ app = FastAPI()
 
 # Rate limiting
 app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Security headers live in their own middleware. ServerErrorMiddleware is NOT
 # added here: FastAPI already installs one when it builds the middleware stack,
@@ -59,8 +65,17 @@ app.include_router(contests.router, prefix="/api")
 
 # Health check endpoint
 @app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring and load balancers"""
+def health_check(db: Session = Depends(get_db)):
+    """Readiness probe: answer 200 only when the database is reachable.
+
+    A liveness-only response lets a load balancer keep sending traffic to an
+    instance that cannot serve it, so this actually queries the database.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        raise HTTPException(status_code=503, detail="database unavailable")
+
     start_time = getattr(app, 'start_time', time.time())
     uptime = int(time.time() - start_time)
     

@@ -37,7 +37,6 @@ class Settings(BaseSettings):
 
     # JWT Configuration
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     JWT_ALGORITHM: str = "HS256"
     JWT_SECRET_KEY: str = ""
 
@@ -57,6 +56,10 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: Optional[str] = None
+
+    # Where slowapi stores its counters. Unset = process memory. In production
+    # point this at Redis (or set REDIS_URL) so limits are shared by workers.
+    RATE_LIMIT_STORAGE_URI: Optional[str] = None
 
     # App Settings
     DEBUG: bool = True

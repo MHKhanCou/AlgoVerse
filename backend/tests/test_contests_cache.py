@@ -6,6 +6,7 @@ network or a real cache.
 """
 
 import json
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +17,12 @@ from app.routes import contests as contests_module
 SOURCES = ["codeforces", "atcoder", "leetcode", "codechef", "topcoder"]
 FULL_TTL = 60 * 60
 MAX_PARTIAL_TTL = 5 * 60
+
+# Tracks how many fake fetchers are inside their sleep at once. Wall-clock
+# assertions are flaky on a loaded CI runner; overlap is the property the
+# endpoint actually promises.
+_OVERLAP = {"now": 0, "max": 0}
+_OVERLAP_LOCK = threading.Lock()
 
 
 def _contest(name, site, hours_from_now=1, duration=7200):
@@ -32,7 +39,14 @@ def _contest(name, site, hours_from_now=1, duration=7200):
 def _fetcher(name, result, ok=True, delay=0.0):
     def fetch():
         if delay:
-            time.sleep(delay)
+            with _OVERLAP_LOCK:
+                _OVERLAP["now"] += 1
+                _OVERLAP["max"] = max(_OVERLAP["max"], _OVERLAP["now"])
+            try:
+                time.sleep(delay)
+            finally:
+                with _OVERLAP_LOCK:
+                    _OVERLAP["now"] -= 1
         contests_module.last_fetch_stats[name] = {"ok": ok, "count": len(result)}
         return list(result)
 
@@ -42,6 +56,10 @@ def _fetcher(name, result, ok=True, delay=0.0):
 def _patch_sources(monkeypatch, config):
     """config: source name -> (result, ok, delay). AtCoder is covered on both
     the HTML and the kenkoooo fallback path."""
+
+    with _OVERLAP_LOCK:
+        _OVERLAP["now"] = 0
+        _OVERLAP["max"] = 0
 
     def build(name):
         result, ok, delay = config.get(name, ([], False, 0.0))
@@ -87,13 +105,13 @@ def test_sources_are_fetched_concurrently(client, monkeypatch, fake_cache):
         },
     )
 
-    started = time.perf_counter()
     resp = client.get("/api/contests?days=7")
-    elapsed = time.perf_counter() - started
 
     assert resp.status_code == 200
-    # Sequentially this would take 5 x 0.35s = 1.75s.
-    assert elapsed < 1.2, f"sources look sequential: {elapsed:.2f}s for five {delay}s fetches"
+    # Sequential fetches would never overlap. Wall-clock bounds are unreliable
+    # on a loaded CI runner (a parallel frontend build stretched this request
+    # past any sane threshold), so the overlap counter is the assertion.
+    assert _OVERLAP["max"] >= 2, "sources were fetched one at a time"
     upcoming = [c["name"] for c in resp.json()["upcoming"]]
     assert "CF Round 1000" in upcoming
     assert "ABC 999" in upcoming

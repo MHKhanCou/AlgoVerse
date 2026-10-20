@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from ..models import User, AlgoDifficulty, AlgoComplexity, AlgoStatus
@@ -15,6 +15,7 @@ from ..schemas import (
 )
 from ..db import get_db
 from ..auth.oauth2 import get_current_user
+from ..middleware.rate_limit import limiter
 from ..repositories import user_repo, user_progress_repo, blog_repo
 from ..auth.jwt_token import create_access_token
 from ..auth.email_utils import (
@@ -47,7 +48,9 @@ def get_profile(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update-password", response_model=ShowUser)
+@limiter.limit("5/minute")
 def change_password(
+    request: Request,
     password_data: UpdatePassword,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -67,7 +70,9 @@ def change_password(
 
 # --- OTP-based Email Change Flow ---
 @router.post("/request-email-otp", response_model=dict)
+@limiter.limit("3/minute")
 def request_email_otp(
+    request: Request,
     payload: RequestEmailOtp,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -115,7 +120,9 @@ def request_email_otp(
 
 
 @router.post("/verify-email-otp", response_model=Token)
+@limiter.limit("5/minute")
 def verify_email_otp(
+    request: Request,
     payload: VerifyEmailOtp,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -174,7 +181,9 @@ def verify_email_otp(
         user.reset_token_expires = None
         db.commit()
 
-        access_token = create_access_token(data={"sub": final_email})
+        access_token = create_access_token(
+            data={"sub": final_email, "ver": user.token_version}
+        )
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -191,7 +200,9 @@ def verify_email_otp(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/update", response_model=ShowUser)
+@limiter.limit("20/minute")
 def update_profile(
+    request: Request,
     user_data: UpdateUser,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -210,7 +221,9 @@ def update_profile(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/delete", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
 def delete_profile(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
