@@ -124,3 +124,10 @@ if (typeof HTMLCanvasElement !== 'undefined') {
     };
   };
 }
+
+// jsdom does not implement scrollIntoView, which StepTimeline calls to keep
+// the active step visible during playback. Without this stub, driving the
+// real page through a run throws as soon as the first step lands.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
