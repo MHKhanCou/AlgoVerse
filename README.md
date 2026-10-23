@@ -44,7 +44,7 @@ live under `/api`. [backend/ROUTES_DOCUMENTATION.md](backend/ROUTES_DOCUMENTATIO
 lists every endpoint with its auth requirement and rate limit.
 
 ### Frontend
-- React 19 (Vite 6)
+- React 19 (Vite 8)
 - React Router 7
 - Context API + Zustand
 - Axios

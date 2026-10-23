@@ -20,7 +20,7 @@ phases describe work that is already shipped, so acting on it means redoing
 finished work while the actual gaps stay invisible.
 | Old roadmap said | Reality |
 | --- | --- |
-| "Frontend setup — React is recommended… 2–4 weeks" | React 19 + Vite 6 SPA, 25 route pages, visualization engine with 113 tests |
+| "Frontend setup — React is recommended… 2–4 weeks" | React 19 + Vite 8 SPA, 25 route pages, visualization engine with 275 tests |
 | "User authentication & authorization — implement JWT" | Implemented in `app/auth/jwt_token.py`, `app/auth/oauth2.py`, `app/middleware/admin_dependencies.py` |
 | "Database migrations (Alembic)" | `backend/alembic_migrations/`, `alembic upgrade head` in the README |
 | "Comprehensive API testing — 1–2 days manual + 1–2 days automated" | 105 routes and 15 tests, but the suite was red until this pass and had no CI |

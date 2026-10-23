@@ -1,6 +1,6 @@
 # AlgoVerse Frontend
 
-React 19 + Vite 6 single-page app. It renders the algorithm library, the
+React 19 + Vite 8 single-page app. It renders the algorithm library, the
 step-by-step visualizer, the blog/comment surfaces, and the admin dashboard,
 and talks to the FastAPI backend in `../backend`.
 
@@ -39,11 +39,11 @@ related-problem calls work without a local server.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Vite dev server with HMR on port 5173 |
-| `npm run build` | Production build to `dist/` (sourcemaps, manual chunks) |
+| `npm run build` | Production build to `dist/` (Rolldown code-split chunks, no sourcemaps) |
 | `npm run preview` | Serve the built output locally |
 | `npm run lint` | ESLint over the whole tree |
 | `npm run test` | Vitest in watch mode |
-| `npm run test:run` | Vitest once — 113 tests across 13 files |
+| `npm run test:run` | Vitest once — 275 tests across 23 files |
 | `npm run e2e` | Playwright suites in `e2e/` against the production build |
 
 There is no formatter script: the project does not use Prettier. Formatting is
