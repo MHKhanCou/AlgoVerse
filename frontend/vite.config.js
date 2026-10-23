@@ -31,19 +31,42 @@ export default defineConfig(({ mode }) => {
       // Never publish source maps: Vercel serves every file in dist, so
       // "hidden" maps would still be downloadable at their .map URLs.
       sourcemap: false,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks: {
-            react: ['react', 'react-dom', 'react-router-dom'],
-            vendor: ['axios', 'react-toastify'],
-            monaco: ['@monaco-editor/react'],
-            graphflow: ['@xyflow/react'],
-            // Heavy, route-specific libraries. Without these they all landed
-            // in the main entry chunk (~577 kB), so every visitor downloaded
-            // charting and animation code just to see the home page.
-            charts: ['chart.js', 'react-chartjs-2'],
-            animation: ['gsap', 'framer-motion'],
-            syntax: ['react-syntax-highlighter'],
+          // Vite 8 / Rolldown replaced the object form of manualChunks with
+          // codeSplitting groups. Keep the heavy route-specific libraries out
+          // of the entry chunk so the home page does not download them.
+          codeSplitting: {
+            groups: [
+              {
+                name: 'react',
+                test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+              },
+              {
+                name: 'vendor',
+                test: /node_modules[\\/](axios|react-toastify)[\\/]/,
+              },
+              {
+                name: 'monaco',
+                test: /node_modules[\\/]@monaco-editor[\\/]/,
+              },
+              {
+                name: 'graphflow',
+                test: /node_modules[\\/]@xyflow[\\/]/,
+              },
+              {
+                name: 'charts',
+                test: /node_modules[\\/](chart\.js|react-chartjs-2|@kurkle)[\\/]/,
+              },
+              {
+                name: 'animation',
+                test: /node_modules[\\/](gsap|framer-motion|motion-dom|motion-utils)[\\/]/,
+              },
+              {
+                name: 'syntax',
+                test: /node_modules[\\/](react-syntax-highlighter|refractor|prismjs)[\\/]/,
+              },
+            ],
           },
         },
       },
