@@ -6,7 +6,7 @@ and talks to the FastAPI backend in `../backend`.
 
 ## Requirements
 
-- Node.js 20 (what CI uses) and npm
+- Node.js 24 (what CI uses) and npm 11+
 - The backend running at `http://localhost:8000` for anything outside `/api`
 
 ## Setup
