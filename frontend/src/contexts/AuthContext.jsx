@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.setItem('unverifiedEmail', email);
         // Redirect to verification page instead of showing error
         navigate('/verify-email');
-        throw new Error('Please verify your email address');
+        throw new Error('Please verify your email address', { cause: error });
       }
       
       if (error.message.includes('Network error')) {

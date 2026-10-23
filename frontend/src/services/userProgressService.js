@@ -9,9 +9,9 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch progress');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch progress', { cause: error });
     }
   },
 
@@ -29,15 +29,15 @@ export const userProgressService = {
       });
       
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 404) {
         return null;
       }
       if (error.response?.status === 401) {
-        throw new Error('Please log in to track progress');
+        throw new Error('Please log in to track progress', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch progress entry');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch progress entry', { cause: error });
     }
   },
 
@@ -50,24 +50,24 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm not found');
+        throw new Error('Algorithm not found', { cause: error });
       }
       if (error.response?.status === 400) {
-        throw new Error('Progress already exists for this algorithm');
+        throw new Error('Progress already exists for this algorithm', { cause: error });
       }
       if (error.response?.status === 422) {
         const detail = error.response?.data?.detail;
         throw new Error(
           typeof detail === 'string' ? detail : detail?.[0]?.msg || 'Invalid data for creating progress'
-        );
+        , { cause: error });
       }
       if (error.response?.status === 401) {
-        throw new Error('Please log in to track progress');
+        throw new Error('Please log in to track progress', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to create progress');
+      throw new Error(error.response?.data?.detail || 'Failed to create progress', { cause: error });
     }
   },
 
@@ -79,15 +79,15 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 403) {
-        throw new Error('Not authorized to update this progress');
+        throw new Error('Not authorized to update this progress', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Progress not found');
+        throw new Error('Progress not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to update progress');
+      throw new Error(error.response?.data?.detail || 'Failed to update progress', { cause: error });
     }
   },
 
@@ -97,12 +97,12 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Progress entry not found');
+        throw new Error('Progress entry not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to update last accessed');
+      throw new Error(error.response?.data?.detail || 'Failed to update last accessed', { cause: error });
     }
   },
 
@@ -112,12 +112,12 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 404) {
         return null;
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch last accessed');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch last accessed', { cause: error });
     }
   },
 
@@ -127,9 +127,9 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch stats');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch stats', { cause: error });
     }
   },
 
@@ -139,9 +139,9 @@ export const userProgressService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch detailed stats');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch detailed stats', { cause: error });
     }
   },
 
@@ -151,15 +151,15 @@ export const userProgressService = {
       return { success: true };
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Progress not found');
+        throw new Error('Progress not found', { cause: error });
       }
       if (error.response?.status === 403) {
-        throw new Error('Not authorized to delete this progress');
+        throw new Error('Not authorized to delete this progress', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to delete progress');
+      throw new Error(error.response?.data?.detail || 'Failed to delete progress', { cause: error });
     }
   },
 

@@ -12,9 +12,9 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithms');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithms', { cause: error });
     }
   },
 
@@ -24,12 +24,12 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm not found');
+        throw new Error('Algorithm not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithm', { cause: error });
     }
   },
 
@@ -42,12 +42,12 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm type not found');
+        throw new Error('Algorithm type not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithms by type');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithms by type', { cause: error });
     }
   },
 
@@ -57,12 +57,12 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 403) {
-        throw new Error('Admin access required');
+        throw new Error('Admin access required', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to create algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to create algorithm', { cause: error });
     }
   },
 
@@ -72,15 +72,15 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 403) {
-        throw new Error('Admin access required');
+        throw new Error('Admin access required', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm not found');
+        throw new Error('Algorithm not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to update algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to update algorithm', { cause: error });
     }
   },
 
@@ -89,15 +89,15 @@ export const algorithmService = {
       await api.delete(`/algorithms/${id}`);
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 403) {
-        throw new Error('Admin access required');
+        throw new Error('Admin access required', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm not found');
+        throw new Error('Algorithm not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm', { cause: error });
     }
   },
 
@@ -107,12 +107,12 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
       if (error.response?.status === 404) {
-        throw new Error('Algorithm not found');
+        throw new Error('Algorithm not found', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch related problems');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch related problems', { cause: error });
     }
   },
 
@@ -131,9 +131,9 @@ export const algorithmService = {
       return response.data;
     } catch (error) {
       if (!error.response) {
-        throw new Error('Network error: Unable to reach the server.');
+        throw new Error('Network error: Unable to reach the server.', { cause: error });
       }
-      throw new Error(error.response?.data?.detail || 'Failed to fetch suggestions');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch suggestions', { cause: error });
     }
   },
 };

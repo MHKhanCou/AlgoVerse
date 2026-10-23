@@ -28,7 +28,7 @@ export const authService = {
       return { ...response.data, token };
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: err });
       }
       console.error('Login error:', err);
       throw err;
@@ -62,7 +62,7 @@ export const authService = {
       return { ...response.data, token };
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: err });
       }
       console.error('Admin login error:', err);
       throw err;
@@ -90,7 +90,7 @@ export const authService = {
       return response.data;
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: err });
       }
       console.error('User profile fetch error:', err.message);
       throw err;
@@ -108,7 +108,7 @@ export const authService = {
       return response.data;
     } catch (err) {
       if (err.code === 'NETWORK_ERROR' || err.message === 'Network Error') {
-        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.');
+        throw new Error('Network error: Unable to reach the server. Please check if the backend is running.', { cause: err });
       }
       console.error('Admin verification error:', err);
       throw err;

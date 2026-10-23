@@ -9,7 +9,7 @@ export const adminService = {
       const response = await api.get(`${ADMIN_URL}/dashboard/`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch dashboard stats');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch dashboard stats', { cause: error });
     }
   },
 
@@ -18,7 +18,7 @@ export const adminService = {
       const response = await api.get(`${ADMIN_URL}/dashboard/admin-info`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch admin details');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch admin details', { cause: error });
     }
   },
 
@@ -28,7 +28,7 @@ export const adminService = {
       console.log('Fetched Users:', response.data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch users');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch users', { cause: error });
     }
   },
 
@@ -40,7 +40,7 @@ export const adminService = {
       );
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to make admin');
+      throw new Error(error.response?.data?.detail || 'Failed to make admin', { cause: error });
     }
   },
 
@@ -48,7 +48,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/users/${userId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete user');
+      throw new Error(error.response?.data?.detail || 'Failed to delete user', { cause: error });
     }
   },
 
@@ -59,7 +59,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching blogs:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch blogs');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch blogs', { cause: error });
     }
   },
 
@@ -75,7 +75,7 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('Error updating blog status:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to update blog status');
+      throw new Error(error.response?.data?.detail || 'Failed to update blog status', { cause: error });
     }
   },
 
@@ -85,7 +85,7 @@ export const adminService = {
       console.log('Fetched AlgoTypes:', response.data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithm types');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch algorithm types', { cause: error });
     }
   },
 
@@ -94,7 +94,7 @@ export const adminService = {
       const response = await api.post(`${ADMIN_URL}/algo-types/`, data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to create algorithm type');
+      throw new Error(error.response?.data?.detail || 'Failed to create algorithm type', { cause: error });
     }
   },
 
@@ -103,7 +103,7 @@ export const adminService = {
       const response = await api.put(`${ADMIN_URL}/algo-types/${typeId}`, data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to update algorithm type');
+      throw new Error(error.response?.data?.detail || 'Failed to update algorithm type', { cause: error });
     }
   },
 
@@ -111,7 +111,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/algo-types/${typeId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm type');
+      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm type', { cause: error });
     }
   },
 
@@ -133,7 +133,7 @@ export const adminService = {
       console.log('Create Algorithm response:', response.data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to create algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to create algorithm', { cause: error });
     }
   },
 
@@ -143,7 +143,7 @@ export const adminService = {
       console.log('Update Algorithm response:', response.data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to update algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to update algorithm', { cause: error });
     }
   },
 
@@ -151,7 +151,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/algorithms/${algoId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm');
+      throw new Error(error.response?.data?.detail || 'Failed to delete algorithm', { cause: error });
     }
   },
 
@@ -160,7 +160,7 @@ export const adminService = {
       const response = await api.get(`${ADMIN_URL}/progress/`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to fetch user progress');
+      throw new Error(error.response?.data?.detail || 'Failed to fetch user progress', { cause: error });
     }
   },
 
@@ -168,7 +168,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/progress/${progressId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete progress');
+      throw new Error(error.response?.data?.detail || 'Failed to delete progress', { cause: error });
     }
   },
 
@@ -176,7 +176,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/progress/user/${userId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete user progress');
+      throw new Error(error.response?.data?.detail || 'Failed to delete user progress', { cause: error });
     }
   },
 
@@ -185,7 +185,7 @@ export const adminService = {
       const response = await api.put(`${ADMIN_URL}/blogs/${blogId}`, data);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to update blog');
+      throw new Error(error.response?.data?.detail || 'Failed to update blog', { cause: error });
     }
   },
 
@@ -193,7 +193,7 @@ export const adminService = {
     try {
       await api.delete(`${ADMIN_URL}/blogs/${blogId}`);
     } catch (error) {
-      throw new Error(error.response?.data?.detail || 'Failed to delete blog');
+      throw new Error(error.response?.data?.detail || 'Failed to delete blog', { cause: error });
     }
   },
 };

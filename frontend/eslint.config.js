@@ -31,7 +31,11 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks 7's `recommended` preset also enables the
+      // React Compiler rules. Adopting those is a separate refactor; keep the
+      // two classic hook rules this project was already enforcing.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
       'react-refresh/only-export-components': [
         'warn',

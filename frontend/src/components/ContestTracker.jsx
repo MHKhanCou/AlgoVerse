@@ -409,7 +409,7 @@ export default function ContestTracker() {
   };
 
   // grouped will be computed after filters are defined
-  let grouped = null;
+  let grouped;
 
   // Judge filter helpers
   const siteKey = (site) => {
